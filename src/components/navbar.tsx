@@ -5,10 +5,10 @@ import { faGithub } from '@fortawesome/free-brands-svg-icons'
 export const Navbar: React.FC = () => {
   return <div className="navbar bg-base-100 shadow-sm">
     <div className="flex-1">
-      <a className="btn btn-ghost text-xl">Context Forge</a>
+      <a className="btn btn-ghost text-base">Context Forge</a>
     </div>
     <div className="flex-none">
-      <a className="btn btn-ghost text-xl">
+      <a className="btn btn-ghost text-base">
         <FontAwesomeIcon icon={faGithub} />
         <span>2.8k</span>
       </a>
