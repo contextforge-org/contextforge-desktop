@@ -50,7 +50,6 @@ export class TrayManager {
     // Handle tray icon click
     this.tray.on('click', () => {
       console.log('Tray icon clicked');
-      this.toggleWindow();
     });
 
     // Handle right-click (Windows/Linux)
@@ -264,11 +263,8 @@ export class TrayManager {
   public toggleWindow(): void {
     if (!this.mainWindow) return;
 
-    if (this.mainWindow.isVisible()) {
-      this.mainWindow.hide();
-    } else {
-      this.showWindow();
-    }
+    // Always show the window when tray icon is clicked
+    this.showWindow();
 
     // Update menu to reflect new state
     this.updateContextMenu();
