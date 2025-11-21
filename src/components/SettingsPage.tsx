@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Users, Network, Key, FolderTree, ArrowLeftRight, Pencil, Trash2, Plus, X, Globe, Lock, BarChart3, XCircle } from 'lucide-react';
+import { Users, Network, Key, Globe, Lock, Plus, Pencil, Trash2, X, BarChart3, XCircle, FolderTree, ArrowLeftRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
@@ -18,6 +18,7 @@ import {
 } from "./ui/select";
 import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { PageHeader, DataTable, Column, ActionButtons, StatusBadge, FormCard } from './common';
 
 interface User {
   id: number;
@@ -343,16 +344,11 @@ export function SettingsPage() {
     <div className={`h-full overflow-auto ${theme === 'dark' ? 'bg-zinc-950' : 'bg-gray-50'}`}>
       <div className="max-w-[1400px] mx-auto p-8">
         {/* Page Header */}
-        <div className="box-border content-stretch flex flex-col gap-[16px] items-start pb-[24px] relative shrink-0 w-full">
-          <div className="content-stretch flex gap-[10px] items-center relative shrink-0 w-full">
-            <p className={`basis-0 font-['Inter:Semi_Bold',sans-serif] font-semibold grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[18px] ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              Settings
-            </p>
-          </div>
-          <p className={`font-['Inter:Regular',sans-serif] font-normal leading-[20px] not-italic relative shrink-0 text-[14px] ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-            Manage your ContextForge settings and configurations
-          </p>
-        </div>
+        <PageHeader
+          title="Settings"
+          description="Manage your ContextForge settings and configurations"
+          theme={theme}
+        />
 
         {/* Settings Accordion */}
         <div className={`rounded-lg border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
@@ -773,16 +769,16 @@ export function SettingsPage() {
                             <div className="flex items-center gap-2">
                               <span>{team.teamName}</span>
                               {team.visibility === 'Public' ? (
-                                <Globe 
-                                  size={14} 
-                                  className={theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'} 
-                                  title="Public"
+                                <Globe
+                                  size={14}
+                                  className={theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}
+                                  aria-label="Public"
                                 />
                               ) : (
-                                <Lock 
-                                  size={14} 
-                                  className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} 
-                                  title="Private"
+                                <Lock
+                                  size={14}
+                                  className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}
+                                  aria-label="Private"
                                 />
                               )}
                             </div>

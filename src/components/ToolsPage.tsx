@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, MoreVertical, X, Filter, LayoutGrid, Table, Pencil, Power, Copy, Trash2, ChevronDown, FlaskConical } from 'lucide-react';
+import { Search, MoreVertical, X, Filter, Pencil, Power, Copy, Trash2, ChevronDown, FlaskConical } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,9 @@ import { Switch } from "./ui/switch";
 import { useTheme } from '../context/ThemeContext';
 import { FilterCategory } from './FilterCategory';
 import { BulkImportForm } from './BulkImportForm';
+import { RightSidePanel } from './RightSidePanel';
 import { toast } from '../lib/toastWithTray';
+import { PageHeader, DataTableToolbar } from './common';
 
 // Helper function to get consistent tag colors
 const getTagColor = (tag: string, theme: string) => {
@@ -528,188 +530,140 @@ export function ToolsPage() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         {/* Header */}
-        <div className="box-border content-stretch flex flex-col gap-[16px] items-start p-[32px] pb-[24px] relative shrink-0 w-full">
-          <div className="content-stretch flex gap-[10px] items-center relative shrink-0 w-full">
-            <p className={`basis-0 font-['Inter:Semi_Bold',sans-serif] font-semibold grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[18px] ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              MCP Tools
-            </p>
-          </div>
-          <p className={`font-['Inter:Regular',sans-serif] font-normal leading-[20px] not-italic relative shrink-0 text-[14px] ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-            This is the diverse catalog of MCP Tools available. You can also add custom tools from REST APIs. Create a Virtual Server →
-          </p>
-        </div>
+        <PageHeader
+          title="MCP Tools"
+          description="This is the diverse catalog of MCP Tools available. You can also add custom tools from REST APIs. Create a Virtual Server →"
+          theme={theme}
+        />
 
         {/* Filters and Controls */}
         <div className="px-[32px] pb-[24px]">
           <div className={`rounded-lg border overflow-hidden ${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
             {/* Controls Header */}
-            <div className={`p-4 border-b ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
-              <div className="flex gap-2 items-center">
-                {/* View Toggle */}
-                <div className={`flex items-center gap-1 p-1 rounded-lg ${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100'}`}>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-2 rounded transition-colors ${
-                      viewMode === 'table'
-                        ? theme === 'dark' ? 'bg-zinc-700 text-white' : 'bg-white text-gray-900 shadow-sm'
-                        : theme === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <Table size={18} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded transition-colors ${
-                      viewMode === 'grid'
-                        ? theme === 'dark' ? 'bg-zinc-700 text-white' : 'bg-white text-gray-900 shadow-sm'
-                        : theme === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <LayoutGrid size={18} />
-                  </button>
-                </div>
-
-                {/* Search Button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className={`flex items-center justify-center size-[32px] border rounded-[6px] transition-colors ${theme === 'dark' ? 'bg-zinc-950 border-zinc-700 hover:bg-zinc-800' : 'bg-gray-50 border-gray-300 hover:bg-gray-100'}`}>
-                      <Search size={14} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
+            <div className={`border-b ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-800' : 'bg-white border-gray-200'}`}>
+              <DataTableToolbar
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filterComponent={
+                  <DropdownMenu open={showFilters} onOpenChange={setShowFilters}>
+                    <DropdownMenuTrigger asChild>
+                      <button className={`relative flex items-center justify-center size-[32px] border rounded-[6px] transition-colors ${
+                        hasActiveFilters
+                          ? theme === 'dark'
+                            ? 'bg-cyan-900/30 border-cyan-500 hover:bg-cyan-900/40'
+                            : 'bg-cyan-50 border-cyan-500 hover:bg-cyan-100'
+                          : theme === 'dark'
+                            ? 'bg-zinc-950 border-zinc-700 hover:bg-zinc-800'
+                            : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+                      }`}>
+                        <Filter size={14} className={hasActiveFilters ? 'text-cyan-500' : theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
+                        {hasActiveFilters && (
+                          <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 bg-cyan-500 rounded-full text-white text-[10px] font-semibold">
+                            {selectedAnnotations.length + selectedTypes.length + selectedMethods.length + selectedVisibility.length}
+                          </span>
+                        )}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      className={`w-64 max-h-[500px] overflow-y-auto ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}
+                      onInteractOutside={(e) => e.preventDefault()}
+                    >
+                      <FilterCategory
+                        label="Annotations"
+                        items={allAnnotations}
+                        selectedItems={selectedAnnotations}
+                        onToggle={(item) => {
+                          setSelectedAnnotations(prev =>
+                            prev.includes(item)
+                              ? prev.filter(i => i !== item)
+                              : [...prev, item]
+                          );
+                        }}
+                        theme={theme}
+                      />
+                      <FilterCategory
+                        label="Type"
+                        items={allTypes}
+                        selectedItems={selectedTypes}
+                        onToggle={(item) => {
+                          setSelectedTypes(prev =>
+                            prev.includes(item)
+                              ? prev.filter(i => i !== item)
+                              : [...prev, item]
+                          );
+                        }}
+                        theme={theme}
+                      />
+                      <FilterCategory
+                        label="Request Method"
+                        items={allMethods}
+                        selectedItems={selectedMethods}
+                        onToggle={(item) => {
+                          setSelectedMethods(prev =>
+                            prev.includes(item)
+                              ? prev.filter(i => i !== item)
+                              : [...prev, item]
+                          );
+                        }}
+                        theme={theme}
+                      />
+                      <FilterCategory
+                        label="Visibility"
+                        items={allVisibilityOptions}
+                        selectedItems={selectedVisibility}
+                        onToggle={(item) => {
+                          setSelectedVisibility(prev =>
+                            prev.includes(item)
+                              ? prev.filter(i => i !== item)
+                              : [...prev, item]
+                          );
+                        }}
+                        theme={theme}
+                      />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
+                secondaryActions={
+                  <div className="flex items-center gap-0 shadow-lg shadow-orange-500/20 rounded-[6px] overflow-hidden">
+                    <button
+                      onClick={handleAddToolClick}
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 flex gap-[6px] items-center justify-center px-[12px] py-[8px] hover:from-orange-600 hover:to-orange-700 transition-all"
+                    >
+                      <p className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic text-[13px] text-white text-nowrap whitespace-pre">
+                        Add Tool
+                      </p>
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className={`w-80 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
-                    <div className="p-2">
-                      <div className={`flex items-center gap-2 px-3 py-2 border rounded-md ${theme === 'dark' ? 'bg-zinc-950 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
-                        <Search size={14} className={theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'} strokeWidth={1.5} />
-                        <input 
-                          type="text"
-                          placeholder="Search tools..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className={`flex-1 font-['JetBrains_Mono:Regular',sans-serif] font-normal text-[14px] bg-transparent border-none outline-none ${theme === 'dark' ? 'text-white placeholder:text-zinc-500' : 'text-gray-900 placeholder:text-gray-400'}`}
-                        />
-                      </div>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Filter Button */}
-                <DropdownMenu open={showFilters} onOpenChange={setShowFilters}>
-                  <DropdownMenuTrigger asChild>
-                    <button className={`relative flex items-center justify-center size-[32px] border rounded-[6px] transition-colors ${
-                      hasActiveFilters
-                        ? theme === 'dark' 
-                          ? 'bg-cyan-900/30 border-cyan-500 hover:bg-cyan-900/40' 
-                          : 'bg-cyan-50 border-cyan-500 hover:bg-cyan-100'
-                        : theme === 'dark' 
-                          ? 'bg-zinc-950 border-zinc-700 hover:bg-zinc-800' 
-                          : 'bg-gray-50 border-gray-300 hover:bg-gray-100'
-                    }`}>
-                      <Filter size={14} className={hasActiveFilters ? 'text-cyan-500' : theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
-                      {hasActiveFilters && (
-                        <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 bg-cyan-500 rounded-full text-white text-[10px] font-semibold">
-                          {selectedAnnotations.length + selectedTypes.length + selectedMethods.length + selectedVisibility.length}
-                        </span>
-                      )}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="start" 
-                    className={`w-64 max-h-[500px] overflow-y-auto ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}
-                    onInteractOutside={(e) => e.preventDefault()}
-                  >
-                    <FilterCategory
-                      label="Annotations"
-                      items={allAnnotations}
-                      selectedItems={selectedAnnotations}
-                      onToggle={(item) => {
-                        setSelectedAnnotations(prev =>
-                          prev.includes(item)
-                            ? prev.filter(i => i !== item)
-                            : [...prev, item]
-                        );
-                      }}
-                      theme={theme}
-                    />
-                    <FilterCategory
-                      label="Type"
-                      items={allTypes}
-                      selectedItems={selectedTypes}
-                      onToggle={(item) => {
-                        setSelectedTypes(prev =>
-                          prev.includes(item)
-                            ? prev.filter(i => i !== item)
-                            : [...prev, item]
-                        );
-                      }}
-                      theme={theme}
-                    />
-                    <FilterCategory
-                      label="Request Method"
-                      items={allMethods}
-                      selectedItems={selectedMethods}
-                      onToggle={(item) => {
-                        setSelectedMethods(prev =>
-                          prev.includes(item)
-                            ? prev.filter(i => i !== item)
-                            : [...prev, item]
-                        );
-                      }}
-                      theme={theme}
-                    />
-                    <FilterCategory
-                      label="Visibility"
-                      items={allVisibilityOptions}
-                      selectedItems={selectedVisibility}
-                      onToggle={(item) => {
-                        setSelectedVisibility(prev =>
-                          prev.includes(item)
-                            ? prev.filter(i => i !== item)
-                            : [...prev, item]
-                        );
-                      }}
-                      theme={theme}
-                    />
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <div className="flex-1"></div>
-
-            {/* Add Tool Combo Button */}
-            <div className="flex items-center gap-0 shadow-lg shadow-orange-500/20 rounded-[6px] overflow-hidden">
-              <button 
-                onClick={handleAddToolClick}
-                className="bg-gradient-to-r from-orange-500 to-orange-600 flex gap-[6px] items-center justify-center px-[12px] py-[8px] hover:from-orange-600 hover:to-orange-700 transition-all"
-              >
-                <p className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic text-[13px] text-white text-nowrap whitespace-pre">
-                  Add Tool
-                </p>
-              </button>
-              <div className="w-px h-[20px] bg-orange-400/30"></div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button 
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center px-[8px] py-[8px] hover:from-orange-600 hover:to-orange-700 transition-all"
-                  >
-                    <ChevronDown size={16} className="text-white" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className={theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}>
-                  <DropdownMenuItem 
-                    onClick={handleAddToolClick}
-                    className={theme === 'dark' ? 'text-zinc-300 focus:bg-zinc-800 focus:text-white' : 'text-gray-700 focus:bg-gray-100'}
-                  >
-                    Add Single Tool
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={handleBulkImportClick}
-                    className={theme === 'dark' ? 'text-zinc-300 focus:bg-zinc-800 focus:text-white' : 'text-gray-700 focus:bg-gray-100'}
-                  >
-                    Bulk Import Tools
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-              </div>
+                    <div className="w-px h-[20px] bg-orange-400/30"></div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center px-[8px] py-[8px] hover:from-orange-600 hover:to-orange-700 transition-all"
+                        >
+                          <ChevronDown size={16} className="text-white" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className={theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}>
+                        <DropdownMenuItem
+                          onClick={handleAddToolClick}
+                          className={theme === 'dark' ? 'text-zinc-300 focus:bg-zinc-800 focus:text-white' : 'text-gray-700 focus:bg-gray-100'}
+                        >
+                          Add Single Tool
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleBulkImportClick}
+                          className={theme === 'dark' ? 'text-zinc-300 focus:bg-zinc-800 focus:text-white' : 'text-gray-700 focus:bg-gray-100'}
+                        >
+                          Bulk Import Tools
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                }
+                theme={theme}
+              />
             </div>
 
             {/* Table View */}
@@ -1020,33 +974,31 @@ export function ToolsPage() {
       </div>
 
       {/* Side Panel */}
-      {showSidePanel && (
-        <div className={`w-[600px] border-l flex flex-col ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
-          <div className="flex-1 overflow-y-auto">
-            {/* Header */}
-            <div className={`p-6 border-b sticky top-0 z-10 ${theme === 'dark' ? 'border-zinc-700 bg-zinc-900' : 'border-gray-200 bg-white'}`}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h2 className={`text-lg font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    {panelMode === 'add' ? 'Add New Tool from REST API' : editedName}
-                  </h2>
-                  {panelMode === 'view' && (
-                    <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                      {editedGatewayName}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowSidePanel(false)}
-                  className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800' : 'hover:bg-gray-100'}`}
-                >
-                  <X size={20} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
-                </button>
-              </div>
-            </div>
-
-            {/* Form Content */}
-            <div className="p-6 space-y-6">
+      <RightSidePanel
+        isOpen={showSidePanel}
+        onClose={() => setShowSidePanel(false)}
+        title={panelMode === 'add' ? 'Add New Tool from REST API' : editedName}
+        subtitle={panelMode === 'view' ? editedGatewayName : undefined}
+        theme={theme as 'light' | 'dark'}
+        width="w-[600px]"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowSidePanel(false)}
+              className={`flex-1 px-4 py-2 rounded-md transition-colors border ${theme === 'dark' ? 'bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveTool}
+              className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
+            >
+              {panelMode === 'add' ? 'Add Tool' : 'Save Changes'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-6">
               {/* Gateway Name */}
               <div>
                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
@@ -1477,27 +1429,7 @@ export function ToolsPage() {
                 <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{selectedTool?.team || 'My Team'}</p>
               </div>
             </div>
-          </div>
-
-          {/* Sticky Footer */}
-          <div className={`p-6 pt-4 border-t sticky bottom-0 z-10 ${theme === 'dark' ? 'border-zinc-700 bg-zinc-800' : 'border-gray-200 bg-gray-50'}`}>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowSidePanel(false)}
-                className={`flex-1 px-4 py-2 rounded-md transition-colors border ${theme === 'dark' ? 'bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveTool}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
-              >
-                {panelMode === 'add' ? 'Add Tool' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </RightSidePanel>
 
       {/* Test Panel */}
       {showTestPanel && testingTool && (

@@ -1,6 +1,7 @@
-import { X, ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { Switch } from "./ui/switch";
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { RightSidePanel } from './RightSidePanel';
 
 type MCPServer = {
   id: number;
@@ -81,26 +82,33 @@ export function ServerDetailsPanel({
     onTagsChange(editedTags.filter((_, i) => i !== index));
   };
 
+  const footer = (
+    <div className="flex gap-3">
+      <button
+        onClick={onClose}
+        className={`flex-1 px-4 py-2 rounded-md transition-colors border ${theme === 'dark' ? 'bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
+      >
+        Cancel
+      </button>
+      <button
+        onClick={onSave}
+        className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
+      >
+        {panelMode === 'add' ? 'Add Gateway' : 'Save Changes'}
+      </button>
+    </div>
+  );
+
   return (
-    <div className={`w-[500px] border-l shadow-xl flex flex-col ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
-      {/* Sticky Header */}
-      <div className={`p-6 pb-4 border-b sticky top-0 z-10 ${theme === 'dark' ? 'border-zinc-700 bg-zinc-800' : 'border-gray-200 bg-gray-50'}`}>
-        <div className="flex items-center justify-between">
-          <h2 className={`text-xl ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            {panelMode === 'add' ? 'Add New Gateway' : 'MCP Server Details'}
-          </h2>
-          <button 
-            onClick={onClose}
-            className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-zinc-700' : 'hover:bg-gray-200'}`}
-          >
-            <X size={20} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
-          </button>
-        </div>
-      </div>
-      
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="space-y-6">
+    <RightSidePanel
+      isOpen={true}
+      onClose={onClose}
+      title={panelMode === 'add' ? 'Add New Gateway' : 'MCP Server Details'}
+      theme={theme as 'light' | 'dark'}
+      width="w-[500px]"
+      footer={footer}
+    >
+      <div className="space-y-6">
           {/* Logo, Name and Toggle Header */}
           {panelMode === 'view' && server && (
             <div className="flex items-start gap-4 pb-4">
@@ -364,26 +372,7 @@ export function ServerDetailsPanel({
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Sticky Footer */}
-      <div className={`p-6 pt-4 border-t sticky bottom-0 z-10 ${theme === 'dark' ? 'border-zinc-700 bg-zinc-800' : 'border-gray-200 bg-gray-50'}`}>
-        <div className="flex gap-3">
-          <button 
-            onClick={onClose}
-            className={`flex-1 px-4 py-2 rounded-md transition-colors border ${theme === 'dark' ? 'bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={onSave}
-            className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
-          >
-            {panelMode === 'add' ? 'Add Gateway' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </RightSidePanel>
   );
 }
 

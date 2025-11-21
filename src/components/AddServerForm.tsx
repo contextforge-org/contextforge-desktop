@@ -12,6 +12,7 @@ import {
 import { Switch } from "./ui/switch";
 import { useTheme } from '../context/ThemeContext';
 import { FilterCategory } from './FilterCategory';
+import { RightSidePanel } from './RightSidePanel';
 import { toast } from '../lib/toastWithTray';
 
 // Available options for multi-select dropdowns
@@ -963,23 +964,33 @@ export function AddServerForm() {
       </div>
 
       {/* Right Side Panel */}
-      {showSidePanel && (
-        <div className={`w-[500px] border-l shadow-xl flex flex-col ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
-          {/* Sticky Header */}
-          <div className={`p-6 pb-4 border-b sticky top-0 z-10 ${theme === 'dark' ? 'border-zinc-700 bg-zinc-800' : 'border-gray-200 bg-gray-50'}`}>
-            <div className="flex items-center justify-between">
-              <h2 className={`text-xl ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{panelMode === 'add' ? 'Add New Server' : 'View Server'}</h2>
-              <button 
-                onClick={() => setShowSidePanel(false)}
-                className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-zinc-700' : 'hover:bg-gray-200'}`}
-              >
-                <X size={20} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
-              </button>
-            </div>
+      <RightSidePanel
+        isOpen={showSidePanel}
+        onClose={() => setShowSidePanel(false)}
+        title={panelMode === 'add' ? 'Add New Server' : 'View Server'}
+        theme={theme as 'light' | 'dark'}
+        width="w-[500px]"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowSidePanel(false)}
+              className={`flex-1 box-border content-stretch flex items-center justify-center overflow-clip px-[12px] py-[8px] rounded-[6px] transition-colors border ${theme === 'dark' ? 'bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
+            >
+              <span className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic text-[13px] text-nowrap whitespace-pre">
+                Cancel
+              </span>
+            </button>
+            <button
+              onClick={handleSaveServer}
+              className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 box-border content-stretch flex items-center justify-center overflow-clip px-[12px] py-[8px] rounded-[6px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
+            >
+              <span className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic text-[13px] text-white text-nowrap whitespace-pre">
+                {panelMode === 'add' ? 'Add Server' : 'Save Changes'}
+              </span>
+            </button>
           </div>
-          
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-auto p-6">
+        }
+      >
             {panelMode === 'view' && selectedServer ? (
               /* View Mode */
               <div className="space-y-6">
@@ -1851,31 +1862,7 @@ export function AddServerForm() {
               </div>
             </div>
             )}
-          </div>
-
-          {/* Sticky Footer */}
-          <div className={`p-6 pt-4 border-t sticky bottom-0 z-10 ${theme === 'dark' ? 'border-zinc-700 bg-zinc-800' : 'border-gray-200 bg-gray-50'}`}>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowSidePanel(false)}
-                className={`flex-1 box-border content-stretch flex items-center justify-center overflow-clip px-[12px] py-[8px] rounded-[6px] transition-colors border ${theme === 'dark' ? 'bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-100'}`}
-              >
-                <span className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic text-[13px] text-nowrap whitespace-pre">
-                  Cancel
-                </span>
-              </button>
-              <button 
-                onClick={handleSaveServer}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 box-border content-stretch flex items-center justify-center overflow-clip px-[12px] py-[8px] rounded-[6px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
-              >
-                <span className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic text-[13px] text-white text-nowrap whitespace-pre">
-                  {panelMode === 'add' ? 'Add Server' : 'Save Changes'}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </RightSidePanel>
     </div>
   );
 }

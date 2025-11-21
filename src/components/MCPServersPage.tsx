@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { Search, LayoutGrid, Table } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { MCPServer } from '../types/server';
 import { useServerFilters } from '../hooks/useServerFilters';
@@ -9,6 +8,7 @@ import { ServerTableView } from './ServerTableView';
 import { ServerGridView } from './ServerGridView';
 import { ServerDetailsPanel } from './ServerDetailsPanel';
 import { ServerFilterDropdown } from './ServerFilterDropdown';
+import { PageHeader, DataTableToolbar } from './common';
 import imgAzure from "../../assets/icons/brands/terraform.png";
 import imgBox from "../../assets/icons/brands/box.png";
 import imgGitHub from "../../assets/icons/brands/github.png";
@@ -145,53 +145,21 @@ export function MCPServersPage() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         {/* Header */}
-        <div className="box-border content-stretch flex flex-col gap-[16px] items-start p-[32px] pb-[24px] relative shrink-0 w-full">
-          <div className="content-stretch flex gap-[10px] items-center relative shrink-0 w-full">
-            <p className={`basis-0 font-['Inter:Semi_Bold',sans-serif] font-semibold grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[18px] ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              MCP Servers & Federated Gateways
-            </p>
-          </div>
-          <p className={`font-['Inter:Regular',sans-serif] font-normal leading-[20px] not-italic relative shrink-0 text-[14px] ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-            Register external MCP Servers (SSE/HTTP) to retrieve their tools/resources/prompts.
-          </p>
-        </div>
+        <PageHeader
+          title="MCP Servers & Federated Gateways"
+          description="Register external MCP Servers (SSE/HTTP) to retrieve their tools/resources/prompts."
+          theme={theme}
+        />
 
         <div className="p-[32px]">
           {/* Data Table */}
           <div className={`rounded-lg border-b border-l border-r overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
             {/* Table Toolbar */}
-            <div className={`flex items-center justify-between gap-4 p-4 border-t border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
-              <div className="flex items-center gap-2">
-                {/* View Toggle Buttons */}
-                <div className={`flex items-center gap-1 p-1 rounded-lg ${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100'}`}>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-2 rounded transition-colors ${
-                      viewMode === 'table'
-                        ? theme === 'dark' ? 'bg-zinc-700 text-white' : 'bg-white text-gray-900 shadow-sm'
-                        : theme === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <Table size={18} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded transition-colors ${
-                      viewMode === 'grid'
-                        ? theme === 'dark' ? 'bg-zinc-700 text-white' : 'bg-white text-gray-900 shadow-sm'
-                        : theme === 'dark' ? 'text-zinc-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <LayoutGrid size={18} />
-                  </button>
-                </div>
-
-                {/* Search Button */}
-                <button className={`flex items-center justify-center size-[32px] border rounded-[6px] transition-colors ${theme === 'dark' ? 'bg-zinc-950 border-zinc-700 hover:bg-zinc-800' : 'bg-gray-50 border-gray-300 hover:bg-gray-100'}`}>
-                  <Search size={14} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
-                </button>
-
-                {/* Filter Dropdown */}
+            <DataTableToolbar
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              showSearch={true}
+              filterComponent={
                 <ServerFilterDropdown
                   theme={theme}
                   filters={filterHook.filters}
@@ -208,25 +176,20 @@ export function MCPServersPage() {
                   onToggleFilter={filterHook.toggleFilter}
                   onSelectAll={filterHook.selectAllInCategory}
                   onDeselectAll={filterHook.deselectAllInCategory}
-                  onSearchChange={(category, value) => 
+                  onSearchChange={(category, value) =>
                     filterHook.setCategorySearches(prev => ({ ...prev, [category]: value }))
                   }
-                  onExpandChange={(category, expanded) => 
+                  onExpandChange={(category, expanded) =>
                     filterHook.setExpandedCategories(prev => ({ ...prev, [category]: expanded }))
                   }
                 />
-              </div>
-
-              {/* Add Gateway Button */}
-              <button 
-                onClick={handleAddGatewayClick}
-                className="bg-gradient-to-r from-orange-500 to-orange-600 box-border content-stretch flex gap-[6px] items-center justify-center overflow-clip px-[12px] py-[8px] relative rounded-[6px] shrink-0 hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
-              >
-                <p className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic relative shrink-0 text-[13px] text-white text-nowrap whitespace-pre">
-                  Add Gateway
-                </p>
-              </button>
-            </div>
+              }
+              primaryAction={{
+                label: 'Add Gateway',
+                onClick: handleAddGatewayClick,
+              }}
+              theme={theme}
+            />
 
             {/* Table or Grid View */}
             {viewMode === 'table' ? (
