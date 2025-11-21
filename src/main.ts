@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { TrayManager } from './tray-manager';
+import { PythonProcessManager } from './python-process-manager';
 import { setupIpcHandlers, cleanupIpcHandlers } from './ipc-handlers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -12,6 +13,7 @@ if (started) {
 // Keep references to prevent garbage collection
 let mainWindow: BrowserWindow | null = null;
 let trayManager: TrayManager | null = null;
+let pythonManager: PythonProcessManager | null = null;
 
 const createWindow = () => {
   // Create the browser window.
@@ -39,8 +41,11 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   }
 
-  // Initialize tray manager
-  trayManager = new TrayManager(mainWindow);
+  // Initialize Python process manager
+  pythonManager = new PythonProcessManager();
+
+  // Initialize tray manager with Python manager
+  trayManager = new TrayManager(mainWindow, pythonManager);
   trayManager.createTray();
 
   // Setup IPC handlers
@@ -97,11 +102,18 @@ app.on('activate', () => {
 });
 
 // Cleanup before quit
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   // Set the quitting flag so window close won't be prevented
   if (trayManager) {
     trayManager.setQuitting(true);
   }
+  
+  // Stop Python process if running
+  if (pythonManager) {
+    console.log('Stopping Python process before quit...');
+    await pythonManager.stop();
+  }
+  
   cleanupIpcHandlers();
   trayManager?.destroy();
 });

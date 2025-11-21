@@ -1,5 +1,6 @@
 import { app, Tray, Menu, BrowserWindow, nativeImage, Notification } from 'electron';
 import path from 'node:path';
+import { PythonProcessManager } from './python-process-manager';
 
 export interface TrayConfig {
   notificationsEnabled: boolean;
@@ -10,6 +11,7 @@ export interface TrayConfig {
 export class TrayManager {
   private tray: Tray | null = null;
   private mainWindow: BrowserWindow | null = null;
+  private pythonManager: PythonProcessManager | null = null;
   private config: TrayConfig = {
     notificationsEnabled: true,
     notificationSound: true,
@@ -18,8 +20,9 @@ export class TrayManager {
   private unreadCount = 0;
   private isQuitting = false;
 
-  constructor(mainWindow: BrowserWindow) {
+  constructor(mainWindow: BrowserWindow, pythonManager?: PythonProcessManager) {
     this.mainWindow = mainWindow;
+    this.pythonManager = pythonManager || null;
   }
 
   /**
@@ -100,12 +103,90 @@ export class TrayManager {
     const isVisible = this.mainWindow?.isVisible() ?? false;
     const unreadText = this.unreadCount > 0 ? ` (${this.unreadCount})` : '';
 
+    // Get Python process status
+    const pythonStatus = this.pythonManager?.getStatus();
+    const isPythonRunning = pythonStatus?.isRunning ?? false;
+    const pythonExists = this.pythonManager?.executableExists() ?? false;
+
     const contextMenu = Menu.buildFromTemplate([
       {
         label: isVisible ? 'Hide Window' : `Show Window${unreadText}`,
         click: () => this.toggleWindow(),
       },
       { type: 'separator' },
+      // Python Backend submenu
+      ...(this.pythonManager ? [{
+        label: 'Python Backend',
+        submenu: [
+          {
+            label: isPythonRunning ? '🟢 Running' : (pythonExists ? '🔴 Stopped' : '⚠️ Not Found'),
+            enabled: false,
+          },
+          ...(pythonStatus?.pid ? [{
+            label: `PID: ${pythonStatus.pid}`,
+            enabled: false,
+          }] : []),
+          ...(isPythonRunning && pythonStatus?.startTime ? [{
+            label: `Uptime: ${this.formatUptime(this.pythonManager.getUptime())}`,
+            enabled: false,
+          }] : []),
+          { type: 'separator' as const },
+          {
+            label: 'Start Backend',
+            enabled: !isPythonRunning && pythonExists,
+            click: async () => {
+              try {
+                await this.pythonManager?.start();
+                this.showNotification('Python Backend', 'Started successfully');
+                this.updateContextMenu();
+              } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                this.showNotification('Python Backend', `Failed to start: ${errorMsg}`);
+                console.error('Failed to start Python backend:', error);
+              }
+            },
+          },
+          {
+            label: 'Stop Backend',
+            enabled: isPythonRunning,
+            click: async () => {
+              try {
+                await this.pythonManager?.stop();
+                this.showNotification('Python Backend', 'Stopped successfully');
+                this.updateContextMenu();
+              } catch (error) {
+                console.error('Failed to stop Python backend:', error);
+              }
+            },
+          },
+          {
+            label: 'Restart Backend',
+            enabled: isPythonRunning,
+            click: async () => {
+              try {
+                await this.pythonManager?.restart();
+                this.showNotification('Python Backend', 'Restarted successfully');
+                this.updateContextMenu();
+              } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                this.showNotification('Python Backend', `Failed to restart: ${errorMsg}`);
+                console.error('Failed to restart Python backend:', error);
+              }
+            },
+          },
+          ...(pythonStatus?.executablePath ? [
+            { type: 'separator' as const },
+            {
+              label: 'Executable Path',
+              enabled: false,
+            },
+            {
+              label: pythonStatus.executablePath,
+              enabled: false,
+            },
+          ] : []),
+        ],
+      }, { type: 'separator' as const }] : []),
       {
         label: 'Notifications',
         submenu: [
@@ -298,6 +379,23 @@ export class TrayManager {
     if (process.platform === 'win32' && !this.mainWindow?.isVisible() && this.unreadCount > 0) {
       this.mainWindow?.flashFrame(true);
       console.log('Flashed Windows taskbar');
+    }
+  }
+
+  /**
+   * Format uptime in seconds to human-readable string
+   */
+  private formatUptime(seconds: number): string {
+    if (seconds < 60) {
+      return `${seconds}s`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${minutes}m ${secs}s`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${minutes}m`;
     }
   }
 
