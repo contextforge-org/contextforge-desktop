@@ -98,6 +98,10 @@ app.on('activate', () => {
 
 // Cleanup before quit
 app.on('before-quit', () => {
+  // Set the quitting flag so window close won't be prevented
+  if (trayManager) {
+    trayManager.setQuitting(true);
+  }
   cleanupIpcHandlers();
   trayManager?.destroy();
 });

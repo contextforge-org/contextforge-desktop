@@ -7,10 +7,14 @@ import { ToolsPage } from './components/ToolsPage';
 import { SettingsPage } from './components/SettingsPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Toaster } from './components/ui/sonner';
+import { useTray } from './hooks/useTray';
 
 function AppContent() {
   const { theme } = useTheme();
   const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'tools' | 'settings'>('servers');
+  
+  // Initialize tray integration for toast notifications
+  useTray();
   
   return (
     <div className={`h-screen flex flex-col ${theme === 'dark' ? 'bg-zinc-950' : 'bg-gray-50'}`}>

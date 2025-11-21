@@ -30,4 +30,4 @@ declare module '*.webp' {
   export default value;
 }
 
-// Made with Bob
+

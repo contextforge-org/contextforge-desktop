@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Upload, Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { toast } from 'sonner';
+import { toast } from '../lib/toastWithTray';
 
 interface BulkImportFormProps {
   onClose: () => void;

@@ -12,7 +12,7 @@ import {
 import { Switch } from "./ui/switch";
 import { useTheme } from '../context/ThemeContext';
 import { FilterCategory } from './FilterCategory';
-import { toast } from 'sonner';
+import { toast } from '../lib/toastWithTray';
 
 // Available options for multi-select dropdowns
 const AVAILABLE_TOOLS = [

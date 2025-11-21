@@ -13,7 +13,7 @@ import { Switch } from "./ui/switch";
 import { useTheme } from '../context/ThemeContext';
 import { FilterCategory } from './FilterCategory';
 import { BulkImportForm } from './BulkImportForm';
-import { toast } from 'sonner';
+import { toast } from '../lib/toastWithTray';
 
 // Helper function to get consistent tag colors
 const getTagColor = (tag: string, theme: string) => {

@@ -16,6 +16,7 @@ export class TrayManager {
     minimizeToTray: true,
   };
   private unreadCount = 0;
+  private isQuitting = false;
 
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow;
@@ -315,6 +316,11 @@ export class TrayManager {
    * Handle window close event
    */
   public handleWindowClose(event: Electron.Event): boolean {
+    // If app is quitting, allow the window to close
+    if (this.isQuitting) {
+      return true;
+    }
+    
     if (this.config.minimizeToTray && this.mainWindow) {
       event.preventDefault();
       this.hideWindow();
@@ -337,11 +343,18 @@ export class TrayManager {
    * Force quit the application
    */
   private forceQuit(): void {
-    // Disable minimize to tray temporarily
-    this.config.minimizeToTray = false;
+    // Set flag to allow window to close
+    this.isQuitting = true;
     
     // Quit the app
     app.quit();
+  }
+
+  /**
+   * Set the quitting flag
+   */
+  public setQuitting(value: boolean): void {
+    this.isQuitting = value;
   }
 
   /**

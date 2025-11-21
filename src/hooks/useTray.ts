@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { notificationManager } from '../lib/toastWithTray';
 
 interface TrayConfig {
   notificationsEnabled: boolean;
@@ -13,13 +14,23 @@ export function useTray() {
   const [config, setConfig] = useState<TrayConfig | null>(null);
   const [isWindowVisible, setIsWindowVisible] = useState(true);
 
-  // Load initial config
+  // Update badge count callback
+  const updateBadge = useCallback((count: number) => {
+    if (window.electronAPI) {
+      window.electronAPI.updateBadge(count);
+    }
+  }, []);
+
+  // Load initial config and set up notification manager
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.getTrayConfig().then(setConfig);
       window.electronAPI.isWindowVisible().then(setIsWindowVisible);
+      
+      // Connect notification manager to tray badge updates
+      notificationManager.setUpdateBadgeCallback(updateBadge);
     }
-  }, []);
+  }, [updateBadge]);
 
   // Show notification
   const showNotification = useCallback((
@@ -29,13 +40,6 @@ export function useTray() {
   ) => {
     if (window.electronAPI) {
       window.electronAPI.showNotification(title, body, options);
-    }
-  }, []);
-
-  // Update badge count
-  const updateBadge = useCallback((count: number) => {
-    if (window.electronAPI) {
-      window.electronAPI.updateBadge(count);
     }
   }, []);
 
