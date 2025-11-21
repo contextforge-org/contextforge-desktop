@@ -187,6 +187,7 @@ export function AddServerForm() {
   const [editedPrompts, setEditedPrompts] = useState<string[]>([]);
   const [editedTags, setEditedTags] = useState<string[]>([]);
   const [editedVisibility, setEditedVisibility] = useState<'public' | 'team' | 'private'>('public');
+  const [editedActive, setEditedActive] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingUuid, setEditingUuid] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
@@ -301,6 +302,7 @@ export function AddServerForm() {
     setEditedPrompts([...server.associatedPrompts]);
     setEditedTags([...server.tags]);
     setEditedVisibility(server.visibility);
+    setEditedActive(server.active);
     setEditedName(server.name);
     setEditedUuid(server.uuid);
     setEditedDescription(server.description);
@@ -1021,9 +1023,9 @@ export function AddServerForm() {
                           {selectedServer.name}
                         </h3>
                       )}
-                      <Switch 
+                      <Switch
                         checked={selectedServer.active}
-                        onCheckedChange={toggleServerActive}
+                        onCheckedChange={() => toggleServerActive(selectedServer.uuid)}
                         className="scale-75 data-[state=checked]:bg-cyan-500"
                       />
                     </div>

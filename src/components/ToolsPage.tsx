@@ -618,28 +618,56 @@ export function ToolsPage() {
                     onInteractOutside={(e) => e.preventDefault()}
                   >
                     <FilterCategory
-                      title="Annotations"
+                      label="Annotations"
                       items={allAnnotations}
                       selectedItems={selectedAnnotations}
-                      onSelectionChange={setSelectedAnnotations}
+                      onToggle={(item) => {
+                        setSelectedAnnotations(prev =>
+                          prev.includes(item)
+                            ? prev.filter(i => i !== item)
+                            : [...prev, item]
+                        );
+                      }}
+                      theme={theme}
                     />
                     <FilterCategory
-                      title="Type"
+                      label="Type"
                       items={allTypes}
                       selectedItems={selectedTypes}
-                      onSelectionChange={setSelectedTypes}
+                      onToggle={(item) => {
+                        setSelectedTypes(prev =>
+                          prev.includes(item)
+                            ? prev.filter(i => i !== item)
+                            : [...prev, item]
+                        );
+                      }}
+                      theme={theme}
                     />
                     <FilterCategory
-                      title="Request Method"
+                      label="Request Method"
                       items={allMethods}
                       selectedItems={selectedMethods}
-                      onSelectionChange={setSelectedMethods}
+                      onToggle={(item) => {
+                        setSelectedMethods(prev =>
+                          prev.includes(item)
+                            ? prev.filter(i => i !== item)
+                            : [...prev, item]
+                        );
+                      }}
+                      theme={theme}
                     />
                     <FilterCategory
-                      title="Visibility"
+                      label="Visibility"
                       items={allVisibilityOptions}
                       selectedItems={selectedVisibility}
-                      onSelectionChange={setSelectedVisibility}
+                      onToggle={(item) => {
+                        setSelectedVisibility(prev =>
+                          prev.includes(item)
+                            ? prev.filter(i => i !== item)
+                            : [...prev, item]
+                        );
+                      }}
+                      theme={theme}
                     />
                   </DropdownMenuContent>
                 </DropdownMenu>
