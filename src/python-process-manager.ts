@@ -56,74 +56,129 @@ export class PythonProcessManager {
   public async start(args: string[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.isRunning) {
-        console.log('Python process already running');
+        this.log('info', 'Python process already running');
         resolve();
         return;
       }
 
-      const execPath = this.getExecutablePath();
-      this.executablePath = execPath;
+      try {
+        this.verifyExecutableExists();
+        const execPath = this.getExecutablePath();
+        this.executablePath = execPath;
 
-      // Verify executable exists
-      if (!fs.existsSync(execPath)) {
-        const error = new Error(
-          `Python executable not found at: ${execPath}\n` +
-          `Please build the Python executable using PyInstaller and place it in the correct location.`
-        );
-        console.error(error.message);
-        reject(error);
-        return;
+        this.log('info', `Starting Python process: ${execPath}`);
+
+        this.process = spawn(execPath, args, this.getSpawnOptions(execPath));
+        this.setupProcessOutputHandlers();
+        this.setupProcessLifecycleHandlers(resolve, reject);
+      } catch (error) {
+        this.log('error', 'Failed to start Python process:', error);
+        reject(error as Error);
       }
-
-      console.log(`Starting Python process: ${execPath}`);
-
-      // Spawn the PyInstaller executable directly
-      this.process = spawn(execPath, args, {
-        detached: false,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        // Set working directory to executable's directory
-        cwd: path.dirname(execPath),
-      });
-
-      // Handle stdout
-      this.process.stdout?.on('data', (data) => {
-        const output = data.toString().trim();
-        console.log(`[Python] ${output}`);
-      });
-
-      // Handle stderr
-      this.process.stderr?.on('data', (data) => {
-        const output = data.toString().trim();
-        console.error(`[Python Error] ${output}`);
-      });
-
-      // Handle successful spawn
-      this.process.on('spawn', () => {
-        this.isRunning = true;
-        this.startTime = new Date();
-        console.log(`✅ Python process started (PID: ${this.process?.pid})`);
-        resolve();
-      });
-
-      // Handle spawn errors
-      this.process.on('error', (error) => {
-        this.isRunning = false;
-        this.startTime = null;
-        console.error('Failed to start Python process:', error);
-        reject(error);
-      });
-
-      // Handle process exit
-      this.process.on('close', (code, signal) => {
-        this.isRunning = false;
-        this.startTime = null;
-        if (code !== null) {
-          console.log(`Python process exited with code ${code}`);
-        } else if (signal) {
-          console.log(`Python process killed with signal ${signal}`);
-        }
-      });
     });
+  }
+
+  /**
+   * Verify that the Python executable exists
+   */
+  private verifyExecutableExists(): void {
+    if (!this.executableExists()) {
+      throw new Error(
+        `Python executable not found at: ${this.getExecutablePath()}\n` +
+        `Please build the Python executable using PyInstaller and place it in the correct location.`
+      );
+    }
+  }
+
+  /**
+   * Get spawn options for the Python process
+   */
+  private getSpawnOptions(execPath: string) {
+    return {
+      detached: false,
+      stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'],
+      cwd: path.dirname(execPath),
+    };
+  }
+
+  /**
+   * Setup handlers for process output (stdout/stderr)
+   */
+  private setupProcessOutputHandlers(): void {
+    this.process!.stdout?.on('data', (data) => {
+      const output = data.toString().trim();
+      this.log('info', `[Python] ${output}`);
+    });
+
+    this.process!.stderr?.on('data', (data) => {
+      const output = data.toString().trim();
+      this.log('error', `[Python Error] ${output}`);
+    });
+  }
+
+  /**
+   * Setup handlers for process lifecycle events (spawn, error, close)
+   */
+  private setupProcessLifecycleHandlers(
+    resolve: () => void,
+    reject: (error: Error) => void
+  ): void {
+    let settled = false;
+
+    this.process!.on('spawn', () => {
+      if (!settled) {
+        this.setProcessRunning();
+        this.log('info', `✅ Python process started (PID: ${this.process?.pid})`);
+        settled = true;
+        resolve();
+      }
+    });
+
+    this.process!.on('error', (error) => {
+      if (!settled) {
+        this.setProcessStopped();
+        this.log('error', 'Failed to start Python process:', error);
+        settled = true;
+        reject(error);
+      }
+    });
+
+    this.process!.on('close', (code, signal) => {
+      this.setProcessStopped();
+      if (code !== null) {
+        this.log('info', `Python process exited with code ${code}`);
+      } else if (signal) {
+        this.log('info', `Python process killed with signal ${signal}`);
+      }
+    });
+  }
+
+  /**
+   * Set process state to running
+   */
+  private setProcessRunning(): void {
+    this.isRunning = true;
+    this.startTime = new Date();
+  }
+
+  /**
+   * Set process state to stopped
+   */
+  private setProcessStopped(): void {
+    this.isRunning = false;
+    this.startTime = null;
+  }
+
+  /**
+   * Centralized logging method
+   */
+  private log(level: 'info' | 'error', message: string, data?: any): void {
+    const prefix = '[PythonProcessManager]';
+    if (level === 'error') {
+      console.error(prefix, message, data || '');
+    } else {
+      console.log(prefix, message, data || '');
+    }
   }
 
   /**
