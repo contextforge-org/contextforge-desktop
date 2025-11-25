@@ -51,6 +51,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toggleToolStatus: (toolId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-tool-status', toolId, activate),
     listResources: () => ipcRenderer.invoke('api:list-resources'),
     listPrompts: () => ipcRenderer.invoke('api:list-prompts'),
+    createPrompt: (promptData: any) => ipcRenderer.invoke('api:create-prompt', promptData),
+    updatePrompt: (promptId: string, promptData: any) => ipcRenderer.invoke('api:update-prompt', promptId, promptData),
+    deletePrompt: (promptId: string) => ipcRenderer.invoke('api:delete-prompt', promptId),
+    togglePromptStatus: (promptId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-prompt-status', promptId, activate),
+    executePrompt: (promptId: string, args: Record<string, any>) => ipcRenderer.invoke('api:execute-prompt', promptId, args),
     listTeams: () => ipcRenderer.invoke('api:list-teams'),
     executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) =>
       ipcRenderer.invoke('api:execute-tool-rpc', toolName, params, passthroughHeaders, timeout),
@@ -89,6 +94,11 @@ declare global {
         toggleToolStatus: (toolId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         listResources: () => Promise<{ success: boolean; data?: any; error?: string }>;
         listPrompts: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        createPrompt: (promptData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        updatePrompt: (promptId: string, promptData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deletePrompt: (promptId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        togglePromptStatus: (promptId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
+        executePrompt: (promptId: string, args: Record<string, any>) => Promise<{ success: boolean; data?: any; error?: string }>;
         listTeams: () => Promise<{ success: boolean; data?: any; error?: string }>;
         executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) => Promise<{ success: boolean; data?: any; error?: string }>;
       };

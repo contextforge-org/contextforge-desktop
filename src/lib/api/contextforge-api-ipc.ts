@@ -6,7 +6,10 @@ import {
   type GatewayCreate,
   type GatewayUpdate,
   type EmailUserResponse,
-  type TeamListResponse
+  type TeamListResponse,
+  type PromptRead,
+  type PromptCreate,
+  type PromptUpdate
 } from '../contextforge-client-ts';
 
 // Check if we're in Electron environment
@@ -206,7 +209,7 @@ export async function listResources() {
 }
 
 // Prompt operations
-export async function listPrompts() {
+export async function listPrompts(): Promise<PromptRead[]> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
@@ -218,6 +221,76 @@ export async function listPrompts() {
   }
   
   return response.data || [];
+}
+
+export async function createPrompt(promptData: PromptCreate) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.createPrompt(promptData);
+  
+  if (!response.success) {
+    throw new Error('Failed to create prompt: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function updatePrompt(promptId: string, promptData: PromptUpdate) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.updatePrompt(promptId, promptData);
+  
+  if (!response.success) {
+    throw new Error('Failed to update prompt: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function deletePrompt(promptId: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.deletePrompt(promptId);
+  
+  if (!response.success) {
+    throw new Error('Failed to delete prompt: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function togglePromptStatus(promptId: string, activate?: boolean) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.togglePromptStatus(promptId, activate);
+  
+  if (!response.success) {
+    throw new Error('Failed to toggle prompt status: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function executePrompt(promptId: string, args: Record<string, any>) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.executePrompt(promptId, args);
+  
+  if (!response.success) {
+    throw new Error('Failed to execute prompt: ' + response.error);
+  }
+  
+  return response.data;
 }
 
 // Gateway operations
@@ -332,4 +405,14 @@ export async function executeToolRpc(
 }
 
 // Type exports for convenience
-export type { ServerRead, ServerCreate, ServerUpdate, GatewayRead, GatewayCreate, GatewayUpdate };
+export type {
+  ServerRead,
+  ServerCreate,
+  ServerUpdate,
+  GatewayRead,
+  GatewayCreate,
+  GatewayUpdate,
+  PromptRead,
+  PromptCreate,
+  PromptUpdate
+};

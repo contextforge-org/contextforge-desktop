@@ -23,6 +23,11 @@ import {
   toggleToolStatusToolsToolIdTogglePost,
   listResourcesResourcesGet,
   listPromptsPromptsGet,
+  createPromptPromptsPost,
+  updatePromptPromptsPromptIdPut,
+  deletePromptPromptsPromptIdDelete,
+  togglePromptStatusPromptsPromptIdTogglePost,
+  getPromptPromptsPromptIdPost,
   listGatewaysGatewaysGet,
   registerGatewayGatewaysPost,
   updateGatewayGatewaysGatewayIdPut,
@@ -38,6 +43,9 @@ import {
   type GatewayCreate,
   type GatewayUpdate,
   type TeamListResponse,
+  type PromptRead,
+  type PromptCreate,
+  type PromptUpdate,
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
 import { createElectronFetchAdapter } from './electron-fetch-adapter';
@@ -249,14 +257,77 @@ export async function listResources() {
 // Prompt Operations
 // ============================================================================
 
-export async function listPrompts() {
+export async function listPrompts(): Promise<PromptRead[]> {
   const response = await listPromptsPromptsGet();
   
   if (response.error) {
     throw new Error('Failed to list prompts: ' + JSON.stringify(response.error));
   }
   
-  return response.data || [];
+  return (response.data as PromptRead[]) || [];
+}
+
+export async function createPrompt(promptData: PromptCreate) {
+  const response = await createPromptPromptsPost({
+    body: { prompt: promptData }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to create prompt: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function updatePrompt(promptId: string, promptData: PromptUpdate) {
+  const response = await updatePromptPromptsPromptIdPut({
+    path: { prompt_id: promptId },
+    body: promptData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to update prompt: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function deletePrompt(promptId: string) {
+  const response = await deletePromptPromptsPromptIdDelete({
+    path: { prompt_id: promptId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to delete prompt: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function togglePromptStatus(promptId: string, activate?: boolean) {
+  const response = await togglePromptStatusPromptsPromptIdTogglePost({
+    path: { prompt_id: Number(promptId) },
+    query: activate !== undefined ? { activate } : undefined
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to toggle prompt status: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function executePrompt(promptId: string, args: Record<string, any>) {
+  const response = await getPromptPromptsPromptIdPost({
+    path: { prompt_id: promptId },
+    body: args as any
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to execute prompt: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
 }
 
 // ============================================================================
@@ -429,4 +500,7 @@ export type {
   GatewayUpdate,
   EmailUserResponse,
   TeamListResponse,
+  PromptRead,
+  PromptCreate,
+  PromptUpdate,
 };

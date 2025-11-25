@@ -9,7 +9,7 @@ interface NavItemProps {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   isCollapsed?: boolean;
   theme?: 'light' | 'dark';
   muted?: boolean;
@@ -194,7 +194,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'settings') => void }) {
+export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'settings') => void }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useTheme();
 
@@ -243,11 +243,14 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           isCollapsed={isCollapsed}
           theme={theme}
         />
-        <NavItem 
-          icon={<FileText size={18} strokeWidth={1.5} />} 
-          label="Prompts" 
-          active={currentPage === 'Prompts'}
-          onClick={() => onNavigate('Prompts')}
+        <NavItem
+          icon={<FileText size={18} strokeWidth={1.5} />}
+          label="Prompts"
+          active={currentPage === 'prompts'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('prompts');
+          }}
           isCollapsed={isCollapsed}
           theme={theme}
         />

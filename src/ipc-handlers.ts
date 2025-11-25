@@ -180,6 +180,51 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  ipcMain.handle('api:create-prompt', async (_event, promptData: any) => {
+    try {
+      const response = await mainApi.createPrompt(promptData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:update-prompt', async (_event, promptId: string, promptData: any) => {
+    try {
+      const response = await mainApi.updatePrompt(promptId, promptData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-prompt', async (_event, promptId: string) => {
+    try {
+      const response = await mainApi.deletePrompt(promptId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:toggle-prompt-status', async (_event, promptId: string, activate?: boolean) => {
+    try {
+      const response = await mainApi.togglePromptStatus(promptId, activate);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:execute-prompt', async (_event, promptId: string, args: Record<string, any>) => {
+    try {
+      const response = await mainApi.executePrompt(promptId, args);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Gateway handlers
   ipcMain.handle('api:list-gateways', async () => {
     try {
@@ -281,6 +326,11 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:delete-tool');
   ipcMain.removeHandler('api:toggle-tool-status');
   ipcMain.removeHandler('api:list-resources');
+  ipcMain.removeHandler('api:create-prompt');
+  ipcMain.removeHandler('api:update-prompt');
+  ipcMain.removeHandler('api:delete-prompt');
+  ipcMain.removeHandler('api:toggle-prompt-status');
+  ipcMain.removeHandler('api:execute-prompt');
   ipcMain.removeHandler('api:list-prompts');
   ipcMain.removeHandler('api:list-gateways');
   ipcMain.removeHandler('api:create-gateway');
