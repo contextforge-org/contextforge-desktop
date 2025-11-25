@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     listResources: () => ipcRenderer.invoke('api:list-resources'),
     listPrompts: () => ipcRenderer.invoke('api:list-prompts'),
     listTeams: () => ipcRenderer.invoke('api:list-teams'),
+    executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) =>
+      ipcRenderer.invoke('api:execute-tool-rpc', toolName, params, passthroughHeaders, timeout),
   },
 });
 
@@ -88,6 +90,7 @@ declare global {
         listResources: () => Promise<{ success: boolean; data?: any; error?: string }>;
         listPrompts: () => Promise<{ success: boolean; data?: any; error?: string }>;
         listTeams: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) => Promise<{ success: boolean; data?: any; error?: string }>;
       };
     };
   }

@@ -1,9 +1,9 @@
 /**
  * Context Forge API wrapper for Electron Main Process
- * 
+ *
  * This module provides a type-safe API interface for the main process
  * using the generated client with an Electron-compatible fetch adapter.
- * 
+ *
  * Unlike the renderer process which has native fetch support, the main
  * process requires a custom adapter that wraps Electron's net module.
  */
@@ -29,6 +29,7 @@ import {
   deleteGatewayGatewaysGatewayIdDelete,
   toggleGatewayStatusGatewaysGatewayIdTogglePost,
   listTeamsTeamsGet,
+  handleRpcRpcPost,
   type ServerRead,
   type ServerCreate,
   type ServerUpdate,
@@ -336,6 +337,83 @@ export async function listTeams(): Promise<TeamListResponse> {
   }
   
   return (response.data as TeamListResponse) || { teams: [], total: 0 };
+}
+
+// ============================================================================
+// RPC Operations (Tool Execution)
+// ============================================================================
+
+/**
+ * Execute a tool via JSON-RPC
+ *
+ * @param toolName - The name of the tool/method to execute
+ * @param params - Parameters to pass to the tool
+ * @param passthroughHeaders - Optional custom headers to pass through
+ * @param timeout - Request timeout in milliseconds (default: 60000)
+ * @returns The JSON-RPC response
+ */
+export async function executeToolRpc(
+  toolName: string,
+  params: Record<string, any> = {},
+  passthroughHeaders: Record<string, string> = {},
+  timeout: number = 60000
+): Promise<any> {
+  const payload = {
+    jsonrpc: '2.0',
+    id: Date.now(),
+    method: toolName,
+    params,
+  };
+
+  // Merge passthrough headers with default headers
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...passthroughHeaders,
+  };
+
+  // Add authorization header if token is available
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  // Create a timeout promise
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Request timeout after ${timeout}ms`));
+    }, timeout);
+  });
+
+  // Create the fetch promise with custom headers
+  const fetchPromise = (async () => {
+    try {
+      // Use the Electron fetch adapter directly with the RPC endpoint
+      const response = await electronFetch(`${API_BASE_URL}/rpc`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`RPC request failed: ${response.status} ${errorText}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  })();
+
+  // Race between fetch and timeout
+  try {
+    return await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Unknown error during RPC execution');
+  }
 }
 
 // ============================================================================

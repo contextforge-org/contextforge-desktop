@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, MoreVertical, X, Filter, Pencil, Power, Copy, Trash2, ChevronDown, Wrench } from 'lucide-react';
+import { Search, MoreVertical, X, Filter, Pencil, Power, Copy, Trash2, ChevronDown, Wrench, Loader2, AlertCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,14 @@ import { RightSidePanel } from './RightSidePanel';
 import { toast } from '../lib/toastWithTray';
 import { PageHeader, DataTableToolbar } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
+import {
+  parseInputSchema,
+  processInputParameters,
+  parsePassthroughHeaders,
+  validateFieldValue,
+  type ParsedField,
+} from '../lib/toolTestUtils';
+import { ToolTestFormField } from './ToolTestFormField';
 
 // Helper function to get consistent tag colors
 const getTagColor = (tag: string, theme: string) => {
@@ -205,6 +213,11 @@ export function ToolsPage() {
   const [testingTool, setTestingTool] = useState<Tool | null>(null);
   const [testInputs, setTestInputs] = useState<Record<string, any>>({});
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [parsedFields, setParsedFields] = useState<ParsedField[]>([]);
+  const [passthroughHeaders, setPassthroughHeaders] = useState('');
+  const [arrayInputs, setArrayInputs] = useState<Record<string, string[]>>({});
 
   // Edited fields
   const [editedGatewayName, setEditedGatewayName] = useState('');
@@ -405,25 +418,101 @@ export function ToolsPage() {
     setTestingTool(tool);
     setTestInputs({});
     setTestResult(null);
+    setTestError(null);
+    setPassthroughHeaders('');
+    setArrayInputs({});
     setShowSidePanel(false);
     setShowTestPanel(true);
+    
+    // Parse the input schema - handle both string and object cases
+    let schemaInput: string | object = tool.inputSchema || '{}';
+    
+    // If inputSchema is somehow an object (shouldn't happen but handle it), convert to string
+    if (typeof schemaInput === 'object' && schemaInput !== null) {
+      try {
+        schemaInput = JSON.stringify(schemaInput);
+      } catch (e) {
+        console.error('Error stringifying input schema:', e);
+        schemaInput = '{}';
+      }
+    }
+    
+    const fields = parseInputSchema(schemaInput);
+    setParsedFields(fields);
+    
+    // Initialize inputs with default values
+    const initialInputs: Record<string, any> = {};
+    const initialArrays: Record<string, string[]> = {};
+    
+    fields.forEach(field => {
+      if (field.default !== undefined) {
+        initialInputs[field.name] = field.default;
+      }
+      if (field.type === 'array') {
+        initialArrays[field.name] = [''];
+      }
+    });
+    
+    setTestInputs(initialInputs);
+    setArrayInputs(initialArrays);
   };
 
-  const handleRunTest = () => {
-    if (!testingTool) return;
+  const handleRunTest = async () => {
+    if (!testingTool || testLoading) return;
     
-    // Generate mock result based on the tool's output schema
-    const mockResult = {
-      content: [
-        {
-          type: "text",
-          text: `Result from ${testingTool.name} - ${new Date().toISOString()}`
+    setTestLoading(true);
+    setTestError(null);
+    setTestResult(null);
+    
+    try {
+      // Validate inputs
+      for (const field of parsedFields) {
+        const value = field.type === 'array'
+          ? arrayInputs[field.name]?.filter(v => v.trim())
+          : testInputs[field.name];
+        
+        const validation = validateFieldValue(value, field);
+        if (!validation.valid) {
+          throw new Error(validation.error);
         }
-      ],
-      is_error: false
-    };
-    
-    setTestResult(JSON.stringify(mockResult, null, 2));
+      }
+      
+      // Parse passthrough headers
+      let headers: Record<string, string> = {};
+      if (passthroughHeaders.trim()) {
+        headers = parsePassthroughHeaders(passthroughHeaders);
+      }
+      
+      // Process array inputs into testInputs
+      const processedInputs = { ...testInputs };
+      for (const [fieldName, values] of Object.entries(arrayInputs)) {
+        const field = parsedFields.find(f => f.name === fieldName);
+        if (field && field.type === 'array') {
+          processedInputs[fieldName] = values.filter(v => v.trim());
+        }
+      }
+      
+      // Process inputs into properly typed parameters
+      const params = processInputParameters(processedInputs, parsedFields);
+      
+      // Execute the tool via RPC
+      const result = await api.executeToolRpc(
+        testingTool.name,
+        params,
+        headers,
+        60000 // 60 second timeout
+      );
+      
+      setTestResult(JSON.stringify(result, null, 2));
+      toast.success('Tool executed successfully');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setTestError(errorMessage);
+      toast.error(`Tool execution failed: ${errorMessage}`);
+      console.error('Tool test error:', error);
+    } finally {
+      setTestLoading(false);
+    }
   };
 
   const handleBulkImport = (importedTools: any[]) => {
@@ -1641,53 +1730,81 @@ export function ToolsPage() {
 
             {/* Test Form Content */}
             <div className="p-6 space-y-6">
-              {/* Dynamically generate input fields from inputSchema */}
-              {(() => {
-                try {
-                  const schema = JSON.parse(testingTool.inputSchema || '{}');
-                  const properties = schema.properties || {};
-                  
-                  return Object.keys(properties).map((fieldName) => {
-                    const field = properties[fieldName];
-                    return (
-                      <div key={fieldName}>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                          {fieldName}
-                        </label>
-                        {field.description && (
-                          <p className={`text-xs mb-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                            {field.description}
-                          </p>
-                        )}
-                        <input
-                          type={field.type === 'number' ? 'number' : 'text'}
-                          value={testInputs[fieldName] || ''}
-                          onChange={(e) => setTestInputs({ ...testInputs, [fieldName]: e.target.value })}
-                          placeholder={field.description || `Enter ${fieldName}`}
-                          className={`w-full px-3 py-2 rounded-md border transition-colors ${
-                            theme === 'dark'
-                              ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500 focus:border-cyan-500'
-                              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-cyan-500'
-                          } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
-                        />
-                      </div>
-                    );
-                  });
-                } catch (e) {
-                  return (
-                    <div className={`text-sm ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                      No input parameters required
-                    </div>
-                  );
-                }
-              })()}
+              {/* Input Parameters Section */}
+              {parsedFields.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className={`text-sm font-semibold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
+                    Input Parameters
+                  </h3>
+                  {parsedFields.map((field) => (
+                    <ToolTestFormField
+                      key={field.name}
+                      field={field}
+                      value={testInputs[field.name]}
+                      arrayValues={arrayInputs[field.name]}
+                      onChange={(value) => setTestInputs({ ...testInputs, [field.name]: value })}
+                      onArrayChange={(values) => setArrayInputs({ ...arrayInputs, [field.name]: values })}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-sm ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  No input parameters required
+                </div>
+              )}
+
+              {/* Passthrough Headers Section */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
+                  Passthrough Headers (Optional)
+                </label>
+                <p className={`text-xs mb-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  Add custom headers to pass through with the request. One per line in format: Header-Name: Value
+                </p>
+                <textarea
+                  value={passthroughHeaders}
+                  onChange={(e) => setPassthroughHeaders(e.target.value)}
+                  placeholder="X-Custom-Header: value&#10;Authorization: Bearer token"
+                  rows={4}
+                  className={`w-full px-3 py-2 rounded-md border transition-colors font-mono text-sm ${
+                    theme === 'dark'
+                      ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500 focus:border-cyan-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-cyan-500'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                />
+              </div>
+
+              {/* Error Display */}
+              {testError && (
+                <div className={`p-4 rounded-md border flex items-start gap-3 ${
+                  theme === 'dark'
+                    ? 'bg-red-950/20 border-red-900/50 text-red-400'
+                    : 'bg-red-50 border-red-200 text-red-700'
+                }`}>
+                  <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">Error</p>
+                    <p className="text-sm mt-1">{testError}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Run Tool Button */}
               <button
                 onClick={handleRunTest}
-                className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-[12px] py-[8px] rounded-md hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-lg shadow-indigo-500/20 font-medium text-[13px]"
+                disabled={testLoading}
+                className={`flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-2 rounded-md hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-lg shadow-indigo-500/20 font-medium text-sm ${
+                  testLoading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Run Tool
+                {testLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  'Run Tool'
+                )}
               </button>
 
               {/* Results Section */}
@@ -1719,11 +1836,12 @@ export function ToolsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className={`w-full h-32 p-4 rounded-md border ${
+                  <div className={`w-full h-32 p-4 rounded-md border flex items-center justify-center ${
                     theme === 'dark'
-                      ? 'bg-zinc-950 border-zinc-700'
-                      : 'bg-gray-50 border-gray-300'
+                      ? 'bg-zinc-950 border-zinc-700 text-zinc-600'
+                      : 'bg-gray-50 border-gray-300 text-gray-400'
                   }`}>
+                    {testLoading ? 'Executing tool...' : 'No results yet'}
                   </div>
                 )}
               </div>

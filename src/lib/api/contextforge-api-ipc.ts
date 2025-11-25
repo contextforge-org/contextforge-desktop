@@ -306,5 +306,30 @@ export async function listTeams(): Promise<TeamListResponse> {
   return response.data || { teams: [], total: 0 };
 }
 
+// RPC operations (Tool Execution)
+export async function executeToolRpc(
+  toolName: string,
+  params: Record<string, any> = {},
+  passthroughHeaders: Record<string, string> = {},
+  timeout: number = 60000
+): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.executeToolRpc(
+    toolName,
+    params,
+    passthroughHeaders,
+    timeout
+  );
+  
+  if (!response.success) {
+    throw new Error('Failed to execute tool: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // Type exports for convenience
 export type { ServerRead, ServerCreate, ServerUpdate, GatewayRead, GatewayCreate, GatewayUpdate };

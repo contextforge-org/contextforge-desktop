@@ -237,6 +237,22 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // RPC handlers (Tool Execution)
+  ipcMain.handle('api:execute-tool-rpc', async (
+    _event,
+    toolName: string,
+    params: Record<string, any>,
+    passthroughHeaders: Record<string, string>,
+    timeout: number
+  ) => {
+    try {
+      const response = await mainApi.executeToolRpc(toolName, params, passthroughHeaders, timeout);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   console.log('IPC handlers registered successfully');
 }
 
@@ -272,4 +288,5 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:list-teams');
   ipcMain.removeHandler('api:delete-gateway');
   ipcMain.removeHandler('api:toggle-gateway-status');
+  ipcMain.removeHandler('api:execute-tool-rpc');
 }
