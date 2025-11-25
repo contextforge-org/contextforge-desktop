@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useTeam } from '../context/TeamContext';
 import { MCPServer } from '../types/server';
 import { useServerFilters } from '../hooks/useServerFilters';
 import { useServerEditor } from '../hooks/useServerEditor';
@@ -23,8 +24,17 @@ export function MCPServersPage() {
   const [error, setError] = useState<string | null>(null);
 
   const { theme } = useTheme();
+  const { selectedTeamId } = useTeam();
 
-  // Fetch servers on mount
+  // Filter servers by selected team
+  const filteredServers = useMemo(() => {
+    if (!selectedTeamId) {
+      return serversData;
+    }
+    return serversData.filter(server => server.teamId === selectedTeamId);
+  }, [serversData, selectedTeamId]);
+
+  // Fetch servers on mount and when team changes
   useEffect(() => {
     async function fetchServers() {
       try {
@@ -73,7 +83,7 @@ export function MCPServersPage() {
   }, []);
 
   // Use custom hooks for filters, editor, and actions
-  const filterHook = useServerFilters(serversData);
+  const filterHook = useServerFilters(filteredServers);
   const editorHook = useServerEditor();
   const actionsHook = useServerActions(
     serversData,
@@ -153,7 +163,7 @@ export function MCPServersPage() {
           )}
 
           {/* Empty State */}
-          {!isLoading && !error && serversData.length === 0 && (
+          {!isLoading && !error && filteredServers.length === 0 && (
             <div className="flex items-center justify-center h-64">
               <div className="text-center max-w-md">
                 <MCPIcon
@@ -176,7 +186,7 @@ export function MCPServersPage() {
           )}
 
           {/* Data Table */}
-          {!isLoading && !error && serversData.length > 0 && (
+          {!isLoading && !error && filteredServers.length > 0 && (
             <div className={`rounded-lg border-b border-l border-r overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
             {/* Table Toolbar */}
             <DataTableToolbar

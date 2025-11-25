@@ -1,6 +1,7 @@
 import svgPaths from "../imports/svg-00ihbob3cz";
 import { Sun, Moon, User, Bell as BellIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 function Logo() {
   const { theme } = useTheme();
@@ -58,9 +59,16 @@ function Count() {
 
 function Profile() {
   const { theme } = useTheme();
+  const { user, loading } = useCurrentUser();
+  
   return (
-    <button className="content-stretch flex gap-[4px] items-center relative shrink-0 cursor-pointer group" data-name="profile">
-      <div className={`${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-200'} h-[32px] opacity-0 rounded-[6px] w-[52px] group-hover:opacity-100 transition-opacity absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none`} data-name="hover-background" />
+    <button className="content-stretch flex gap-[8px] items-center relative shrink-0 cursor-pointer group px-2" data-name="profile">
+      <div className={`${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-200'} h-[32px] opacity-0 rounded-[6px] group-hover:opacity-100 transition-opacity absolute inset-0 pointer-events-none`} data-name="hover-background" />
+      {!loading && user?.email && (
+        <span className={`font-['Inter',sans-serif] text-[14px] relative z-[1] ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
+          {user.email}
+        </span>
+      )}
       <Avatar />
       <Count />
     </button>

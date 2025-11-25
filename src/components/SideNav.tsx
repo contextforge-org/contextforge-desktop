@@ -2,6 +2,7 @@ import { useState } from 'react';
 import svgPaths from "../imports/svg-00ihbob3cz";
 import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useTeam } from '../context/TeamContext';
 import { MCPIcon } from './common';
 
 interface NavItemProps {
@@ -47,17 +48,21 @@ function NavItem({ icon, label, active = false, onClick, isCollapsed = false, th
 }
 
 function OrgSelector({ theme = 'dark' }: { theme?: 'light' | 'dark' }) {
-  const [selectedTeam, setSelectedTeam] = useState('All teams');
+  const { selectedTeamId, setSelectedTeamId, teams, isLoading } = useTeam();
   const [isOpen, setIsOpen] = useState(false);
   
-  const teams = ['All teams', 'Engineering', 'Design', 'Marketing', 'Sales', 'Product'];
+  // Find the selected team name
+  const selectedTeam = selectedTeamId
+    ? teams.find(t => t.id === selectedTeamId)
+    : null;
+  const displayName = selectedTeam ? selectedTeam.name : 'All teams';
   
   return (
     <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full" data-name="org">
       <div className="relative rounded-[6px] shrink-0 w-full" data-name="field">
         <div aria-hidden="true" className={`absolute border border-solid inset-0 pointer-events-none rounded-[6px] ${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`} />
         <div className="flex flex-row items-center size-full">
-          <div 
+          <div
             className="box-border content-stretch flex gap-[10px] items-center pl-[8px] pr-[12px] py-[10px] relative w-full cursor-pointer hover:bg-zinc-800/30 rounded-[6px] transition-colors"
             onClick={(e) => {
               e.stopPropagation();
@@ -66,7 +71,7 @@ function OrgSelector({ theme = 'dark' }: { theme?: 'light' | 'dark' }) {
           >
             <div className="basis-0 content-stretch flex gap-[8px] grow items-center min-h-px min-w-px relative shrink-0" data-name="text">
               <div className={`basis-0 flex flex-col font-['Inter:Regular',sans-serif] font-normal grow justify-center leading-[0] min-h-px min-w-px not-italic relative shrink-0 text-[14px] ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                <p className="leading-[20px]">{selectedTeam}</p>
+                <p className="leading-[20px]">{isLoading ? 'Loading...' : displayName}</p>
               </div>
             </div>
             <div className="relative shrink-0 size-[20px]" data-name="icon-chevronsupdown">
@@ -82,27 +87,46 @@ function OrgSelector({ theme = 'dark' }: { theme?: 'light' | 'dark' }) {
       </div>
       
       {/* Dropdown Menu */}
-      {isOpen && (
-        <div 
-          className={`absolute top-[52px] left-0 right-0 rounded-[6px] border shadow-lg z-50 overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'}`}
+      {isOpen && !isLoading && (
+        <div
+          className={`absolute top-[52px] left-0 right-0 rounded-[6px] border shadow-lg z-50 overflow-hidden max-h-[300px] overflow-y-auto ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'}`}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* All teams option */}
+          <div
+            className={`px-[12px] py-[8px] cursor-pointer transition-colors ${
+              !selectedTeamId
+                ? theme === 'dark' ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-900'
+                : theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedTeamId(null);
+              setIsOpen(false);
+            }}
+          >
+            <p className={`font-['Inter:Regular',sans-serif] font-normal text-[14px] leading-[20px]`}>
+              All teams
+            </p>
+          </div>
+          
+          {/* Individual teams */}
           {teams.map((team) => (
             <div
-              key={team}
+              key={team.id}
               className={`px-[12px] py-[8px] cursor-pointer transition-colors ${
-                selectedTeam === team 
+                selectedTeamId === team.id
                   ? theme === 'dark' ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-900'
                   : theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedTeam(team);
+                setSelectedTeamId(team.id);
                 setIsOpen(false);
               }}
             >
               <p className={`font-['Inter:Regular',sans-serif] font-normal text-[14px] leading-[20px]`}>
-                {team}
+                {team.name}
               </p>
             </div>
           ))}

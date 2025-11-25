@@ -6,6 +6,7 @@ import { MCPServersPage } from './components/MCPServersPage';
 import { ToolsPage } from './components/ToolsPage';
 import { SettingsPage } from './components/SettingsPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { TeamProvider } from './context/TeamContext';
 import { Toaster } from './components/ui/sonner';
 import { useTray } from './hooks/useTray';
 
@@ -41,7 +42,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <TeamProvider>
+        <AppContent />
+      </TeamProvider>
     </ThemeProvider>
   );
 }

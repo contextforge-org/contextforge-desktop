@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Search, MoreVertical, X, Filter, Pencil, Power, Copy, Trash2, ChevronDown, Wrench } from 'lucide-react';
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Switch } from "./ui/switch";
 import { useTheme } from '../context/ThemeContext';
+import { useTeam } from '../context/TeamContext';
 import { FilterCategory } from './FilterCategory';
 import { BulkImportForm } from './BulkImportForm';
 import { RightSidePanel } from './RightSidePanel';
@@ -63,6 +64,7 @@ interface Tool {
   tags: string[];
   owner: string;
   team: string;
+  teamId?: string | null;
   visibility: 'public' | 'team' | 'private';
   integrationType: string;
   headers: string;
@@ -248,6 +250,16 @@ export function ToolsPage() {
   const [isRequestMethodDropdownOpen, setIsRequestMethodDropdownOpen] = useState(false);
   const [isAuthTypeDropdownOpen, setIsAuthTypeDropdownOpen] = useState(false);
 
+  const { selectedTeamId } = useTeam();
+
+  // Filter tools by selected team first
+  const teamFilteredTools = useMemo(() => {
+    if (!selectedTeamId) {
+      return toolsData;
+    }
+    return toolsData.filter(tool => tool.teamId === selectedTeamId);
+  }, [toolsData, selectedTeamId]);
+
   // Fetch tools on mount
   useEffect(() => {
     async function fetchTools() {
@@ -272,6 +284,7 @@ export function ToolsPage() {
             tags: Array.isArray(tool.tags) ? tool.tags : [],
             owner: tool.owner || 'Unknown',
             team: tool.team || 'Default Team',
+            teamId: tool.team_id || tool.teamId || null,
             visibility: tool.visibility || 'public',
             integrationType: tool.integration_type || tool.integrationType || 'REST',
             headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
@@ -297,6 +310,7 @@ export function ToolsPage() {
               const mappedTools = tools.map((tool: any) => ({
                 id: tool.id,
                 gatewayName: tool.gateway_name || tool.gatewayName || 'Unknown Gateway',
+                teamId: tool.team_id || tool.teamId || null,
                 name: tool.name,
                 displayName: tool.display_name || tool.displayName || tool.name,
                 url: tool.url,
@@ -499,17 +513,19 @@ export function ToolsPage() {
     }
   };
 
-  const toggleToolActive = (toolId: number) => {
+  const toggleToolActive = async (toolId: number) => {
     const tool = toolsData.find(t => t.id === toolId);
     if (!tool) return;
     
     const wasActive = tool.active;
+    const newActiveState = !wasActive;
     const previousData = [...toolsData];
     
+    // Optimistically update UI
     setToolsData(prevData =>
       prevData.map(t =>
         t.id === toolId
-          ? { ...t, active: !t.active }
+          ? { ...t, active: newActiveState }
           : t
       )
     );
@@ -517,26 +533,43 @@ export function ToolsPage() {
     if (selectedTool?.id === toolId) {
       setSelectedTool({
         ...selectedTool,
-        active: !selectedTool.active
+        active: newActiveState
       });
-      setEditedActive(!selectedTool.active);
+      setEditedActive(newActiveState);
     }
     
-    // Show confirmation toast with undo option only when deactivating
-    if (wasActive) {
-      toast.success(`"${tool.name}" deactivated`, {
-        description: 'The tool has been deactivated',
-        action: {
-          label: 'Undo',
-          onClick: () => {
-            setToolsData(previousData);
-            if (selectedTool?.id === toolId) {
-              setSelectedTool({ ...selectedTool, active: true });
-              setEditedActive(true);
-            }
-            toast.info('Deactivation undone');
+    try {
+      // Call the API to persist the change with explicit activate parameter
+      await api.toggleToolStatus(String(toolId), newActiveState);
+      
+      // Show confirmation toast with undo option only when deactivating
+      if (wasActive) {
+        toast.success(`"${tool.name}" deactivated`, {
+          description: 'The tool has been deactivated',
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              setToolsData(previousData);
+              if (selectedTool?.id === toolId) {
+                setSelectedTool({ ...selectedTool, active: true });
+                setEditedActive(true);
+              }
+              // Call API to revert with explicit activate=true
+              await api.toggleToolStatus(String(toolId), true);
+              toast.info('Deactivation undone');
+            },
           },
-        },
+        });
+      }
+    } catch (error) {
+      // Revert on error
+      setToolsData(previousData);
+      if (selectedTool?.id === toolId) {
+        setSelectedTool({ ...selectedTool, active: wasActive });
+        setEditedActive(wasActive);
+      }
+      toast.error('Failed to toggle tool status', {
+        description: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   };
@@ -602,15 +635,15 @@ export function ToolsPage() {
     }
   };
 
-  const filteredTools = toolsData.filter(tool => {
+  const filteredTools = teamFilteredTools.filter(tool => {
     const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          tool.gatewayName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesAnnotations = selectedAnnotations.length === 0 || 
+    const matchesAnnotations = selectedAnnotations.length === 0 ||
                                tool.annotations.some(a => selectedAnnotations.includes(a));
     const matchesTypes = selectedTypes.length === 0 || selectedTypes.includes(tool.type);
     const matchesMethods = selectedMethods.length === 0 || selectedMethods.includes(tool.requestMethod);
-    const matchesVisibility = selectedVisibility.length === 0 || 
+    const matchesVisibility = selectedVisibility.length === 0 ||
                               selectedVisibility.includes(tool.visibility.charAt(0).toUpperCase() + tool.visibility.slice(1));
     
     return matchesSearch && matchesAnnotations && matchesTypes && matchesMethods && matchesVisibility;

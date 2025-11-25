@@ -97,6 +97,7 @@ export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
     active: gateway.enabled || false,
     lastSeen: gateway.lastSeen ? formatLastSeen(gateway.lastSeen) : 'Never',
     team: gateway.team || 'Unknown',
+    teamId: gateway.teamId || null,
     visibility: (gateway.visibility as 'public' | 'team' | 'private') || 'private',
     transportType: gateway.transport || 'SSE',
     authenticationType: gateway.authType || 'None',

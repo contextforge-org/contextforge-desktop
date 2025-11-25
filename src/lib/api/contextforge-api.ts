@@ -1,13 +1,15 @@
-import { 
+import {
   listServersServersGet,
   createServerServersPost,
   updateServerServersServerIdPut,
   deleteServerServersServerIdDelete,
   toggleServerStatusServersServerIdTogglePost,
   loginAuthEmailLoginPost,
+  getCurrentUserProfileAuthEmailMeGet,
   type ServerRead,
   type ServerCreate,
-  type ServerUpdate
+  type ServerUpdate,
+  type EmailUserResponse
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
 
@@ -25,19 +27,27 @@ export function configureClient(token?: string) {
 
 // Authentication
 export async function login(email: string, password: string) {
+  console.log('API: Login attempt for', email);
   const response = await loginAuthEmailLoginPost({
     body: { email, password }
   });
   
   if (response.error) {
+    console.error('API: Login failed', response.error);
     throw new Error('Login failed: ' + JSON.stringify(response.error));
   }
   
   const token = (response.data as any)?.access_token;
+  console.log('API: Login response received, token:', token ? 'exists' : 'missing');
   if (token) {
     configureClient(token);
     // Store token in localStorage for persistence
     localStorage.setItem('contextforge_token', token);
+    console.log('API: Token stored in localStorage');
+    // Dispatch custom event to notify components of login
+    const event = new Event('contextforge-login');
+    window.dispatchEvent(event);
+    console.log('API: Dispatched contextforge-login event');
   }
   
   return response.data;
@@ -51,6 +61,17 @@ export function initializeClient() {
   } else {
     configureClient();
   }
+}
+
+// Get current user profile
+export async function getCurrentUser() {
+  const response = await getCurrentUserProfileAuthEmailMeGet();
+  
+  if (response.error) {
+    throw new Error('Failed to get current user: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
 }
 
 // Server operations
@@ -116,4 +137,4 @@ export async function toggleServerStatus(serverId: string) {
 }
 
 // Type exports for convenience
-export type { ServerRead, ServerCreate, ServerUpdate };
+export type { ServerRead, ServerCreate, ServerUpdate, EmailUserResponse };

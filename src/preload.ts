@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // API methods
   api: {
     login: (email: string, password: string) => ipcRenderer.invoke('api:login', email, password),
+    getCurrentUser: () => ipcRenderer.invoke('api:get-current-user'),
     listServers: () => ipcRenderer.invoke('api:list-servers'),
     createServer: (serverData: any) => ipcRenderer.invoke('api:create-server', serverData),
     updateServer: (serverId: string, serverData: any) => ipcRenderer.invoke('api:update-server', serverId, serverData),
@@ -42,14 +43,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createGateway: (gatewayData: any) => ipcRenderer.invoke('api:create-gateway', gatewayData),
     updateGateway: (gatewayId: string, gatewayData: any) => ipcRenderer.invoke('api:update-gateway', gatewayId, gatewayData),
     deleteGateway: (gatewayId: string) => ipcRenderer.invoke('api:delete-gateway', gatewayId),
-    toggleGatewayStatus: (gatewayId: string) => ipcRenderer.invoke('api:toggle-gateway-status', gatewayId),
+    toggleGatewayStatus: (gatewayId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-gateway-status', gatewayId, activate),
     listTools: () => ipcRenderer.invoke('api:list-tools'),
     createTool: (toolData: any) => ipcRenderer.invoke('api:create-tool', toolData),
     updateTool: (toolId: string, toolData: any) => ipcRenderer.invoke('api:update-tool', toolId, toolData),
     deleteTool: (toolId: string) => ipcRenderer.invoke('api:delete-tool', toolId),
-    toggleToolStatus: (toolId: string) => ipcRenderer.invoke('api:toggle-tool-status', toolId),
+    toggleToolStatus: (toolId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-tool-status', toolId, activate),
     listResources: () => ipcRenderer.invoke('api:list-resources'),
     listPrompts: () => ipcRenderer.invoke('api:list-prompts'),
+    listTeams: () => ipcRenderer.invoke('api:list-teams'),
   },
 });
 
@@ -67,6 +69,7 @@ declare global {
       isWindowVisible: () => Promise<boolean>;
       api: {
         login: (email: string, password: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getCurrentUser: () => Promise<{ success: boolean; data?: any; error?: string }>;
         listServers: () => Promise<{ success: boolean; data?: any; error?: string }>;
         createServer: (serverData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         updateServer: (serverId: string, serverData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
@@ -76,14 +79,15 @@ declare global {
         createGateway: (gatewayData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         updateGateway: (gatewayId: string, gatewayData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteGateway: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
-        toggleGatewayStatus: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        toggleGatewayStatus: (gatewayId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         listTools: () => Promise<{ success: boolean; data?: any; error?: string }>;
         createTool: (toolData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         updateTool: (toolId: string, toolData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteTool: (toolId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
-        toggleToolStatus: (toolId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        toggleToolStatus: (toolId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         listResources: () => Promise<{ success: boolean; data?: any; error?: string }>;
         listPrompts: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        listTeams: () => Promise<{ success: boolean; data?: any; error?: string }>;
       };
     };
   }

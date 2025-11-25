@@ -8,6 +8,7 @@ export type MCPServer = {
   active: boolean;
   lastSeen: string;
   team: string;
+  teamId?: string | null;
   visibility: 'public' | 'team' | 'private';
   transportType: string;
   authenticationType: string;

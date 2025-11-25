@@ -4,7 +4,9 @@ import {
   type ServerUpdate,
   type GatewayRead,
   type GatewayCreate,
-  type GatewayUpdate
+  type GatewayUpdate,
+  type EmailUserResponse,
+  type TeamListResponse
 } from '../contextforge-client-ts';
 
 // Check if we're in Electron environment
@@ -16,10 +18,31 @@ export async function login(email: string, password: string) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
+  console.log('IPC: Login attempt for', email);
   const response = await window.electronAPI.api.login(email, password);
   
   if (!response.success) {
+    console.error('IPC: Login failed', response.error);
     throw new Error('Login failed: ' + response.error);
+  }
+  
+  console.log('IPC: Login successful, dispatching event');
+  // Dispatch custom event to notify components of login
+  window.dispatchEvent(new Event('contextforge-login'));
+  
+  return response.data;
+}
+
+// Get current user
+export async function getCurrentUser(): Promise<EmailUserResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getCurrentUser();
+  
+  if (!response.success) {
+    throw new Error('Failed to get current user: ' + response.error);
   }
   
   return response.data;
@@ -153,12 +176,12 @@ export async function deleteTool(toolId: string) {
   return response.data;
 }
 
-export async function toggleToolStatus(toolId: string) {
+export async function toggleToolStatus(toolId: string, activate?: boolean) {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
-  const response = await window.electronAPI.api.toggleToolStatus(toolId);
+  const response = await window.electronAPI.api.toggleToolStatus(toolId, activate);
   
   if (!response.success) {
     throw new Error('Failed to toggle tool status: ' + response.error);
@@ -254,18 +277,33 @@ export async function deleteGateway(gatewayId: string) {
   return response.data;
 }
 
-export async function toggleGatewayStatus(gatewayId: string) {
+export async function toggleGatewayStatus(gatewayId: string, activate?: boolean) {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
-  const response = await window.electronAPI.api.toggleGatewayStatus(gatewayId);
+  const response = await window.electronAPI.api.toggleGatewayStatus(gatewayId, activate);
   
   if (!response.success) {
     throw new Error('Failed to toggle gateway status: ' + response.error);
   }
   
   return response.data;
+}
+
+// Team operations
+export async function listTeams(): Promise<TeamListResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listTeams();
+  
+  if (!response.success) {
+    throw new Error('Failed to list teams: ' + response.error);
+  }
+  
+  return response.data || { teams: [], total: 0 };
 }
 
 // Type exports for convenience

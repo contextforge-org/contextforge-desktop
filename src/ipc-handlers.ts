@@ -99,11 +99,23 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   // API handlers
   ipcMain.handle('api:login', async (_event, email: string, password: string) => {
     try {
+      console.log('IPC Handler: Login attempt for', email);
       const response = await apiRequest('/auth/email/login', {
         method: 'POST',
         body: { email, password }
       });
       authToken = (response as any).access_token;
+      console.log('IPC Handler: Login successful, token stored');
+      return { success: true, data: response };
+    } catch (error) {
+      console.error('IPC Handler: Login failed', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-current-user', async () => {
+    try {
+      const response = await apiRequest('/auth/email/me');
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -171,7 +183,8 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:list-tools', async () => {
     try {
-      const response = await apiRequest('/tools/');
+      // Include inactive tools by default so they don't disappear from the UI
+      const response = await apiRequest('/tools/?include_inactive=true');
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -213,9 +226,12 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
-  ipcMain.handle('api:toggle-tool-status', async (_event, toolId: string) => {
+  ipcMain.handle('api:toggle-tool-status', async (_event, toolId: string, activate?: boolean) => {
     try {
-      const response = await apiRequest(`/tools/${toolId}/toggle`, {
+      const url = activate !== undefined
+        ? `/tools/${toolId}/toggle?activate=${activate}`
+        : `/tools/${toolId}/toggle`;
+      const response = await apiRequest(url, {
         method: 'POST'
       });
       return { success: true, data: response };
@@ -247,7 +263,8 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   // Gateway handlers
   ipcMain.handle('api:list-gateways', async () => {
     try {
-      const response = await apiRequest('/gateways/');
+      // Include inactive gateways by default so they don't disappear from the UI
+      const response = await apiRequest('/gateways/?include_inactive=true');
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -289,11 +306,24 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
-  ipcMain.handle('api:toggle-gateway-status', async (_event, gatewayId: string) => {
+  ipcMain.handle('api:toggle-gateway-status', async (_event, gatewayId: string, activate?: boolean) => {
     try {
-      const response = await apiRequest(`/gateways/${gatewayId}/toggle`, {
+      const url = activate !== undefined
+        ? `/gateways/${gatewayId}/toggle?activate=${activate}`
+        : `/gateways/${gatewayId}/toggle`;
+      const response = await apiRequest(url, {
         method: 'POST'
       });
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Team handlers
+  ipcMain.handle('api:list-teams', async () => {
+    try {
+      const response = await apiRequest('/teams/');
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -316,6 +346,7 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeAllListeners('tray:update-config');
   ipcMain.removeHandler('window:is-visible');
   ipcMain.removeHandler('api:login');
+  ipcMain.removeHandler('api:get-current-user');
   ipcMain.removeHandler('api:list-servers');
   ipcMain.removeHandler('api:create-server');
   ipcMain.removeHandler('api:update-server');
@@ -331,6 +362,7 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:list-gateways');
   ipcMain.removeHandler('api:create-gateway');
   ipcMain.removeHandler('api:update-gateway');
+  ipcMain.removeHandler('api:list-teams');
   ipcMain.removeHandler('api:delete-gateway');
   ipcMain.removeHandler('api:toggle-gateway-status');
 }
