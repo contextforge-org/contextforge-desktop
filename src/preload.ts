@@ -49,7 +49,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateTool: (toolId: string, toolData: any) => ipcRenderer.invoke('api:update-tool', toolId, toolData),
     deleteTool: (toolId: string) => ipcRenderer.invoke('api:delete-tool', toolId),
     toggleToolStatus: (toolId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-tool-status', toolId, activate),
-    listResources: () => ipcRenderer.invoke('api:list-resources'),
+    listResources: (includeInactive?: boolean) => ipcRenderer.invoke('api:list-resources', includeInactive),
+    createResource: (resourceData: any) => ipcRenderer.invoke('api:create-resource', resourceData),
+    readResource: (resourceId: string) => ipcRenderer.invoke('api:read-resource', resourceId),
+    updateResource: (resourceId: string, resourceData: any) => ipcRenderer.invoke('api:update-resource', resourceId, resourceData),
+    deleteResource: (resourceId: string) => ipcRenderer.invoke('api:delete-resource', resourceId),
+    toggleResourceStatus: (resourceId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-resource-status', resourceId, activate),
     listPrompts: (includeInactive = true) => ipcRenderer.invoke('api:list-prompts', includeInactive),
     createPrompt: (promptData: any) => ipcRenderer.invoke('api:create-prompt', promptData),
     updatePrompt: (promptId: string, promptData: any) => ipcRenderer.invoke('api:update-prompt', promptId, promptData),
@@ -110,7 +115,12 @@ declare global {
         updateTool: (toolId: string, toolData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteTool: (toolId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         toggleToolStatus: (toolId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
-        listResources: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        listResources: (includeInactive?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
+        createResource: (resourceData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        readResource: (resourceId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        updateResource: (resourceId: string, resourceData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deleteResource: (resourceId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        toggleResourceStatus: (resourceId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         listPrompts: (includeInactive?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         createPrompt: (promptData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         updatePrompt: (promptId: string, promptData: any) => Promise<{ success: boolean; data?: any; error?: string }>;

@@ -16,7 +16,10 @@ import {
   type PromptRead,
   type PromptCreate,
   type PromptUpdate,
-  type PermissionListResponse
+  type PermissionListResponse,
+  type ResourceRead,
+  type ResourceCreate,
+  type ResourceUpdate
 } from '../contextforge-client-ts';
 
 // Check if we're in Electron environment
@@ -201,18 +204,88 @@ export async function toggleToolStatus(toolId: string, activate?: boolean) {
 }
 
 // Resource operations
-export async function listResources() {
+export async function listResources(includeInactive = true): Promise<ResourceRead[]> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
-  const response = await window.electronAPI.api.listResources();
+  const response = await window.electronAPI.api.listResources(includeInactive);
   
   if (!response.success) {
     throw new Error('Failed to list resources: ' + response.error);
   }
   
   return response.data || [];
+}
+
+export async function createResource(resourceData: ResourceCreate) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.createResource(resourceData);
+  
+  if (!response.success) {
+    throw new Error('Failed to create resource: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function readResource(resourceId: string): Promise<ResourceRead> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.readResource(resourceId);
+  
+  if (!response.success) {
+    throw new Error('Failed to read resource: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function updateResource(resourceId: string, resourceData: ResourceUpdate) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.updateResource(resourceId, resourceData);
+  
+  if (!response.success) {
+    throw new Error('Failed to update resource: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function deleteResource(resourceId: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.deleteResource(resourceId);
+  
+  if (!response.success) {
+    throw new Error('Failed to delete resource: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function toggleResourceStatus(resourceId: string, activate?: boolean) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.toggleResourceStatus(resourceId, activate);
+  
+  if (!response.success) {
+    throw new Error('Failed to toggle resource status: ' + response.error);
+  }
+  
+  return response.data;
 }
 
 // Prompt operations
@@ -687,5 +760,8 @@ export type {
   GatewayUpdate,
   PromptRead,
   PromptCreate,
-  PromptUpdate
+  PromptUpdate,
+  ResourceRead,
+  ResourceCreate,
+  ResourceUpdate
 };

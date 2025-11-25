@@ -161,9 +161,54 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   });
 
   // Resource handlers
-  ipcMain.handle('api:list-resources', async () => {
+  ipcMain.handle('api:list-resources', async (_event, includeInactive?: boolean) => {
     try {
-      const response = await mainApi.listResources();
+      const response = await mainApi.listResources(includeInactive);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:create-resource', async (_event, resourceData: any) => {
+    try {
+      const response = await mainApi.createResource(resourceData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:read-resource', async (_event, resourceId: string) => {
+    try {
+      const response = await mainApi.readResource(resourceId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:update-resource', async (_event, resourceId: string, resourceData: any) => {
+    try {
+      const response = await mainApi.updateResource(resourceId, resourceData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-resource', async (_event, resourceId: string) => {
+    try {
+      const response = await mainApi.deleteResource(resourceId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:toggle-resource-status', async (_event, resourceId: string, activate?: boolean) => {
+    try {
+      const response = await mainApi.toggleResourceStatus(resourceId, activate);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -492,6 +537,11 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:delete-tool');
   ipcMain.removeHandler('api:toggle-tool-status');
   ipcMain.removeHandler('api:list-resources');
+  ipcMain.removeHandler('api:create-resource');
+  ipcMain.removeHandler('api:read-resource');
+  ipcMain.removeHandler('api:update-resource');
+  ipcMain.removeHandler('api:delete-resource');
+  ipcMain.removeHandler('api:toggle-resource-status');
   ipcMain.removeHandler('api:create-prompt');
   ipcMain.removeHandler('api:update-prompt');
   ipcMain.removeHandler('api:delete-prompt');

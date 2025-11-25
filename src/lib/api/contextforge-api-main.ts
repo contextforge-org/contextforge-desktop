@@ -32,6 +32,11 @@ import {
   deleteToolToolsToolIdDelete,
   toggleToolStatusToolsToolIdTogglePost,
   listResourcesResourcesGet,
+  createResourceResourcesPost,
+  readResourceResourcesResourceIdGet,
+  updateResourceResourcesResourceIdPut,
+  deleteResourceResourcesResourceIdDelete,
+  toggleResourceStatusResourcesResourceIdTogglePost,
   listPromptsPromptsGet,
   createPromptPromptsPost,
   updatePromptPromptsPromptIdPut,
@@ -70,6 +75,9 @@ import {
   type PermissionListResponse,
   type PromptCreate,
   type PromptUpdate,
+  type ResourceRead,
+  type ResourceCreate,
+  type ResourceUpdate,
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
 import { createElectronFetchAdapter } from './electron-fetch-adapter';
@@ -272,14 +280,80 @@ export async function toggleToolStatus(toolId: string, activate?: boolean) {
 // Resource Operations
 // ============================================================================
 
-export async function listResources() {
-  const response = await listResourcesResourcesGet();
+export async function listResources(includeInactive = true): Promise<ResourceRead[]> {
+  const response = await listResourcesResourcesGet({
+    query: { include_inactive: includeInactive }
+  });
   
   if (response.error) {
     throw new Error('Failed to list resources: ' + JSON.stringify(response.error));
   }
   
   return response.data || [];
+}
+
+export async function createResource(resourceData: ResourceCreate): Promise<ResourceRead> {
+  const response = await createResourceResourcesPost({
+    body: {
+      resource: resourceData
+    }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to create resource: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as ResourceRead;
+}
+
+export async function readResource(resourceId: string): Promise<ResourceRead> {
+  const response = await readResourceResourcesResourceIdGet({
+    path: { resource_id: resourceId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to read resource: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as ResourceRead;
+}
+
+export async function updateResource(resourceId: string, resourceData: ResourceUpdate): Promise<ResourceRead> {
+  const response = await updateResourceResourcesResourceIdPut({
+    path: { resource_id: resourceId },
+    body: resourceData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to update resource: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as ResourceRead;
+}
+
+export async function deleteResource(resourceId: string): Promise<any> {
+  const response = await deleteResourceResourcesResourceIdDelete({
+    path: { resource_id: resourceId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to delete resource: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data || { success: true };
+}
+
+export async function toggleResourceStatus(resourceId: string, activate?: boolean) {
+  const response = await toggleResourceStatusResourcesResourceIdTogglePost({
+    path: { resource_id: parseInt(resourceId) },
+    query: activate !== undefined ? { activate } : undefined
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to toggle resource status: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
 }
 
 // ============================================================================
