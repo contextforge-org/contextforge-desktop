@@ -1,6 +1,5 @@
 import { toast } from './toastWithTray';
 import { MCPServer } from '../types/server';
-import imgAzure from "../../assets/icons/brands/azure.png";
 
 /**
  * Type for edited server data (excludes auto-generated fields)
@@ -42,7 +41,7 @@ export const TOAST_CONFIG = {
  * Default values for new servers
  */
 export const SERVER_DEFAULTS = {
-  LOGO_URL: imgAzure,
+  LOGO_URL: '',
   LAST_SEEN: 'Just now',
   TEAM: 'My Team',
   DEFAULT_NAME: 'New Gateway',
