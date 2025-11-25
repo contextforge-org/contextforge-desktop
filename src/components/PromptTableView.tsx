@@ -2,9 +2,16 @@ import { FileText } from 'lucide-react';
 import { ServerActionsDropdown } from './ServerActionsDropdown';
 import { Prompt } from '../types/prompt';
 
+// Define the color type for better type safety
+type TagColors = {
+  bg: string;
+  text: string;
+  border: string;
+};
+
 // Helper function to get consistent tag colors
-const getTagColor = (tag: string, theme: string) => {
-  const darkColors = [
+const getTagColor = (tag: string, theme: string): TagColors => {
+  const darkColors: TagColors[] = [
     { bg: 'bg-orange-500/20', text: 'text-orange-300', border: 'border-orange-500/40' },
     { bg: 'bg-amber-500/20', text: 'text-amber-300', border: 'border-amber-500/40' },
     { bg: 'bg-yellow-500/20', text: 'text-yellow-300', border: 'border-yellow-500/40' },
@@ -14,7 +21,7 @@ const getTagColor = (tag: string, theme: string) => {
     { bg: 'bg-rose-500/20', text: 'text-rose-300', border: 'border-rose-500/40' },
   ];
   
-  const lightColors = [
+  const lightColors: TagColors[] = [
     { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
     { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300' },
     { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
@@ -31,7 +38,9 @@ const getTagColor = (tag: string, theme: string) => {
   for (let i = 0; i < tag.length; i++) {
     hash = tag.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return colors[Math.abs(hash) % colors.length];
+  const colorIndex = Math.abs(hash) % colors.length;
+  // Non-null assertion is safe here because modulo ensures valid index and arrays are non-empty
+  return colors[colorIndex]!;
 };
 
 // Helper to get success rate color

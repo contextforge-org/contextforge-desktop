@@ -18,11 +18,15 @@ function getInitials(name: string): string {
   // If single word, take first 2 characters
   if (words.length === 1) {
     const word = words[0]
+    if (!word) return '??'
     return word.length >= 2 ? word.substring(0, 2).toUpperCase() : word.toUpperCase()
   }
   
   // If multiple words, take first character of first two words
-  return (words[0][0] + words[1][0]).toUpperCase()
+  const firstWord = words[0]
+  const secondWord = words[1]
+  if (!firstWord || !secondWord || !firstWord[0] || !secondWord[0]) return '??'
+  return (firstWord[0] + secondWord[0]).toUpperCase()
 }
 
 /**
@@ -50,7 +54,7 @@ function getColorFromName(name: string): { bg: string; text: string } {
   }
   
   const index = Math.abs(hash) % colors.length
-  return colors[index]
+  return colors[index]!
 }
 
 interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {

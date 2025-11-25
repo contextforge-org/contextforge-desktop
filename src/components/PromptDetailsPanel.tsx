@@ -75,7 +75,9 @@ export function PromptDetailsPanel({
     const matches = new Set<string>();
     let match;
     while ((match = regex.exec(editedTemplate)) !== null) {
-      matches.add(match[1]);
+      if (match[1]) {
+        matches.add(match[1]);
+      }
     }
     return Array.from(matches);
   }, [editedTemplate]);

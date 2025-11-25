@@ -57,8 +57,8 @@ export function VirtualServersPage() {
             console.log('Not authenticated, attempting login...');
             try {
               await api.login(
-                import.meta.env.VITE_API_EMAIL,
-                import.meta.env.VITE_API_PASSWORD
+                import.meta.env['VITE_API_EMAIL'],
+                import.meta.env['VITE_API_PASSWORD']
               );
               // Retry fetching servers
               const servers = await api.listServers();
@@ -111,8 +111,8 @@ export function VirtualServersPage() {
             console.log('Not authenticated for tools, attempting login...');
             try {
               await api.login(
-                import.meta.env.VITE_API_EMAIL,
-                import.meta.env.VITE_API_PASSWORD
+                import.meta.env['VITE_API_EMAIL'],
+                import.meta.env['VITE_API_PASSWORD']
               );
               const tools = await api.listTools();
               if (Array.isArray(tools) && tools.length > 0) {
@@ -290,8 +290,8 @@ export function VirtualServersPage() {
     setShowSidePanel(true);
   }, [editorHook]);
 
-  const handleSaveServer = useCallback(() => {
-    const success = actionsHook.saveServer(panelMode, editorHook.getEditedServer());
+  const handleSaveServer = useCallback(async () => {
+    const success = await actionsHook.saveServer(panelMode, editorHook.getEditedServer());
     if (success) {
       setShowSidePanel(false);
     }

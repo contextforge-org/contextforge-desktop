@@ -62,7 +62,7 @@ export function usePromptEditor() {
   const updateArgument = useCallback((index: number, field: keyof PromptArgument, value: any) => {
     setEditedArguments(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+      updated[index] = { ...updated[index], [field]: value } as PromptArgument;
       return updated;
     });
   }, []);
@@ -75,7 +75,7 @@ export function usePromptEditor() {
     if (index === 0) return;
     setEditedArguments(prev => {
       const updated = [...prev];
-      [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+      [updated[index - 1], updated[index]] = [updated[index]!, updated[index - 1]!];
       return updated;
     });
   }, []);
@@ -84,7 +84,7 @@ export function usePromptEditor() {
     setEditedArguments(prev => {
       if (index === prev.length - 1) return prev;
       const updated = [...prev];
-      [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+      [updated[index], updated[index + 1]] = [updated[index + 1]!, updated[index]!];
       return updated;
     });
   }, []);

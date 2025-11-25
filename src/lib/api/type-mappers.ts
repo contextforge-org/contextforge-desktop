@@ -39,7 +39,9 @@ export function mapUserFromApi(
     role: hasAdminRole ? 'Admin' : 'User',
     roles: userRoles,
     provider: apiUser.auth_provider,
-    dateAdded: new Date(apiUser.created_at).toISOString().split('T')[0],
+    dateAdded: (apiUser.created_at
+      ? new Date(apiUser.created_at).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0])!,
     isActive: apiUser.is_active
   };
 }
@@ -55,7 +57,7 @@ export function mapUserToCreateRequest(user: {
   return {
     email: user.email,
     password: user.password,
-    full_name: user.fullName || null
+    full_name: user.fullName || undefined
   };
 }
 
@@ -67,8 +69,8 @@ export function mapUserToUpdateRequest(user: {
   password?: string;
 }) {
   return {
-    full_name: user.fullName || null,
-    password: user.password || null
+    full_name: user.fullName || undefined,
+    password: user.password || undefined
   };
 }
 

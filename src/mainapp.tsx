@@ -10,6 +10,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
 import { Toaster } from './components/ui/sonner';
 import { useTray } from './hooks/useTray';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function AppContent() {
   const { theme } = useTheme();
@@ -43,10 +44,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <TeamProvider>
-        <AppContent />
-      </TeamProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <TeamProvider>
+          <AppContent />
+        </TeamProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

@@ -38,7 +38,7 @@ export function useTeamActions() {
         visibility: team.visibility === 'public' ? 'Public' as const : 'Private' as const,
         maxMembers: team.max_members || 0,
         creator: team.created_by,
-        dateCreated: new Date(team.created_at).toISOString().split('T')[0]
+        dateCreated: (team.created_at ? new Date(team.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]) as string
       }));
       setTeams(mappedTeams);
     } catch (err) {

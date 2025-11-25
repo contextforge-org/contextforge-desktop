@@ -258,7 +258,7 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           icon={<Package size={18} strokeWidth={1.5} />} 
           label="Resources" 
           active={currentPage === 'Resources'}
-          onClick={() => onNavigate('Resources')}
+          // onClick={() => onNavigate('Resources')}
           isCollapsed={isCollapsed}
           theme={theme}
         />
@@ -266,7 +266,7 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           icon={<Users size={18} strokeWidth={1.5} />} 
           label="Agents" 
           active={currentPage === 'Agents'}
-          onClick={() => onNavigate('Agents')}
+          // onClick={() => onNavigate('Agents')}
           isCollapsed={isCollapsed}
           theme={theme}
         />
@@ -274,7 +274,7 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           icon={<LineChart size={18} strokeWidth={1.5} />} 
           label="Metrics" 
           active={currentPage === 'Metrics'}
-          onClick={() => onNavigate('Metrics')}
+          // onClick={() => onNavigate('Metrics')}
           isCollapsed={isCollapsed}
           theme={theme}
         />
@@ -282,7 +282,7 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           icon={<Plug size={18} strokeWidth={1.5} />} 
           label="Plugins" 
           active={currentPage === 'Plugins'}
-          onClick={() => onNavigate('Plugins')}
+          // onClick={() => onNavigate('Plugins')}
           isCollapsed={isCollapsed}
           theme={theme}
         />

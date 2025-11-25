@@ -28,7 +28,7 @@ import {
 import { ToolTestFormField } from './ToolTestFormField';
 
 // Helper function to get consistent tag colors
-const getTagColor = (tag: string, theme: string) => {
+const getTagColor = (tag: string, theme: string): { bg: string; text: string; border: string } => {
   const darkColors = [
     { bg: 'bg-orange-500/20', text: 'text-orange-300', border: 'border-orange-500/40' },
     { bg: 'bg-amber-500/20', text: 'text-amber-300', border: 'border-amber-500/40' },
@@ -56,7 +56,8 @@ const getTagColor = (tag: string, theme: string) => {
   for (let i = 0; i < tag.length; i++) {
     hash = tag.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return colors[Math.abs(hash) % colors.length];
+  const index = Math.abs(hash) % colors.length;
+  return colors[index]!;
 };
 
 interface Tool {
@@ -315,8 +316,8 @@ export function ToolsPage() {
             console.log('Not authenticated, attempting login...');
             try {
               await api.login(
-                import.meta.env.VITE_API_EMAIL,
-                import.meta.env.VITE_API_PASSWORD
+                import.meta.env['VITE_API_EMAIL'],
+                import.meta.env['VITE_API_PASSWORD']
               );
               // Retry fetching tools
               const tools = await api.listTools();

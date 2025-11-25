@@ -53,8 +53,8 @@ export function MCPServersPage() {
             console.log('Not authenticated, attempting login...');
             try {
               await api.login(
-                import.meta.env.VITE_API_EMAIL,
-                import.meta.env.VITE_API_PASSWORD
+                import.meta.env['VITE_API_EMAIL'],
+                import.meta.env['VITE_API_PASSWORD']
               );
               // Retry fetching gateways
               const gateways = await api.listGateways();
@@ -109,8 +109,8 @@ export function MCPServersPage() {
     setShowSidePanel(true);
   }, [editorHook]);
 
-  const handleSaveGateway = useCallback(() => {
-    const success = actionsHook.saveServer(panelMode, editorHook.getEditedServer());
+  const handleSaveGateway = useCallback(async () => {
+    const success = await actionsHook.saveServer(panelMode, editorHook.getEditedServer());
     if (success) {
       setShowSidePanel(false);
     }

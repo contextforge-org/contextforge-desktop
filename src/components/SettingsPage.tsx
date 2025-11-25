@@ -271,9 +271,12 @@ export function SettingsPage() {
         // Convert "__none__" to empty string for server ID
         const serverId = newTokenData.serverId === '__none__' ? '' : newTokenData.serverId;
 
+        // Format expiration date as YYYY-MM-DD
+        const expiresDate = expirationDate.toISOString().split('T')[0] || '';
+
         await createToken({
           tokenName: newTokenData.tokenName,
-          expires: expirationDate.toISOString().split('T')[0],
+          expires: expiresDate,
           description: newTokenData.description,
           serverId: serverId || '',
           permissions: newTokenData.permissions

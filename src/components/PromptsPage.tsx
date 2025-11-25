@@ -50,8 +50,8 @@ export function PromptsPage() {
             console.log('Not authenticated, attempting login...');
             try {
               await api.login(
-                import.meta.env.VITE_API_EMAIL,
-                import.meta.env.VITE_API_PASSWORD
+                import.meta.env['VITE_API_EMAIL'],
+                import.meta.env['VITE_API_PASSWORD']
               );
               // Retry fetching prompts
               const prompts = await api.listPrompts();

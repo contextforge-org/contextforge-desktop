@@ -32,16 +32,18 @@ export function useTokenActions() {
     try {
       const data = await api.listTokens();
       // Map API response to UI model
-      const mappedTokens = data.map(token => ({
+      const mappedTokens: APIToken[] = data.map(token => ({
         id: token.id,
         tokenName: token.name,
         expires: token.expires_at || 'Never',
         description: token.description || '',
         serverId: token.server_id || '',
         permissions: token.resource_scopes || [],
-        dateCreated: new Date(token.created_at).toISOString().split('T')[0],
-        lastUsed: token.last_used 
-          ? new Date(token.last_used).toISOString().split('T')[0]
+        dateCreated: token.created_at
+          ? (new Date(token.created_at).toISOString().split('T')[0] || 'Unknown')
+          : 'Unknown',
+        lastUsed: token.last_used
+          ? (new Date(token.last_used).toISOString().split('T')[0] || 'Never')
           : 'Never'
       }));
       setTokens(mappedTokens);
