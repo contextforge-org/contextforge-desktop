@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { MCPServer } from '../types/server';
 import { useServerFilters } from '../hooks/useServerFilters';
@@ -8,100 +8,69 @@ import { ServerTableView } from './ServerTableView';
 import { ServerGridView } from './ServerGridView';
 import { ServerDetailsPanel } from './ServerDetailsPanel';
 import { ServerFilterDropdown } from './ServerFilterDropdown';
-import { PageHeader, DataTableToolbar } from './common';
-import imgAzure from "../../assets/icons/brands/terraform.png";
-import imgBox from "../../assets/icons/brands/box.png";
-import imgGitHub from "../../assets/icons/brands/github.png";
-import imgPostman from "../../assets/icons/brands/postman.png";
-import imgTerraform from "../../assets/icons/brands/terraform.png";
-
-// Sample MCP Server data
-const sampleMCPServers: MCPServer[] = [
-  {
-    id: 1,
-    name: 'Azure',
-    logoUrl: imgAzure,
-    url: 'https://azure.microsoft.com/mcp',
-    description: 'Production-ready MCP server connecting AI agents with 40+ Azure services including AI Foundry, AI Search, App Insights',
-    tags: ['microsoft', 'cloud', 'production'],
-    active: true,
-    lastSeen: '2 min ago',
-    team: 'Microsoft',
-    visibility: 'public',
-    transportType: 'SSE',
-    authenticationType: 'OAuth 2.0',
-    passthroughHeaders: ['Authorization', 'X-Tenant-Id'],
-  },
-  {
-    id: 2,
-    name: 'Box',
-    logoUrl: imgBox,
-    url: 'https://box.com/mcp',
-    description: 'Securely connect AI agents to your enterprise content in Box',
-    tags: ['storage', 'enterprise', 'content'],
-    active: true,
-    lastSeen: '30 min ago',
-    team: 'Box',
-    visibility: 'team',
-    transportType: 'SSE',
-    authenticationType: 'OAuth 2.0',
-    passthroughHeaders: ['Authorization', 'X-Trace-Id'],
-  },
-  {
-    id: 3,
-    name: 'GitHub',
-    logoUrl: imgGitHub,
-    url: 'https://github.com/mcp',
-    description: 'MCP Server for the GitHub API, enabling repository management, issue tracking, and code operations',
-    tags: ['developer-tools', 'version-control', 'collaboration'],
-    active: false,
-    lastSeen: '2 days ago',
-    team: 'GitHub',
-    visibility: 'public',
-    transportType: 'SSE',
-    authenticationType: 'Bearer Token',
-    passthroughHeaders: ['Authorization'],
-  },
-  {
-    id: 4,
-    name: 'Postman',
-    logoUrl: imgPostman,
-    url: 'https://postman.com/mcp',
-    description: 'MCP Server for the Postman API, enabling API testing, documentation, and collaboration',
-    tags: ['developer-tools', 'api-testing', 'collaboration'],
-    active: true,
-    lastSeen: '10 min ago',
-    team: 'Postman',
-    visibility: 'public',
-    transportType: 'HTTP',
-    authenticationType: 'API Key',
-    passthroughHeaders: ['X-API-Key'],
-  },
-  {
-    id: 5,
-    name: 'Terraform',
-    logoUrl: imgTerraform,
-    url: 'https://terraform.io/mcp',
-    description: 'MCP Server for HashiCorp Terraform, enabling infrastructure as code and automation',
-    tags: ['infrastructure', 'automation', 'iac'],
-    active: true,
-    lastSeen: '5 min ago',
-    team: 'HashiCorp',
-    visibility: 'public',
-    transportType: 'HTTP',
-    authenticationType: 'API Key',
-    passthroughHeaders: ['X-API-Key'],
-  },
-];
+import { PageHeader, DataTableToolbar, MCPIcon } from './common';
+import * as api from '../lib/api/contextforge-api-ipc';
+import { mapGatewayReadToMCPServer } from '../lib/api/server-mapper';
+import { toast } from '../lib/toastWithTray';
 
 export function MCPServersPage() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null);
   const [panelMode, setPanelMode] = useState<'add' | 'view'>('view');
-  const [serversData, setServersData] = useState(sampleMCPServers);
+  const [serversData, setServersData] = useState<MCPServer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const { theme } = useTheme();
+
+  // Fetch servers on mount
+  useEffect(() => {
+    async function fetchServers() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Try to fetch gateways
+        try {
+          const gateways = await api.listGateways();
+          const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
+          setServersData(mappedGateways);
+        } catch (fetchError) {
+          // If fetch fails due to auth, try to login
+          const errorMsg = (fetchError as Error).message;
+          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
+            console.log('Not authenticated, attempting login...');
+            try {
+              await api.login(
+                import.meta.env.VITE_API_EMAIL,
+                import.meta.env.VITE_API_PASSWORD
+              );
+              // Retry fetching gateways
+              const gateways = await api.listGateways();
+              const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
+              setServersData(mappedGateways);
+              toast.success('Connected to ContextForge backend');
+            } catch (loginError) {
+              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
+            }
+          } else {
+            throw fetchError;
+          }
+        }
+      } catch (err) {
+        console.log(err)
+        const errorMessage = (err as Error).message;
+        setError(errorMessage);
+        toast.error('Failed to load gateways: ' + errorMessage);
+        console.error('Failed to fetch gateways:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchServers();
+  }, []);
 
   // Use custom hooks for filters, editor, and actions
   const filterHook = useServerFilters(serversData);
@@ -111,7 +80,8 @@ export function MCPServersPage() {
     setServersData,
     selectedServer,
     setSelectedServer,
-    editorHook.setEditedActive
+    editorHook.setEditedActive,
+    'gateway'
   );
 
   // Memoized handlers
@@ -152,8 +122,62 @@ export function MCPServersPage() {
         />
 
         <div className="p-[32px]">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+                  Loading gateways...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !isLoading && (
+            <div className={`rounded-lg border p-6 ${theme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'}`}>
+              <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-800'}`}>
+                Failed to load gateways
+              </h3>
+              <p className={theme === 'dark' ? 'text-red-300' : 'text-red-700'}>
+                {error}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className={`mt-4 px-4 py-2 rounded ${theme === 'dark' ? 'bg-red-800 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && !error && serversData.length === 0 && (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center max-w-md">
+                <MCPIcon
+                  className={`mx-auto h-16 w-16 mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}
+                />
+                <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                  No MCP Servers Yet
+                </h3>
+                <p className={`mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Get started by adding your first MCP server or federated gateway to connect external tools and resources.
+                </p>
+                <button
+                  onClick={handleAddGatewayClick}
+                  className="h-[36px] px-[12px] bg-cyan-500 hover:bg-cyan-600 rounded-[6px] transition-colors shadow-sm shadow-cyan-500/20 text-white font-medium text-[13px]"
+                >
+                  Add Your First Gateway
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Data Table */}
-          <div className={`rounded-lg border-b border-l border-r overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
+          {!isLoading && !error && serversData.length > 0 && (
+            <div className={`rounded-lg border-b border-l border-r overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
             {/* Table Toolbar */}
             <DataTableToolbar
               viewMode={viewMode}
@@ -212,7 +236,8 @@ export function MCPServersPage() {
                 onDelete={actionsHook.deleteServer}
               />
             )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

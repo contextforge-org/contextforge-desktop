@@ -1,24 +1,10 @@
 import { useState, useCallback } from 'react';
-
-type MCPServer = {
-  id: number;
-  name: string;
-  logoUrl: string;
-  url: string;
-  description: string;
-  tags: string[];
-  active: boolean;
-  lastSeen: string;
-  team: string;
-  visibility: 'public' | 'team' | 'private';
-  transportType: string;
-  authenticationType: string;
-  passthroughHeaders: string[];
-};
+import { MCPServer } from '../types/server';
 
 export function useServerEditor() {
   const [editedName, setEditedName] = useState('');
   const [editedUrl, setEditedUrl] = useState('');
+  const [editedIconUrl, setEditedIconUrl] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
   const [editedTags, setEditedTags] = useState<string[]>([]);
   const [editedVisibility, setEditedVisibility] = useState<'public' | 'team' | 'private'>('public');
@@ -28,10 +14,21 @@ export function useServerEditor() {
   const [editedActive, setEditedActive] = useState(true);
   const [isTransportDropdownOpen, setIsTransportDropdownOpen] = useState(false);
   const [isAuthDropdownOpen, setIsAuthDropdownOpen] = useState(false);
+  
+  // Associated items state
+  const [editedTools, setEditedTools] = useState<string[]>([]);
+  const [editedResources, setEditedResources] = useState<string[]>([]);
+  const [editedPrompts, setEditedPrompts] = useState<string[]>([]);
+  
+  // Search state for dropdowns
+  const [toolsSearch, setToolsSearch] = useState('');
+  const [resourcesSearch, setResourcesSearch] = useState('');
+  const [promptsSearch, setPromptsSearch] = useState('');
 
   const loadServerForEditing = useCallback((server: MCPServer) => {
     setEditedName(server.name);
     setEditedUrl(server.url);
+    setEditedIconUrl(server.logoUrl || '');
     setEditedDescription(server.description);
     setEditedTags([...server.tags]);
     setEditedVisibility(server.visibility);
@@ -39,11 +36,15 @@ export function useServerEditor() {
     setEditedAuthenticationType(server.authenticationType);
     setEditedPassthroughHeaders([...server.passthroughHeaders]);
     setEditedActive(server.active);
+    setEditedTools((server as any).associatedTools || []);
+    setEditedResources((server as any).associatedResources || []);
+    setEditedPrompts((server as any).associatedPrompts || []);
   }, []);
 
   const resetForNewServer = useCallback(() => {
     setEditedName('');
     setEditedUrl('');
+    setEditedIconUrl('');
     setEditedDescription('');
     setEditedTags([]);
     setEditedVisibility('public');
@@ -51,11 +52,18 @@ export function useServerEditor() {
     setEditedAuthenticationType('None');
     setEditedPassthroughHeaders([]);
     setEditedActive(true);
+    setEditedTools([]);
+    setEditedResources([]);
+    setEditedPrompts([]);
+    setToolsSearch('');
+    setResourcesSearch('');
+    setPromptsSearch('');
   }, []);
 
   const getEditedServer = useCallback(() => ({
     name: editedName,
     url: editedUrl,
+    logoUrl: editedIconUrl,
     description: editedDescription,
     tags: editedTags,
     visibility: editedVisibility,
@@ -63,9 +71,13 @@ export function useServerEditor() {
     authenticationType: editedAuthenticationType,
     passthroughHeaders: editedPassthroughHeaders,
     active: editedActive,
+    associatedTools: editedTools,
+    associatedResources: editedResources,
+    associatedPrompts: editedPrompts,
   }), [
     editedName,
     editedUrl,
+    editedIconUrl,
     editedDescription,
     editedTags,
     editedVisibility,
@@ -73,11 +85,45 @@ export function useServerEditor() {
     editedAuthenticationType,
     editedPassthroughHeaders,
     editedActive,
+    editedTools,
+    editedResources,
+    editedPrompts,
   ]);
+
+  const toggleTool = useCallback((tool: string) => {
+    setEditedTools(prev =>
+      prev.includes(tool) ? prev.filter(t => t !== tool) : [...prev, tool]
+    );
+  }, []);
+
+  const removeTool = useCallback((tool: string) => {
+    setEditedTools(prev => prev.filter(t => t !== tool));
+  }, []);
+
+  const toggleResource = useCallback((resource: string) => {
+    setEditedResources(prev =>
+      prev.includes(resource) ? prev.filter(r => r !== resource) : [...prev, resource]
+    );
+  }, []);
+
+  const removeResource = useCallback((resource: string) => {
+    setEditedResources(prev => prev.filter(r => r !== resource));
+  }, []);
+
+  const togglePrompt = useCallback((prompt: string) => {
+    setEditedPrompts(prev =>
+      prev.includes(prompt) ? prev.filter(p => p !== prompt) : [...prev, prompt]
+    );
+  }, []);
+
+  const removePrompt = useCallback((prompt: string) => {
+    setEditedPrompts(prev => prev.filter(p => p !== prompt));
+  }, []);
 
   return {
     editedName,
     editedUrl,
+    editedIconUrl,
     editedDescription,
     editedTags,
     editedVisibility,
@@ -87,8 +133,15 @@ export function useServerEditor() {
     editedActive,
     isTransportDropdownOpen,
     isAuthDropdownOpen,
+    editedTools,
+    editedResources,
+    editedPrompts,
+    toolsSearch,
+    resourcesSearch,
+    promptsSearch,
     setEditedName,
     setEditedUrl,
+    setEditedIconUrl,
     setEditedDescription,
     setEditedTags,
     setEditedVisibility,
@@ -98,6 +151,18 @@ export function useServerEditor() {
     setEditedActive,
     setIsTransportDropdownOpen,
     setIsAuthDropdownOpen,
+    setEditedTools,
+    setEditedResources,
+    setEditedPrompts,
+    setToolsSearch,
+    setResourcesSearch,
+    setPromptsSearch,
+    toggleTool,
+    removeTool,
+    toggleResource,
+    removeResource,
+    togglePrompt,
+    removePrompt,
     loadServerForEditing,
     resetForNewServer,
     getEditedServer,

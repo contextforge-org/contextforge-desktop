@@ -1,5 +1,5 @@
 export type MCPServer = {
-  id: number;
+  id: string; // Changed from number to string to match API
   name: string;
   logoUrl: string;
   url: string;
@@ -12,6 +12,9 @@ export type MCPServer = {
   transportType: string;
   authenticationType: string;
   passthroughHeaders: string[];
+  associatedTools?: string[];
+  associatedResources?: string[];
+  associatedPrompts?: string[];
 };
 
 

@@ -6,30 +6,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
-
-type MCPServer = {
-  id: number;
-  name: string;
-  logoUrl: string;
-  url: string;
-  description: string;
-  tags: string[];
-  active: boolean;
-  lastSeen: string;
-  team: string;
-  visibility: 'public' | 'team' | 'private';
-  transportType: string;
-  authenticationType: string;
-  passthroughHeaders: string[];
-};
+import { MCPServer } from '../types/server';
 
 interface ServerActionsDropdownProps {
   server: MCPServer;
   theme: string;
-  onToggleActive: (serverId: number) => void;
+  onToggleActive: (serverId: string) => void;
   onEdit: (server: MCPServer) => void;
-  onDuplicate: (serverId: number) => void;
-  onDelete: (serverId: number) => void;
+  onDuplicate: (serverId: string) => void;
+  onDelete: (serverId: string) => void;
 }
 
 export function ServerActionsDropdown({

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, MoreVertical, X, Filter, Pencil, Power, Copy, Trash2, ChevronDown, FlaskConical } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, MoreVertical, X, Filter, Pencil, Power, Copy, Trash2, ChevronDown, Wrench } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,7 @@ import { BulkImportForm } from './BulkImportForm';
 import { RightSidePanel } from './RightSidePanel';
 import { toast } from '../lib/toastWithTray';
 import { PageHeader, DataTableToolbar } from './common';
+import * as api from '../lib/api/contextforge-api-ipc';
 
 // Helper function to get consistent tag colors
 const getTagColor = (tag: string, theme: string) => {
@@ -187,7 +188,9 @@ const sampleTools: Tool[] = [
 
 export function ToolsPage() {
   const { theme } = useTheme();
-  const [toolsData, setToolsData] = useState<Tool[]>(sampleTools);
+  const [toolsData, setToolsData] = useState<Tool[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [panelMode, setPanelMode] = useState<'view' | 'add'>('view');
@@ -244,6 +247,97 @@ export function ToolsPage() {
   const [isIntegrationTypeDropdownOpen, setIsIntegrationTypeDropdownOpen] = useState(false);
   const [isRequestMethodDropdownOpen, setIsRequestMethodDropdownOpen] = useState(false);
   const [isAuthTypeDropdownOpen, setIsAuthTypeDropdownOpen] = useState(false);
+
+  // Fetch tools on mount
+  useEffect(() => {
+    async function fetchTools() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Try to fetch tools
+        try {
+          const tools = await api.listTools();
+          // Map API response to Tool interface
+          const mappedTools = tools.map((tool: any) => ({
+            id: tool.id,
+            gatewayName: tool.gateway_name || tool.gatewayName || 'Unknown Gateway',
+            name: tool.name,
+            displayName: tool.display_name || tool.displayName || tool.name,
+            url: tool.url,
+            type: tool.integration_type || tool.type || 'REST',
+            requestMethod: tool.request_type || tool.requestMethod || 'GET',
+            description: tool.description || '',
+            annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
+            tags: Array.isArray(tool.tags) ? tool.tags : [],
+            owner: tool.owner || 'Unknown',
+            team: tool.team || 'Default Team',
+            visibility: tool.visibility || 'public',
+            integrationType: tool.integration_type || tool.integrationType || 'REST',
+            headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
+            inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
+            outputSchema: tool.output_schema || tool.outputSchema || '',
+            jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
+            authenticationType: tool.auth_type || tool.authenticationType || 'None',
+            active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
+          }));
+          setToolsData(mappedTools);
+        } catch (fetchError) {
+          // If fetch fails due to auth, try to login
+          const errorMsg = (fetchError as Error).message;
+          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
+            console.log('Not authenticated, attempting login...');
+            try {
+              await api.login(
+                import.meta.env.VITE_API_EMAIL,
+                import.meta.env.VITE_API_PASSWORD
+              );
+              // Retry fetching tools
+              const tools = await api.listTools();
+              const mappedTools = tools.map((tool: any) => ({
+                id: tool.id,
+                gatewayName: tool.gateway_name || tool.gatewayName || 'Unknown Gateway',
+                name: tool.name,
+                displayName: tool.display_name || tool.displayName || tool.name,
+                url: tool.url,
+                type: tool.integration_type || tool.type || 'REST',
+                requestMethod: tool.request_type || tool.requestMethod || 'GET',
+                description: tool.description || '',
+                annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
+                tags: Array.isArray(tool.tags) ? tool.tags : [],
+                owner: tool.owner || 'Unknown',
+                team: tool.team || 'Default Team',
+                visibility: tool.visibility || 'public',
+                integrationType: tool.integration_type || tool.integrationType || 'REST',
+                headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
+                inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
+                outputSchema: tool.output_schema || tool.outputSchema || '',
+                jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
+                authenticationType: tool.auth_type || tool.authenticationType || 'None',
+                active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
+              }));
+              setToolsData(mappedTools);
+              toast.success('Connected to ContextForge backend');
+            } catch (loginError) {
+              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
+            }
+          } else {
+            throw fetchError;
+          }
+        }
+      } catch (err) {
+        console.log(err);
+        const errorMessage = (err as Error).message;
+        setError(errorMessage);
+        toast.error('Failed to load tools: ' + errorMessage);
+        console.error('Failed to fetch tools:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTools();
+  }, []);
 
   const handleToolClick = (tool: Tool) => {
     setSelectedTool(tool);
@@ -532,11 +626,67 @@ export function ToolsPage() {
         {/* Header */}
         <PageHeader
           title="MCP Tools"
-          description="This is the diverse catalog of MCP Tools available. You can also add custom tools from REST APIs. Create a Virtual Server →"
+          description="This is the diverse catalog of MCP Tools available. You can also add custom tools from REST APIs."
           theme={theme}
         />
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center h-64 px-[32px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+                Loading tools...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="px-[32px]">
+            <div className={`rounded-lg border p-6 ${theme === 'dark' ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200'}`}>
+              <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-800'}`}>
+                Failed to load tools
+              </h3>
+              <p className={theme === 'dark' ? 'text-red-300' : 'text-red-700'}>
+                {error}
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className={`mt-4 px-4 py-2 rounded ${theme === 'dark' ? 'bg-red-800 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && toolsData.length === 0 && (
+          <div className="flex items-center justify-center h-64 px-[32px]">
+            <div className="text-center max-w-md">
+              <Wrench
+                className={`mx-auto h-16 w-16 mb-4 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}
+              />
+              <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                No Tools Yet
+              </h3>
+              <p className={`mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                Get started by adding your first tool to connect external APIs and services.
+              </p>
+              <button
+                onClick={handleAddToolClick}
+                className="h-[36px] px-[12px] bg-cyan-500 hover:bg-cyan-600 rounded-[6px] transition-colors shadow-sm shadow-cyan-500/20 text-white font-medium text-[13px]"
+              >
+                Add Your First Tool
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Filters and Controls */}
+        {!isLoading && !error && toolsData.length > 0 && (
         <div className="px-[32px] pb-[24px]">
           <div className={`rounded-lg border overflow-hidden ${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
             {/* Controls Header */}
@@ -758,7 +908,7 @@ export function ToolsPage() {
                               }}
                               className={`cursor-pointer ${theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'}`}
                             >
-                              <FlaskConical size={14} className="mr-2" />
+                              <Wrench size={14} className="mr-2" />
                               Test
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -971,6 +1121,7 @@ export function ToolsPage() {
             Showing {filteredTools.length} of {toolsData.length} tools
           </div>
         </div>
+        )}
       </div>
 
       {/* Side Panel */}
@@ -1364,7 +1515,7 @@ export function ToolsPage() {
                 </label>
                 <input
                   type="text"
-                  value={editedAnnotations.join(', ')}
+                  value={Array.isArray(editedAnnotations) ? editedAnnotations.join(', ') : ''}
                   onChange={(e) => setEditedAnnotations(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
                   placeholder="Up River Only, Destructive"
                   className={`w-full px-3 py-2 rounded-md border transition-colors ${

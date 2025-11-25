@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SideNav } from './components/SideNav';
 import { TopNav } from './components/TopNav';
-import { AddServerForm } from './components/AddServerForm';
+import { VirtualServersPage } from './components/VirtualServersPage';
 import { MCPServersPage } from './components/MCPServersPage';
 import { ToolsPage } from './components/ToolsPage';
 import { SettingsPage } from './components/SettingsPage';
@@ -27,7 +27,7 @@ function AppContent() {
         
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          {currentPage === 'servers' && <AddServerForm />}
+          {currentPage === 'servers' && <VirtualServersPage />}
           {currentPage === 'mcp-servers' && <MCPServersPage />}
           {currentPage === 'tools' && <ToolsPage />}
           {currentPage === 'settings' && <SettingsPage />}

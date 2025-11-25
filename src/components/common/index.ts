@@ -7,5 +7,6 @@ export { FormCard } from './FormCard';
 export { DataTable } from './DataTable';
 export type { Column } from './DataTable';
 export { DataTableToolbar } from './DataTableToolbar';
+export { MCPIcon } from './MCPIcon';
 
 

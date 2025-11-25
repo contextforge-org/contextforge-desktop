@@ -2,6 +2,7 @@ import { useState } from 'react';
 import svgPaths from "../imports/svg-00ihbob3cz";
 import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { MCPIcon } from './common';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -111,16 +112,6 @@ function OrgSelector({ theme = 'dark' }: { theme?: 'light' | 'dark' }) {
   );
 }
 
-function MCPIcon() {
-  return (
-    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 17 18">
-      <g>
-        <path d={svgPaths.pa6cc300} fill="currentColor" />
-        <path d={svgPaths.p2d11870} fill="currentColor" />
-      </g>
-    </svg>
-  );
-}
 
 function BottomLink({ icon, label, href, isCollapsed = false, theme = 'dark' }: { icon: React.ReactNode; label: string; href: string; isCollapsed?: boolean; theme?: 'light' | 'dark' }) {
   return (

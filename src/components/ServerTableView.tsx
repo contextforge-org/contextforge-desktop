@@ -1,21 +1,6 @@
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ServerActionsDropdown } from './ServerActionsDropdown';
-
-type MCPServer = {
-  id: number;
-  name: string;
-  logoUrl: string;
-  url: string;
-  description: string;
-  tags: string[];
-  active: boolean;
-  lastSeen: string;
-  team: string;
-  visibility: 'public' | 'team' | 'private';
-  transportType: string;
-  authenticationType: string;
-  passthroughHeaders: string[];
-};
+import { MCPServer } from '../types/server';
 
 // Helper function to get consistent tag colors
 const getTagColor = (tag: string, theme: string) => {
@@ -54,9 +39,9 @@ interface ServerTableViewProps {
   theme: string;
   selectedServer: MCPServer | null;
   onServerClick: (server: MCPServer) => void;
-  onToggleActive: (serverId: number) => void;
-  onDuplicate: (serverId: number) => void;
-  onDelete: (serverId: number) => void;
+  onToggleActive: (serverId: string) => void;
+  onDuplicate: (serverId: string) => void;
+  onDelete: (serverId: string) => void;
 }
 
 export function ServerTableView({
@@ -100,6 +85,7 @@ export function ServerTableView({
                   <ImageWithFallback
                     src={server.logoUrl}
                     alt={`${server.name} logo`}
+                    fallbackName={server.name}
                     className="max-w-8 max-h-8 w-auto h-auto object-contain"
                   />
                 </div>

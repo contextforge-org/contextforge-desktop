@@ -8,6 +8,7 @@ import imgAzure from "../../assets/icons/brands/azure.png";
 export type EditedServerData = {
   name: string;
   url: string;
+  iconUrl?: string;
   description: string;
   tags: string[];
   visibility: 'public' | 'team' | 'private';
@@ -15,6 +16,9 @@ export type EditedServerData = {
   authenticationType: string;
   passthroughHeaders: string[];
   active: boolean;
+  associatedTools?: string[];
+  associatedResources?: string[];
+  associatedPrompts?: string[];
 };
 
 /**
@@ -49,16 +53,18 @@ export const SERVER_DEFAULTS = {
  */
 export function findServerById(
   servers: MCPServer[],
-  serverId: number
+  serverId: string
 ): MCPServer | undefined {
   return servers.find(s => s.id === serverId);
 }
 
 /**
- * Generate the next available server ID
+ * Generate the next available server ID (UUID format for API compatibility)
  */
-export function generateNextId(servers: MCPServer[]): number {
-  return Math.max(...servers.map(s => s.id), 0) + 1;
+export function generateNextId(servers: MCPServer[]): string {
+  // Generate a simple UUID-like string for new servers
+  // In production, the API will generate the actual UUID
+  return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
@@ -66,7 +72,7 @@ export function generateNextId(servers: MCPServer[]): number {
  */
 export function createNewServer(
   editedServer: EditedServerData,
-  nextId: number
+  nextId: string
 ): MCPServer {
   return {
     id: nextId,
@@ -90,7 +96,7 @@ export function createNewServer(
  */
 export function duplicateServer(
   server: MCPServer,
-  nextId: number
+  nextId: string
 ): MCPServer {
   return {
     ...server,
