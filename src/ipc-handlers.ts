@@ -1,56 +1,6 @@
-import { ipcMain, BrowserWindow, net } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 import { TrayManager } from './tray-manager';
-
-// API Configuration
-const API_BASE_URL = 'http://localhost:4444';
-let authToken: string | null = null;
-
-// API Helper function using Electron's net module
-async function apiRequest(endpoint: string, options: { method?: string; body?: any } = {}) {
-  return new Promise((resolve, reject) => {
-    const request = net.request({
-      method: options.method || 'GET',
-      url: `${API_BASE_URL}${endpoint}`,
-    });
-
-    // Set headers
-    request.setHeader('Content-Type', 'application/json');
-    if (authToken) {
-      request.setHeader('Authorization', `Bearer ${authToken}`);
-    }
-
-    let responseData = '';
-
-    request.on('response', (response) => {
-      response.on('data', (chunk) => {
-        responseData += chunk.toString();
-      });
-
-      response.on('end', () => {
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          try {
-            resolve(JSON.parse(responseData));
-          } catch (e) {
-            resolve(responseData);
-          }
-        } else {
-          reject(new Error(`API request failed: ${response.statusCode} - ${responseData}`));
-        }
-      });
-    });
-
-    request.on('error', (error) => {
-      reject(error);
-    });
-
-    // Send body if present
-    if (options.body) {
-      request.write(JSON.stringify(options.body));
-    }
-
-    request.end();
-  });
-}
+import * as mainApi from './lib/api/contextforge-api-main';
 
 /**
  * Setup IPC handlers for tray and window management
@@ -96,16 +46,12 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     return mainWindow.isVisible();
   });
 
-  // API handlers
+  // API handlers - now using generated client
   ipcMain.handle('api:login', async (_event, email: string, password: string) => {
     try {
       console.log('IPC Handler: Login attempt for', email);
-      const response = await apiRequest('/auth/email/login', {
-        method: 'POST',
-        body: { email, password }
-      });
-      authToken = (response as any).access_token;
-      console.log('IPC Handler: Login successful, token stored');
+      const response = await mainApi.login(email, password);
+      console.log('IPC Handler: Login successful');
       return { success: true, data: response };
     } catch (error) {
       console.error('IPC Handler: Login failed', error);
@@ -115,7 +61,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:get-current-user', async () => {
     try {
-      const response = await apiRequest('/auth/email/me');
+      const response = await mainApi.getCurrentUser();
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -125,7 +71,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   ipcMain.handle('api:list-servers', async () => {
     try {
       // Include inactive servers by default so they don't disappear from the UI
-      const response = await apiRequest('/servers/?include_inactive=true');
+      const response = await mainApi.listServers(true);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -134,10 +80,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:create-server', async (_event, serverData: any) => {
     try {
-      const response = await apiRequest('/servers/', {
-        method: 'POST',
-        body: { server: serverData }
-      });
+      const response = await mainApi.createServer(serverData);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -146,10 +89,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:update-server', async (_event, serverId: string, serverData: any) => {
     try {
-      const response = await apiRequest(`/servers/${serverId}`, {
-        method: 'PUT',
-        body: serverData
-      });
+      const response = await mainApi.updateServer(serverId, serverData);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -158,9 +98,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:delete-server', async (_event, serverId: string) => {
     try {
-      const response = await apiRequest(`/servers/${serverId}`, {
-        method: 'DELETE'
-      });
+      const response = await mainApi.deleteServer(serverId);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -169,12 +107,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:toggle-server-status', async (_event, serverId: string, activate?: boolean) => {
     try {
-      const url = activate !== undefined
-        ? `/servers/${serverId}/toggle?activate=${activate}`
-        : `/servers/${serverId}/toggle`;
-      const response = await apiRequest(url, {
-        method: 'POST'
-      });
+      const response = await mainApi.toggleServerStatus(serverId, activate);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -184,7 +117,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   ipcMain.handle('api:list-tools', async () => {
     try {
       // Include inactive tools by default so they don't disappear from the UI
-      const response = await apiRequest('/tools/?include_inactive=true');
+      const response = await mainApi.listTools(true);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -193,10 +126,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:create-tool', async (_event, toolData: any) => {
     try {
-      const response = await apiRequest('/tools/', {
-        method: 'POST',
-        body: { tool: toolData }
-      });
+      const response = await mainApi.createTool(toolData);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -205,10 +135,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:update-tool', async (_event, toolId: string, toolData: any) => {
     try {
-      const response = await apiRequest(`/tools/${toolId}`, {
-        method: 'PUT',
-        body: toolData
-      });
+      const response = await mainApi.updateTool(toolId, toolData);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -217,9 +144,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:delete-tool', async (_event, toolId: string) => {
     try {
-      const response = await apiRequest(`/tools/${toolId}`, {
-        method: 'DELETE'
-      });
+      const response = await mainApi.deleteTool(toolId);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -228,12 +153,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:toggle-tool-status', async (_event, toolId: string, activate?: boolean) => {
     try {
-      const url = activate !== undefined
-        ? `/tools/${toolId}/toggle?activate=${activate}`
-        : `/tools/${toolId}/toggle`;
-      const response = await apiRequest(url, {
-        method: 'POST'
-      });
+      const response = await mainApi.toggleToolStatus(toolId, activate);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -243,7 +163,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   // Resource handlers
   ipcMain.handle('api:list-resources', async () => {
     try {
-      const response = await apiRequest('/resources/');
+      const response = await mainApi.listResources();
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -253,7 +173,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   // Prompt handlers
   ipcMain.handle('api:list-prompts', async () => {
     try {
-      const response = await apiRequest('/prompts/');
+      const response = await mainApi.listPrompts();
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -264,7 +184,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   ipcMain.handle('api:list-gateways', async () => {
     try {
       // Include inactive gateways by default so they don't disappear from the UI
-      const response = await apiRequest('/gateways/?include_inactive=true');
+      const response = await mainApi.listGateways(true);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -273,10 +193,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:create-gateway', async (_event, gatewayData: any) => {
     try {
-      const response = await apiRequest('/gateways/', {
-        method: 'POST',
-        body: gatewayData
-      });
+      const response = await mainApi.createGateway(gatewayData);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -285,10 +202,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:update-gateway', async (_event, gatewayId: string, gatewayData: any) => {
     try {
-      const response = await apiRequest(`/gateways/${gatewayId}`, {
-        method: 'PUT',
-        body: gatewayData
-      });
+      const response = await mainApi.updateGateway(gatewayId, gatewayData);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -297,9 +211,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:delete-gateway', async (_event, gatewayId: string) => {
     try {
-      const response = await apiRequest(`/gateways/${gatewayId}`, {
-        method: 'DELETE'
-      });
+      const response = await mainApi.deleteGateway(gatewayId);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -308,12 +220,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
 
   ipcMain.handle('api:toggle-gateway-status', async (_event, gatewayId: string, activate?: boolean) => {
     try {
-      const url = activate !== undefined
-        ? `/gateways/${gatewayId}/toggle?activate=${activate}`
-        : `/gateways/${gatewayId}/toggle`;
-      const response = await apiRequest(url, {
-        method: 'POST'
-      });
+      const response = await mainApi.toggleGatewayStatus(gatewayId, activate);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -323,7 +230,7 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   // Team handlers
   ipcMain.handle('api:list-teams', async () => {
     try {
-      const response = await apiRequest('/teams/');
+      const response = await mainApi.listTeams();
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
