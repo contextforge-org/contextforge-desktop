@@ -209,12 +209,12 @@ export async function listResources() {
 }
 
 // Prompt operations
-export async function listPrompts(): Promise<PromptRead[]> {
+export async function listPrompts(includeInactive = true): Promise<PromptRead[]> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
-  const response = await window.electronAPI.api.listPrompts();
+  const response = await window.electronAPI.api.listPrompts(includeInactive);
   
   if (!response.success) {
     throw new Error('Failed to list prompts: ' + response.error);

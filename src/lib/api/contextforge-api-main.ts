@@ -257,8 +257,10 @@ export async function listResources() {
 // Prompt Operations
 // ============================================================================
 
-export async function listPrompts(): Promise<PromptRead[]> {
-  const response = await listPromptsPromptsGet();
+export async function listPrompts(includeInactive = true): Promise<PromptRead[]> {
+  const response = await listPromptsPromptsGet({
+    query: { include_inactive: includeInactive }
+  });
   
   if (response.error) {
     throw new Error('Failed to list prompts: ' + JSON.stringify(response.error));

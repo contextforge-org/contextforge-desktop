@@ -171,9 +171,10 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   });
 
   // Prompt handlers
-  ipcMain.handle('api:list-prompts', async () => {
+  ipcMain.handle('api:list-prompts', async (_event, includeInactive = true) => {
     try {
-      const response = await mainApi.listPrompts();
+      // Include inactive prompts by default so they don't disappear from the UI
+      const response = await mainApi.listPrompts(includeInactive);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };

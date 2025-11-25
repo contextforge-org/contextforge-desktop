@@ -50,7 +50,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteTool: (toolId: string) => ipcRenderer.invoke('api:delete-tool', toolId),
     toggleToolStatus: (toolId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-tool-status', toolId, activate),
     listResources: () => ipcRenderer.invoke('api:list-resources'),
-    listPrompts: () => ipcRenderer.invoke('api:list-prompts'),
+    listPrompts: (includeInactive = true) => ipcRenderer.invoke('api:list-prompts', includeInactive),
     createPrompt: (promptData: any) => ipcRenderer.invoke('api:create-prompt', promptData),
     updatePrompt: (promptId: string, promptData: any) => ipcRenderer.invoke('api:update-prompt', promptId, promptData),
     deletePrompt: (promptId: string) => ipcRenderer.invoke('api:delete-prompt', promptId),
@@ -93,7 +93,7 @@ declare global {
         deleteTool: (toolId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         toggleToolStatus: (toolId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         listResources: () => Promise<{ success: boolean; data?: any; error?: string }>;
-        listPrompts: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        listPrompts: (includeInactive?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         createPrompt: (promptData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         updatePrompt: (promptId: string, promptData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         deletePrompt: (promptId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
