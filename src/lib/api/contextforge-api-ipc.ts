@@ -7,9 +7,16 @@ import {
   type GatewayUpdate,
   type EmailUserResponse,
   type TeamListResponse,
+  type TeamResponse,
+  type TeamCreateRequest,
+  type TeamUpdateRequest,
+  type TokenResponse,
+  type TokenCreateRequest,
+  type TokenUpdateRequest,
   type PromptRead,
   type PromptCreate,
-  type PromptUpdate
+  type PromptUpdate,
+  type PermissionListResponse
 } from '../contextforge-client-ts';
 
 // Check if we're in Electron environment
@@ -364,8 +371,160 @@ export async function toggleGatewayStatus(gatewayId: string, activate?: boolean)
   return response.data;
 }
 
+// User operations
+export async function listUsers(): Promise<EmailUserResponse[]> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listUsers();
+  
+  if (!response.success) {
+    throw new Error('Failed to list users: ' + response.error);
+  }
+  
+  return response.data || [];
+}
+
+export async function createUser(userData: {
+  email: string;
+  password: string;
+  full_name?: string;
+  is_admin?: boolean;
+}) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.createUser(userData);
+  
+  if (!response.success) {
+    throw new Error('Failed to create user: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function updateUser(email: string, userData: {
+  full_name?: string;
+  password?: string;
+  is_admin?: boolean;
+  is_active?: boolean;
+}) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.updateUser(email, userData);
+  
+  if (!response.success) {
+    throw new Error('Failed to update user: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function deleteUser(email: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.deleteUser(email);
+  
+  if (!response.success) {
+    throw new Error('Failed to delete user: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function activateUser(email: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.activateUser(email);
+  
+  if (!response.success) {
+    throw new Error('Failed to activate user: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function deactivateUser(email: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.deactivateUser(email);
+  
+  if (!response.success) {
+    throw new Error('Failed to deactivate user: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+// RBAC operations
+export async function listRoles() {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listRoles();
+  
+  if (!response.success) {
+    throw new Error('Failed to list roles: ' + response.error);
+  }
+  
+  return response.data || [];
+}
+
+export async function getUserRoles(email: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getUserRoles(email);
+  
+  if (!response.success) {
+    throw new Error('Failed to get user roles: ' + response.error);
+  }
+  
+  return response.data || [];
+}
+
+export async function assignRoleToUser(email: string, roleId: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.assignRoleToUser(email, roleId);
+  
+  if (!response.success) {
+    throw new Error('Failed to assign role: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function revokeRoleFromUser(email: string, roleId: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.revokeRoleFromUser(email, roleId);
+  
+  if (!response.success) {
+    throw new Error('Failed to revoke role: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // Team operations
-export async function listTeams(): Promise<TeamListResponse> {
+export async function listTeams(): Promise<TeamResponse[]> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
@@ -376,7 +535,121 @@ export async function listTeams(): Promise<TeamListResponse> {
     throw new Error('Failed to list teams: ' + response.error);
   }
   
-  return response.data || { teams: [], total: 0 };
+  return response.data || [];
+}
+
+export async function createTeam(teamData: TeamCreateRequest) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.createTeam(teamData);
+  
+  if (!response.success) {
+    throw new Error('Failed to create team: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function updateTeam(teamId: string, teamData: TeamUpdateRequest) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.updateTeam(teamId, teamData);
+  
+  if (!response.success) {
+    throw new Error('Failed to update team: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function deleteTeam(teamId: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.deleteTeam(teamId);
+  
+  if (!response.success) {
+    throw new Error('Failed to delete team: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+// Token operations
+export async function listTokens(): Promise<TokenResponse[]> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listTokens();
+  
+  if (!response.success) {
+    throw new Error('Failed to list tokens: ' + response.error);
+  }
+  
+  return response.data || [];
+}
+
+export async function createToken(tokenData: TokenCreateRequest) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.createToken(tokenData);
+  
+  if (!response.success) {
+    throw new Error('Failed to create token: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function updateToken(tokenId: string, tokenData: TokenUpdateRequest) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.updateToken(tokenId, tokenData);
+  
+  if (!response.success) {
+    throw new Error('Failed to update token: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function revokeToken(tokenId: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.revokeToken(tokenId);
+  
+  if (!response.success) {
+    throw new Error('Failed to revoke token: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+// RBAC / Permissions operations
+export async function getAvailablePermissions(): Promise<PermissionListResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getAvailablePermissions();
+  
+  if (!response.success) {
+    throw new Error('Failed to get available permissions: ' + response.error);
+  }
+  
+  return response.data;
 }
 
 // RPC operations (Tool Execution)

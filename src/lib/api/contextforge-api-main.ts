@@ -16,6 +16,16 @@ import {
   toggleServerStatusServersServerIdTogglePost,
   loginAuthEmailLoginPost,
   getCurrentUserProfileAuthEmailMeGet,
+  listUsersAuthEmailAdminUsersGet,
+  createUserAuthEmailAdminUsersPost,
+  updateUserAuthEmailAdminUsersUserEmailPut,
+  deleteUserAuthEmailAdminUsersUserEmailDelete,
+  adminActivateUserAdminUsersUserEmailActivatePost,
+  adminDeactivateUserAdminUsersUserEmailDeactivatePost,
+  getUserRolesRbacUsersUserEmailRolesGet,
+  assignRoleToUserRbacUsersUserEmailRolesPost,
+  revokeUserRoleRbacUsersUserEmailRolesRoleIdDelete,
+  listRolesRbacRolesGet,
   listToolsToolsGet,
   createToolToolsPost,
   updateToolToolsToolIdPut,
@@ -34,6 +44,14 @@ import {
   deleteGatewayGatewaysGatewayIdDelete,
   toggleGatewayStatusGatewaysGatewayIdTogglePost,
   listTeamsTeamsGet,
+  createTeamTeamsPost,
+  updateTeamTeamsTeamIdPut,
+  deleteTeamTeamsTeamIdDelete,
+  listTokensTokensGet,
+  createTokenTokensPost,
+  updateTokenTokensTokenIdPut,
+  getAvailablePermissionsRbacPermissionsAvailableGet,
+  revokeTokenTokensTokenIdDelete,
   handleRpcRpcPost,
   type ServerRead,
   type ServerCreate,
@@ -42,8 +60,14 @@ import {
   type GatewayRead,
   type GatewayCreate,
   type GatewayUpdate,
-  type TeamListResponse,
+  type TeamResponse,
+  type TeamCreateRequest,
+  type TeamUpdateRequest,
+  type TokenResponse,
+  type TokenCreateRequest,
+  type TokenUpdateRequest,
   type PromptRead,
+  type PermissionListResponse,
   type PromptCreate,
   type PromptUpdate,
 } from '../contextforge-client-ts';
@@ -57,23 +81,28 @@ let authToken: string | null = null;
 // Create and configure the Electron fetch adapter
 const electronFetch = createElectronFetchAdapter();
 
-/**
- * Configure the client for main process with optional authentication token
- */
-export function configureMainClient(token?: string) {
-  authToken = token || null;
-  
-  client.setConfig({
-    baseUrl: API_BASE_URL,
-    fetch: electronFetch as any, // Use Electron adapter instead of native fetch
-    headers: token ? {
-      'Authorization': `Bearer ${token}`
-    } : {}
-  });
-}
+// Initialize client on module load with auth callback
+// The callback will return undefined until login sets authToken
+client.setConfig({
+  baseUrl: API_BASE_URL,
+  fetch: electronFetch as any,
+  // Auth callback that always returns the current token value
+  auth: () => {
+    return authToken || undefined;
+  }
+});
 
-// Initialize client on module load
-configureMainClient();
+// Add request interceptor to log headers
+client.interceptors.request.use((request) => {
+  return request;
+});
+
+/**
+ * Update the authentication token (called after successful login)
+ */
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
 
 // ============================================================================
 // Authentication
@@ -91,7 +120,7 @@ export async function login(email: string, password: string) {
   const token = (response.data as any)?.access_token;
   
   if (token) {
-    configureMainClient(token);
+    setAuthToken(token);
   }
   
   return response.data;
@@ -399,17 +428,267 @@ export async function toggleGatewayStatus(gatewayId: string, activate?: boolean)
 }
 
 // ============================================================================
+// User Operations
+// ============================================================================
+
+export async function listUsers(): Promise<EmailUserResponse[]> {
+  console.log('listUsers: Making request');
+  console.log('listUsers: authToken exists?', !!authToken);
+  console.log('listUsers: authToken value:', authToken ? authToken.substring(0, 30) + '...' : 'null');
+  
+  const response = await listUsersAuthEmailAdminUsersGet();
+  
+  if (response.error) {
+    console.error('listUsers: Error response:', response.error);
+    throw new Error('Failed to list users: ' + JSON.stringify(response.error));
+  }
+  
+  console.log('listUsers: Success, got', ((response.data as any)?.users as EmailUserResponse[])?.length || 0, 'users');
+  // The API returns UserListResponse with a users array
+  return ((response.data as any)?.users as EmailUserResponse[]) || [];
+}
+
+export async function createUser(userData: {
+  email: string;
+  password: string;
+  full_name?: string;
+  is_admin?: boolean;
+}) {
+  const response = await createUserAuthEmailAdminUsersPost({
+    body: userData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to create user: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function updateUser(email: string, userData: {
+  full_name?: string;
+  password?: string;
+  is_admin?: boolean;
+  is_active?: boolean;
+}) {
+  const response = await updateUserAuthEmailAdminUsersUserEmailPut({
+    path: { user_email: email },
+    body: {
+      email, // Required by the API
+      ...userData
+    } as any
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to update user: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function deleteUser(email: string) {
+  const response = await deleteUserAuthEmailAdminUsersUserEmailDelete({
+    path: { user_email: email }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to delete user: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function activateUser(email: string) {
+  const response = await adminActivateUserAdminUsersUserEmailActivatePost({
+    path: { user_email: email }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to activate user: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function deactivateUser(email: string) {
+  const response = await adminDeactivateUserAdminUsersUserEmailDeactivatePost({
+    path: { user_email: email }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to deactivate user: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+// ============================================================================
+// RBAC (Role-Based Access Control) Operations
+// ============================================================================
+
+export async function listRoles() {
+  const response = await listRolesRbacRolesGet();
+  
+  if (response.error) {
+    throw new Error('Failed to list roles: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data || [];
+}
+
+export async function getUserRoles(email: string) {
+  const response = await getUserRolesRbacUsersUserEmailRolesGet({
+    path: { user_email: email }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to get user roles: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data || [];
+}
+
+export async function assignRoleToUser(email: string, roleId: string) {
+  const response = await assignRoleToUserRbacUsersUserEmailRolesPost({
+    path: { user_email: email },
+    body: { role_id: roleId } as any
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to assign role: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function revokeRoleFromUser(email: string, roleId: string) {
+  const response = await revokeUserRoleRbacUsersUserEmailRolesRoleIdDelete({
+    path: { user_email: email, role_id: roleId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to revoke role: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+// ============================================================================
 // Team Operations
 // ============================================================================
 
-export async function listTeams(): Promise<TeamListResponse> {
+export async function listTeams(): Promise<TeamResponse[]> {
   const response = await listTeamsTeamsGet();
   
   if (response.error) {
     throw new Error('Failed to list teams: ' + JSON.stringify(response.error));
   }
   
-  return (response.data as TeamListResponse) || { teams: [], total: 0 };
+  // The API returns TeamListResponse with a teams array
+  return ((response.data as any)?.teams as TeamResponse[]) || [];
+}
+
+export async function createTeam(teamData: TeamCreateRequest) {
+  const response = await createTeamTeamsPost({
+    body: teamData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to create team: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function updateTeam(teamId: string, teamData: TeamUpdateRequest) {
+  const response = await updateTeamTeamsTeamIdPut({
+    path: { team_id: teamId },
+    body: teamData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to update team: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function deleteTeam(teamId: string) {
+  const response = await deleteTeamTeamsTeamIdDelete({
+    path: { team_id: teamId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to delete team: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+// ============================================================================
+// Token Operations
+// ============================================================================
+
+export async function listTokens(): Promise<TokenResponse[]> {
+  const response = await listTokensTokensGet();
+  
+  if (response.error) {
+    throw new Error('Failed to list tokens: ' + JSON.stringify(response.error));
+  }
+  
+  // The API returns TokenListResponse with a tokens array
+  return ((response.data as any)?.tokens as TokenResponse[]) || [];
+}
+
+export async function createToken(tokenData: TokenCreateRequest) {
+  const response = await createTokenTokensPost({
+    body: tokenData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to create token: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function updateToken(tokenId: string, tokenData: TokenUpdateRequest) {
+  const response = await updateTokenTokensTokenIdPut({
+    path: { token_id: tokenId },
+    body: tokenData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to update token: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function revokeToken(tokenId: string) {
+  const response = await revokeTokenTokensTokenIdDelete({
+    path: { token_id: tokenId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to revoke token: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+// ============================================================================
+// RBAC / Permissions Operations
+// ============================================================================
+
+export async function getAvailablePermissions(): Promise<PermissionListResponse> {
+  const response = await getAvailablePermissionsRbacPermissionsAvailableGet();
+  
+  if (response.error) {
+    throw new Error('Failed to get available permissions: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as PermissionListResponse;
 }
 
 // ============================================================================
@@ -501,7 +780,12 @@ export type {
   GatewayCreate,
   GatewayUpdate,
   EmailUserResponse,
-  TeamListResponse,
+  TeamResponse,
+  TeamCreateRequest,
+  TeamUpdateRequest,
+  TokenResponse,
+  TokenCreateRequest,
+  TokenUpdateRequest,
   PromptRead,
   PromptCreate,
   PromptUpdate,

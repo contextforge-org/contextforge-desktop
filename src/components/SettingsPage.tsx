@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import {
   Accordion,
@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import { Users, Network, Key, Globe, Lock, Plus, Pencil, Trash2, X, BarChart3, XCircle, FolderTree, ArrowLeftRight } from 'lucide-react';
+import { Users, Network, Key, Globe, Lock, Plus, Pencil, Trash2, X, BarChart3, XCircle, FolderTree, ArrowLeftRight, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
@@ -19,148 +19,94 @@ import {
 import { Textarea } from './ui/textarea';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { PageHeader, DataTable, Column, ActionButtons, StatusBadge, FormCard } from './common';
-
-interface User {
-  id: number;
-  fullName: string;
-  email: string;
-  role: 'Admin' | 'User';
-  provider: 'Local';
-  dateAdded: string;
-}
-
-interface Team {
-  id: number;
-  teamName: string;
-  description: string;
-  visibility: 'Public' | 'Private';
-  maxMembers: number;
-  creator: string;
-  dateCreated: string;
-}
-
-interface APIToken {
-  id: number;
-  tokenName: string;
-  expires: string;
-  description: string;
-  serverId: string;
-  permissions: string[];
-  dateCreated: string;
-  lastUsed: string;
-}
-
-const sampleUsers: User[] = [
-  {
-    id: 1,
-    fullName: 'Sarah Chen',
-    email: 'sarah.chen@example.com',
-    role: 'Admin',
-    provider: 'Local',
-    dateAdded: '2024-01-15'
-  },
-  {
-    id: 2,
-    fullName: 'Michael Torres',
-    email: 'michael.torres@example.com',
-    role: 'User',
-    provider: 'Local',
-    dateAdded: '2024-02-20'
-  },
-  {
-    id: 3,
-    fullName: 'Emily Johnson',
-    email: 'emily.johnson@example.com',
-    role: 'User',
-    provider: 'Local',
-    dateAdded: '2024-03-10'
-  },
-  {
-    id: 4,
-    fullName: 'David Park',
-    email: 'david.park@example.com',
-    role: 'Admin',
-    provider: 'Local',
-    dateAdded: '2024-04-05'
-  },
-  {
-    id: 5,
-    fullName: 'Amanda Rodriguez',
-    email: 'amanda.rodriguez@example.com',
-    role: 'User',
-    provider: 'Local',
-    dateAdded: '2024-05-12'
-  }
-];
-
-const sampleTeams: Team[] = [
-  {
-    id: 1,
-    teamName: 'Development Team',
-    description: 'Team for software development projects',
-    visibility: 'Private',
-    maxMembers: 10,
-    creator: 'Sarah Chen',
-    dateCreated: '2024-01-15'
-  },
-  {
-    id: 2,
-    teamName: 'Marketing Team',
-    description: 'Team for marketing and sales activities',
-    visibility: 'Public',
-    maxMembers: 5,
-    creator: 'Michael Torres',
-    dateCreated: '2024-02-20'
-  },
-  {
-    id: 3,
-    teamName: 'Support Team',
-    description: 'Team for customer support and service',
-    visibility: 'Private',
-    maxMembers: 8,
-    creator: 'Emily Johnson',
-    dateCreated: '2024-03-10'
-  }
-];
-
-const sampleAPITokens: APIToken[] = [
-  {
-    id: 1,
-    tokenName: 'Development Token',
-    expires: '2024-12-31',
-    description: 'Token for development server access',
-    serverId: 'dev-server-001',
-    permissions: ['read', 'write'],
-    dateCreated: '2024-01-15',
-    lastUsed: '2024-02-10'
-  },
-  {
-    id: 2,
-    tokenName: 'Marketing Token',
-    expires: '2024-12-31',
-    description: 'Token for marketing server access',
-    serverId: 'marketing-server-001',
-    permissions: ['read'],
-    dateCreated: '2024-02-20',
-    lastUsed: '2024-03-05'
-  },
-  {
-    id: 3,
-    tokenName: 'Support Token',
-    expires: '2024-12-31',
-    description: 'Token for support server access',
-    serverId: 'support-server-001',
-    permissions: ['read', 'write'],
-    dateCreated: '2024-03-10',
-    lastUsed: '2024-04-01'
-  }
-];
+import { useUserActions } from '../hooks/useUserActions';
+import { useTeamActions, type Team } from '../hooks/useTeamActions';
+import { useTokenActions, type APIToken } from '../hooks/useTokenActions';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import type { User } from '../lib/api/type-mappers';
+import { PermissionsCheckboxGroup } from './PermissionsCheckboxGroup';
+import { ServerSelector } from './ServerSelector';
+import * as api from '../lib/api/contextforge-api-ipc';
+import type { PermissionListResponse } from '../lib/contextforge-client-ts';
 
 export function SettingsPage() {
   const { theme } = useTheme();
-  const [usersData, setUsersData] = useState<User[]>(sampleUsers);
-  const [teamsData, setTeamsData] = useState<Team[]>(sampleTeams);
-  const [apiTokensData, setApiTokensData] = useState<APIToken[]>(sampleAPITokens);
+  
+  // Check authentication
+  const { user: currentUser, loading: authLoading, error: authError } = useCurrentUser();
+  
+  // Use custom hooks for data management
+  const {
+    users: usersData,
+    loading: usersLoading,
+    error: usersError,
+    loadUsers,
+    createUser,
+    updateUser,
+    deleteUser
+  } = useUserActions();
+  
+  const {
+    teams: teamsData,
+    loading: teamsLoading,
+    error: teamsError,
+    loadTeams,
+    createTeam,
+    updateTeam,
+    deleteTeam
+  } = useTeamActions();
+  
+  const {
+    tokens: apiTokensData,
+    loading: tokensLoading,
+    error: tokensError,
+    loadTokens,
+    createToken,
+    updateToken,
+    revokeToken
+  } = useTokenActions();
+  
+  // Load data only when authenticated
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      loadUsers();
+      loadTeams();
+      loadTokens();
+      
+      // Fetch available permissions
+      const fetchPermissions = async () => {
+        try {
+          setPermissionsLoading(true);
+          const perms = await api.getAvailablePermissions();
+          setAvailablePermissions(perms);
+        } catch (error) {
+          console.error('Failed to fetch permissions:', error);
+        } finally {
+          setPermissionsLoading(false);
+        }
+      };
+      
+      // Fetch virtual servers
+      const fetchServers = async () => {
+        try {
+          setServersLoading(true);
+          const servers = await api.listServers();
+          setVirtualServers(servers.map(s => ({
+            id: s.id,
+            name: s.name,
+            status: s.isActive ? 'active' : 'inactive'
+          })));
+        } catch (error) {
+          console.error('Failed to fetch servers:', error);
+        } finally {
+          setServersLoading(false);
+        }
+      };
+      
+      fetchPermissions();
+      fetchServers();
+    }
+  }, [currentUser, authLoading, loadUsers, loadTeams, loadTokens]);
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [showAddTeamForm, setShowAddTeamForm] = useState(false);
   const [showAddTokenForm, setShowAddTokenForm] = useState(false);
@@ -194,24 +140,32 @@ export function SettingsPage() {
     tokenName: '',
     expiresInDays: 365,
     description: '',
-    serverId: '',
+    serverId: '__none__',
     ipRestrictions: '',
-    permissions: ''
+    permissions: [] as string[]
   });
 
-  const handleAddUser = () => {
+  // New state for permissions and servers
+  const [availablePermissions, setAvailablePermissions] = useState<PermissionListResponse | null>(null);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [virtualServers, setVirtualServers] = useState<Array<{ id: string; name: string; status?: string }>>([]);
+  const [serversLoading, setServersLoading] = useState(false);
+
+  const handleAddUser = async () => {
     if (newUserData.fullName && newUserData.email && newUserData.password) {
-      const newUser: User = {
-        id: Math.max(...usersData.map(u => u.id)) + 1,
-        fullName: newUserData.fullName,
-        email: newUserData.email,
-        role: newUserData.role,
-        provider: 'Local',
-        dateAdded: new Date().toISOString().split('T')[0]
-      };
-      setUsersData([...usersData, newUser]);
-      setNewUserData({ fullName: '', email: '', password: '', role: 'User' });
-      setShowAddUserForm(false);
+      try {
+        await createUser({
+          email: newUserData.email,
+          password: newUserData.password,
+          fullName: newUserData.fullName,
+          role: newUserData.role
+        });
+        setNewUserData({ fullName: '', email: '', password: '', role: 'User' });
+        setShowAddUserForm(false);
+      } catch (error) {
+        // Error already handled by hook with toast
+        console.error('Failed to create user:', error);
+      }
     }
   };
 
@@ -231,20 +185,20 @@ export function SettingsPage() {
     setShowAddUserForm(false);
   };
 
-  const handleSaveEditUser = () => {
-    if (editingUser && editUserData.fullName && editUserData.email) {
-      setUsersData(usersData.map(u => 
-        u.id === editingUser.id 
-          ? {
-              ...u,
-              fullName: editUserData.fullName,
-              email: editUserData.email,
-              role: editUserData.role
-            }
-          : u
-      ));
-      setEditingUser(null);
-      setEditUserData({ fullName: '', email: '', password: '', role: 'User' });
+  const handleSaveEditUser = async () => {
+    if (editingUser && editUserData.fullName) {
+      try {
+        await updateUser(editingUser.email, {
+          fullName: editUserData.fullName,
+          password: editUserData.password || undefined,
+          role: editUserData.role
+        });
+        setEditingUser(null);
+        setEditUserData({ fullName: '', email: '', password: '', role: 'User' });
+      } catch (error) {
+        // Error already handled by hook with toast
+        console.error('Failed to update user:', error);
+      }
     }
   };
 
@@ -253,20 +207,20 @@ export function SettingsPage() {
     setEditUserData({ fullName: '', email: '', password: '', role: 'User' });
   };
 
-  const handleAddTeam = () => {
+  const handleAddTeam = async () => {
     if (newTeamData.teamName) {
-      const newTeam: Team = {
-        id: Math.max(...teamsData.map(t => t.id)) + 1,
-        teamName: newTeamData.teamName,
-        description: newTeamData.description,
-        visibility: newTeamData.visibility,
-        maxMembers: newTeamData.maxMembers,
-        creator: 'Sarah Chen',
-        dateCreated: new Date().toISOString().split('T')[0]
-      };
-      setTeamsData([...teamsData, newTeam]);
-      setNewTeamData({ teamName: '', description: '', visibility: 'Private', maxMembers: 50 });
-      setShowAddTeamForm(false);
+      try {
+        await createTeam({
+          teamName: newTeamData.teamName,
+          description: newTeamData.description,
+          visibility: newTeamData.visibility,
+          maxMembers: newTeamData.maxMembers
+        });
+        setNewTeamData({ teamName: '', description: '', visibility: 'Private', maxMembers: 50 });
+        setShowAddTeamForm(false);
+      } catch (error) {
+        console.error('Failed to create team:', error);
+      }
     }
   };
 
@@ -286,21 +240,20 @@ export function SettingsPage() {
     setShowAddTeamForm(false);
   };
 
-  const handleSaveEditTeam = () => {
+  const handleSaveEditTeam = async () => {
     if (editingTeam && editTeamData.teamName) {
-      setTeamsData(teamsData.map(t => 
-        t.id === editingTeam.id 
-          ? {
-              ...t,
-              teamName: editTeamData.teamName,
-              description: editTeamData.description,
-              visibility: editTeamData.visibility,
-              maxMembers: editTeamData.maxMembers
-            }
-          : t
-      ));
-      setEditingTeam(null);
-      setEditTeamData({ teamName: '', description: '', visibility: 'Private', maxMembers: 50 });
+      try {
+        await updateTeam(editingTeam.id, {
+          teamName: editTeamData.teamName,
+          description: editTeamData.description,
+          visibility: editTeamData.visibility,
+          maxMembers: editTeamData.maxMembers
+        });
+        setEditingTeam(null);
+        setEditTeamData({ teamName: '', description: '', visibility: 'Private', maxMembers: 50 });
+      } catch (error) {
+        console.error('Failed to update team:', error);
+      }
     }
   };
 
@@ -309,36 +262,58 @@ export function SettingsPage() {
     setEditTeamData({ teamName: '', description: '', visibility: 'Private', maxMembers: 50 });
   };
 
-  const handleAddToken = () => {
+  const handleAddToken = async () => {
     if (newTokenData.tokenName) {
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + newTokenData.expiresInDays);
-      
-      const permissionsArray = newTokenData.permissions
-        .split(',')
-        .map(p => p.trim())
-        .filter(p => p.length > 0);
+      try {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + newTokenData.expiresInDays);
 
-      const newToken: APIToken = {
-        id: Math.max(...apiTokensData.map(t => t.id)) + 1,
-        tokenName: newTokenData.tokenName,
-        expires: expirationDate.toISOString().split('T')[0],
-        description: newTokenData.description,
-        serverId: newTokenData.serverId || 'N/A',
-        permissions: permissionsArray,
-        dateCreated: new Date().toISOString().split('T')[0],
-        lastUsed: new Date().toISOString().split('T')[0]
-      };
-      setApiTokensData([...apiTokensData, newToken]);
-      setNewTokenData({ tokenName: '', expiresInDays: 365, description: '', serverId: '', ipRestrictions: '', permissions: '' });
-      setShowAddTokenForm(false);
+        // Convert "__none__" to empty string for server ID
+        const serverId = newTokenData.serverId === '__none__' ? '' : newTokenData.serverId;
+
+        await createToken({
+          tokenName: newTokenData.tokenName,
+          expires: expirationDate.toISOString().split('T')[0],
+          description: newTokenData.description,
+          serverId: serverId || '',
+          permissions: newTokenData.permissions
+        });
+        setNewTokenData({ tokenName: '', expiresInDays: 365, description: '', serverId: '__none__', ipRestrictions: '', permissions: [] });
+        setShowAddTokenForm(false);
+      } catch (error) {
+        console.error('Failed to create token:', error);
+      }
     }
   };
 
   const handleCancelAddToken = () => {
-    setNewTokenData({ tokenName: '', expiresInDays: 365, description: '', serverId: '', ipRestrictions: '', permissions: '' });
+    setNewTokenData({ tokenName: '', expiresInDays: 365, description: '', serverId: '__none__', ipRestrictions: '', permissions: [] });
     setShowAddTokenForm(false);
   };
+
+  // Show authentication message if not logged in
+  if (authError || (!authLoading && !currentUser)) {
+    return (
+      <div className={`h-full overflow-auto ${theme === 'dark' ? 'bg-zinc-950' : 'bg-gray-50'}`}>
+        <div className="max-w-[1400px] mx-auto p-8">
+          <PageHeader
+            title="Settings"
+            description="Manage your ContextForge settings and configurations"
+            theme={theme}
+          />
+          <div className={`rounded-lg border p-8 text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
+            <Lock className={`size-12 mx-auto mb-4 ${theme === 'dark' ? 'text-zinc-600' : 'text-gray-400'}`} />
+            <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Authentication Required
+            </h3>
+            <p className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>
+              Please log in to access the Settings page.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`h-full overflow-auto ${theme === 'dark' ? 'bg-zinc-950' : 'bg-gray-50'}`}>
@@ -382,9 +357,28 @@ export function SettingsPage() {
                       </tr>
                     </thead>
                     <tbody className={theme === 'dark' ? 'bg-zinc-800/50' : 'bg-white'}>
-                      {usersData.map((user) => (
+                      {usersLoading ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Loader2 className="size-5 animate-spin" />
+                              <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>
+                                Loading users...
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : usersData.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center">
+                            <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>
+                              No users found
+                            </span>
+                          </td>
+                        </tr>
+                      ) : usersData.map((user) => (
                         <tr
-                          key={user.id}
+                          key={user.email}
                           className={`border-b last:border-b-0 transition-colors ${
                             theme === 'dark' 
                               ? 'border-zinc-800 hover:bg-zinc-800/80' 
@@ -434,12 +428,14 @@ export function SettingsPage() {
                                 <Pencil size={16} />
                               </button>
                               <button 
+                                onClick={() => deleteUser(user.email)}
                                 className={`p-1.5 rounded transition-colors ${
                                   theme === 'dark' 
                                     ? 'hover:bg-red-900/30 text-zinc-400 hover:text-red-400' 
                                     : 'hover:bg-red-50 text-gray-600 hover:text-red-600'
                                 }`}
                                 title="Delete user"
+                                disabled={usersLoading}
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -1276,25 +1272,28 @@ export function SettingsPage() {
                         />
                       </div>
                       
-                      <div>
+                      <div className="col-span-2">
                         <label className={`block text-sm mb-2 ${
                           theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
                         }`}>
-                          Server ID <span className={`text-xs ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>(optional)</span>
+                          Virtual Server <span className={`text-xs ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>(optional)</span>
                         </label>
-                        <Input
-                          type="text"
-                          placeholder="e.g., dev-server-001"
-                          value={newTokenData.serverId}
-                          onChange={(e) => setNewTokenData({ ...newTokenData, serverId: e.target.value })}
-                          className={theme === 'dark' 
-                            ? 'bg-zinc-800 border-zinc-700 text-white' 
-                            : 'bg-white border-gray-300'
-                          }
-                        />
+                        {serversLoading ? (
+                          <div className="flex items-center gap-2 py-2">
+                            <Loader2 className="animate-spin" size={16} />
+                            <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>Loading servers...</span>
+                          </div>
+                        ) : (
+                          <ServerSelector
+                            servers={virtualServers}
+                            value={newTokenData.serverId}
+                            onChange={(value) => setNewTokenData({ ...newTokenData, serverId: value })}
+                            placeholder="Select a virtual server (optional)"
+                          />
+                        )}
                       </div>
                       
-                      <div>
+                      <div className="col-span-2">
                         <label className={`block text-sm mb-2 ${
                           theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
                         }`}>
@@ -1305,32 +1304,35 @@ export function SettingsPage() {
                           placeholder="e.g., 192.168.1.0/24"
                           value={newTokenData.ipRestrictions}
                           onChange={(e) => setNewTokenData({ ...newTokenData, ipRestrictions: e.target.value })}
-                          className={theme === 'dark' 
-                            ? 'bg-zinc-800 border-zinc-700 text-white' 
+                          className={theme === 'dark'
+                            ? 'bg-zinc-800 border-zinc-700 text-white'
                             : 'bg-white border-gray-300'
                           }
                         />
                       </div>
                       
                       <div className="col-span-2">
-                        <label className={`block text-sm mb-2 ${
+                        <label className={`block text-sm mb-3 ${
                           theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
                         }`}>
-                          Permissions (comma separated)
+                          Permissions
                         </label>
-                        <Input
-                          type="text"
-                          placeholder="e.g., read, write, delete"
-                          value={newTokenData.permissions}
-                          onChange={(e) => setNewTokenData({ ...newTokenData, permissions: e.target.value })}
-                          className={theme === 'dark' 
-                            ? 'bg-zinc-800 border-zinc-700 text-white' 
-                            : 'bg-white border-gray-300'
-                          }
-                        />
-                        <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                          Enter permissions separated by commas (e.g., read, write)
-                        </p>
+                        {permissionsLoading ? (
+                          <div className="flex items-center gap-2 py-4">
+                            <Loader2 className="animate-spin" size={16} />
+                            <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>Loading permissions...</span>
+                          </div>
+                        ) : availablePermissions ? (
+                          <PermissionsCheckboxGroup
+                            permissionsByResource={availablePermissions.permissions_by_resource}
+                            selectedPermissions={newTokenData.permissions}
+                            onChange={(permissions) => setNewTokenData({ ...newTokenData, permissions })}
+                          />
+                        ) : (
+                          <div className={`text-sm ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                            No permissions available
+                          </div>
+                        )}
                       </div>
                     </div>
                     

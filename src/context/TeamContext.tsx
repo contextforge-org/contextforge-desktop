@@ -38,10 +38,11 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
       const response = await api.listTeams();
-      setTeams(response.teams || []);
+      // listTeams now returns TeamResponse[] directly
+      setTeams(response || []);
       
       // If we have a selected team that no longer exists, clear it
-      if (selectedTeamId && !response.teams?.find((t: TeamResponse) => t.id === selectedTeamId)) {
+      if (selectedTeamId && !response?.find((t: TeamResponse) => t.id === selectedTeamId)) {
         setSelectedTeamId(null);
       }
     } catch (err) {

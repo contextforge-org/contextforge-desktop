@@ -273,6 +273,98 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // User handlers
+  ipcMain.handle('api:list-users', async () => {
+    try {
+      const response = await mainApi.listUsers();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:create-user', async (_event, userData: any) => {
+    try {
+      const response = await mainApi.createUser(userData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:update-user', async (_event, email: string, userData: any) => {
+    try {
+      const response = await mainApi.updateUser(email, userData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-user', async (_event, email: string) => {
+    try {
+      const response = await mainApi.deleteUser(email);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:activate-user', async (_event, email: string) => {
+    try {
+      const response = await mainApi.activateUser(email);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:deactivate-user', async (_event, email: string) => {
+    try {
+      const response = await mainApi.deactivateUser(email);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // RBAC handlers
+  ipcMain.handle('api:list-roles', async () => {
+    try {
+      const response = await mainApi.listRoles();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-user-roles', async (_event, email: string) => {
+    try {
+      const response = await mainApi.getUserRoles(email);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:assign-role-to-user', async (_event, email: string, roleId: string) => {
+    try {
+      const response = await mainApi.assignRoleToUser(email, roleId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:revoke-role-from-user', async (_event, email: string, roleId: string) => {
+    try {
+      const response = await mainApi.revokeRoleFromUser(email, roleId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Team handlers
   ipcMain.handle('api:list-teams', async () => {
     try {
@@ -282,6 +374,79 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
       return { success: false, error: (error as Error).message };
     }
   });
+
+  ipcMain.handle('api:create-team', async (_event, teamData: any) => {
+    try {
+      const response = await mainApi.createTeam(teamData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:update-team', async (_event, teamId: string, teamData: any) => {
+    try {
+      const response = await mainApi.updateTeam(teamId, teamData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-team', async (_event, teamId: string) => {
+    try {
+      const response = await mainApi.deleteTeam(teamId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Token handlers
+  ipcMain.handle('api:list-tokens', async () => {
+    try {
+      const response = await mainApi.listTokens();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:create-token', async (_event, tokenData: any) => {
+    try {
+      const response = await mainApi.createToken(tokenData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:update-token', async (_event, tokenId: string, tokenData: any) => {
+    try {
+      const response = await mainApi.updateToken(tokenId, tokenData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:revoke-token', async (_event, tokenId: string) => {
+    try {
+      const response = await mainApi.revokeToken(tokenId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+  ipcMain.handle('api:get-available-permissions', async () => {
+    try {
+      const response = await mainApi.getAvailablePermissions();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
 
   // RPC handlers (Tool Execution)
   ipcMain.handle('api:execute-tool-rpc', async (
@@ -339,5 +504,11 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:list-teams');
   ipcMain.removeHandler('api:delete-gateway');
   ipcMain.removeHandler('api:toggle-gateway-status');
+  ipcMain.removeHandler('api:activate-user');
+  ipcMain.removeHandler('api:deactivate-user');
+  ipcMain.removeHandler('api:list-roles');
+  ipcMain.removeHandler('api:get-user-roles');
+  ipcMain.removeHandler('api:assign-role-to-user');
+  ipcMain.removeHandler('api:revoke-role-from-user');
   ipcMain.removeHandler('api:execute-tool-rpc');
 }
