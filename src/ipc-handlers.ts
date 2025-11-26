@@ -318,6 +318,107 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // A2A Agent handlers
+  ipcMain.handle('api:list-a2a-agents', async () => {
+    try {
+      const response = await mainApi.listA2AAgents();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:create-a2a-agent', async (_event, agentData: any) => {
+    try {
+      const response = await mainApi.createA2AAgent(agentData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-a2a-agent', async (_event, agentId: string) => {
+    try {
+      const response = await mainApi.getA2AAgent(agentId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:update-a2a-agent', async (_event, agentId: string, agentData: any) => {
+    try {
+      const response = await mainApi.updateA2AAgent(agentId, agentData);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-a2a-agent', async (_event, agentId: string) => {
+    try {
+      const response = await mainApi.deleteA2AAgent(agentId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:toggle-a2a-agent-status', async (_event, agentId: string, activate?: boolean) => {
+    try {
+      const response = await mainApi.toggleA2AAgentStatus(agentId, activate);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // OAuth Testing handlers
+  ipcMain.handle('api:get-oauth-authorization-url', async (_event, oauthConfig: any) => {
+    try {
+      const response = await mainApi.getOAuthAuthorizationUrl(oauthConfig);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:exchange-oauth-code', async (_event, code: string, oauthConfig: any) => {
+    try {
+      const response = await mainApi.exchangeOAuthCode(code, oauthConfig);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:test-agent-connection', async (_event, agentEndpoint: string, accessToken: string) => {
+    try {
+      const response = await mainApi.testAgentConnection(agentEndpoint, accessToken);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:refresh-oauth-token', async (_event, refreshToken: string, oauthConfig: any) => {
+    try {
+      const response = await mainApi.refreshOAuthToken(refreshToken, oauthConfig);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-client-credentials-token', async (_event, oauthConfig: any) => {
+    try {
+      const response = await mainApi.getClientCredentialsToken(oauthConfig);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // User handlers
   ipcMain.handle('api:list-users', async () => {
     try {

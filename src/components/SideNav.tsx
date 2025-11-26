@@ -194,7 +194,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'settings') => void }) {
+export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'settings') => void }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useTheme();
 
@@ -265,11 +265,14 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           isCollapsed={isCollapsed}
           theme={theme}
         />
-        <NavItem 
-          icon={<Users size={18} strokeWidth={1.5} />} 
-          label="Agents" 
-          active={currentPage === 'Agents'}
-          // onClick={() => onNavigate('Agents')}
+        <NavItem
+          icon={<Users size={18} strokeWidth={1.5} />}
+          label="Agents"
+          active={currentPage === 'agents'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('agents');
+          }}
           isCollapsed={isCollapsed}
           theme={theme}
         />

@@ -106,5 +106,3 @@ echo "=========================================="
 echo "The /auth/email/admin/users endpoint has different authentication"
 echo "validation logic than other admin endpoints, causing it to reject"
 echo "valid bearer tokens."
-
-# Made with Bob

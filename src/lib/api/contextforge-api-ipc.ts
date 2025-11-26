@@ -5,6 +5,9 @@ import {
   type GatewayRead,
   type GatewayCreate,
   type GatewayUpdate,
+  type A2aAgentRead,
+  type A2aAgentCreate,
+  type A2aAgentUpdate,
   type EmailUserResponse,
   type TeamListResponse,
   type TeamResponse,
@@ -444,6 +447,162 @@ export async function toggleGatewayStatus(gatewayId: string, activate?: boolean)
   return response.data;
 }
 
+// A2A Agent operations
+export async function listA2AAgents(): Promise<A2aAgentRead[]> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listA2AAgents();
+  
+  if (!response.success) {
+    throw new Error('Failed to list A2A agents: ' + response.error);
+  }
+  
+  return response.data || [];
+}
+
+export async function createA2AAgent(agentData: A2aAgentCreate) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.createA2AAgent(agentData);
+  
+  if (!response.success) {
+    throw new Error('Failed to create A2A agent: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function getA2AAgent(agentId: string): Promise<A2aAgentRead> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getA2AAgent(agentId);
+  
+  if (!response.success) {
+    throw new Error('Failed to get A2A agent: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function updateA2AAgent(agentId: string, agentData: A2aAgentUpdate) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.updateA2AAgent(agentId, agentData);
+  
+  if (!response.success) {
+    throw new Error('Failed to update A2A agent: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function deleteA2AAgent(agentId: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.deleteA2AAgent(agentId);
+  
+  if (!response.success) {
+    throw new Error('Failed to delete A2A agent: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function toggleA2AAgentStatus(agentId: string, activate?: boolean) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.toggleA2AAgentStatus(agentId, activate);
+  
+  if (!response.success) {
+    throw new Error('Failed to toggle A2A agent status: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+// OAuth Testing operations
+export async function getOAuthAuthorizationUrl(oauthConfig: any): Promise<string> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getOAuthAuthorizationUrl(oauthConfig);
+  
+  if (!response.success) {
+    throw new Error('Failed to get OAuth authorization URL: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function exchangeOAuthCode(code: string, oauthConfig: any): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.exchangeOAuthCode(code, oauthConfig);
+  
+  if (!response.success) {
+    throw new Error('Failed to exchange OAuth code: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function testAgentConnection(agentEndpoint: string, accessToken: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.testAgentConnection(agentEndpoint, accessToken);
+  
+  if (!response.success) {
+    throw new Error('Failed to test agent connection: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function refreshOAuthToken(refreshToken: string, oauthConfig: any): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.refreshOAuthToken(refreshToken, oauthConfig);
+  
+  if (!response.success) {
+    throw new Error('Failed to refresh OAuth token: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function getClientCredentialsToken(oauthConfig: any): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getClientCredentialsToken(oauthConfig);
+  
+  if (!response.success) {
+    throw new Error('Failed to get client credentials token: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // User operations
 export async function listUsers(): Promise<EmailUserResponse[]> {
   if (!isElectron) {
@@ -758,6 +917,9 @@ export type {
   GatewayRead,
   GatewayCreate,
   GatewayUpdate,
+  A2aAgentRead,
+  A2aAgentCreate,
+  A2aAgentUpdate,
   PromptRead,
   PromptCreate,
   PromptUpdate,

@@ -6,6 +6,7 @@ import { MCPServersPage } from './components/MCPServersPage';
 import { ToolsPage } from './components/ToolsPage';
 import { PromptsPage } from './components/PromptsPage';
 import { ResourcesPage } from './components/ResourcesPage';
+import { AgentsPage } from './components/AgentsPage';
 import { SettingsPage } from './components/SettingsPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
@@ -15,7 +16,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 function AppContent() {
   const { theme } = useTheme();
-  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'settings'>('servers');
+  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'settings'>('servers');
   
   // Initialize tray integration for toast notifications
   useTray();
@@ -36,6 +37,7 @@ function AppContent() {
           {currentPage === 'tools' && <ToolsPage />}
           {currentPage === 'prompts' && <PromptsPage />}
           {currentPage === 'resources' && <ResourcesPage />}
+          {currentPage === 'agents' && <AgentsPage />}
           {currentPage === 'settings' && <SettingsPage />}
         </main>
       </div>

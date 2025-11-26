@@ -48,6 +48,12 @@ import {
   updateGatewayGatewaysGatewayIdPut,
   deleteGatewayGatewaysGatewayIdDelete,
   toggleGatewayStatusGatewaysGatewayIdTogglePost,
+  listA2aAgentsA2aGet,
+  createA2aAgentA2aPost,
+  getA2aAgentA2aAgentIdGet,
+  updateA2aAgentA2aAgentIdPut,
+  deleteA2aAgentA2aAgentIdDelete,
+  toggleA2aAgentStatusA2aAgentIdTogglePost,
   listTeamsTeamsGet,
   createTeamTeamsPost,
   updateTeamTeamsTeamIdPut,
@@ -65,6 +71,9 @@ import {
   type GatewayRead,
   type GatewayCreate,
   type GatewayUpdate,
+  type A2aAgentRead,
+  type A2aAgentCreate,
+  type A2aAgentUpdate,
   type TeamResponse,
   type TeamCreateRequest,
   type TeamUpdateRequest,
@@ -499,6 +508,194 @@ export async function toggleGatewayStatus(gatewayId: string, activate?: boolean)
   }
   
   return response.data;
+}
+
+// ============================================================================
+// A2A Agent Operations
+// ============================================================================
+
+export async function listA2AAgents(includeInactive = true): Promise<A2aAgentRead[]> {
+  const response = await listA2aAgentsA2aGet({
+    query: { include_inactive: includeInactive }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to list A2A agents: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data || [];
+}
+
+export async function createA2AAgent(agentData: A2aAgentCreate) {
+  const response = await createA2aAgentA2aPost({
+    body: { agent: agentData }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to create A2A agent: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function getA2AAgent(agentId: string): Promise<A2aAgentRead> {
+  const response = await getA2aAgentA2aAgentIdGet({
+    path: { agent_id: agentId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to get A2A agent: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data!;
+}
+
+export async function updateA2AAgent(agentId: string, agentData: A2aAgentUpdate) {
+  const response = await updateA2aAgentA2aAgentIdPut({
+    path: { agent_id: agentId },
+    body: agentData
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to update A2A agent: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function deleteA2AAgent(agentId: string) {
+  const response = await deleteA2aAgentA2aAgentIdDelete({
+    path: { agent_id: agentId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to delete A2A agent: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+export async function toggleA2AAgentStatus(agentId: string, activate?: boolean) {
+  const response = await toggleA2aAgentStatusA2aAgentIdTogglePost({
+    path: { agent_id: agentId },
+    query: activate !== undefined ? { activate } : undefined
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to toggle A2A agent status: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+// ============================================================================
+// OAuth Testing Operations
+// ============================================================================
+
+export async function getOAuthAuthorizationUrl(oauthConfig: any): Promise<string> {
+  // This will be implemented with the OAuth handler
+  // For now, construct the URL manually
+  const params = new URLSearchParams({
+    client_id: oauthConfig.client_id,
+    redirect_uri: 'http://localhost:3000/oauth/callback',
+    response_type: 'code',
+    scope: oauthConfig.scopes?.join(' ') || '',
+    state: Math.random().toString(36).substring(2, 15),
+  });
+
+  return `${oauthConfig.auth_url}?${params.toString()}`;
+}
+
+export async function exchangeOAuthCode(code: string, oauthConfig: any): Promise<any> {
+  // This will use the Electron fetch adapter to exchange the code for a token
+  const response = await electronFetch(oauthConfig.token_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: 'http://localhost:3000/oauth/callback',
+      client_id: oauthConfig.client_id,
+      client_secret: oauthConfig.client_secret,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Token exchange failed: ${error}`);
+  }
+
+  return await response.json();
+}
+
+export async function getClientCredentialsToken(oauthConfig: any): Promise<any> {
+  // Client Credentials flow - directly request token from token endpoint
+  const response = await electronFetch(oauthConfig.token_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: oauthConfig.client_id,
+      client_secret: oauthConfig.client_secret,
+      scope: oauthConfig.scopes?.join(' ') || '',
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Client credentials token request failed: ${error}`);
+  }
+
+  return await response.json();
+}
+
+export async function testAgentConnection(agentEndpoint: string, accessToken: string): Promise<any> {
+  // Test the agent connection with the obtained token
+  const response = await electronFetch(agentEndpoint, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Agent connection test failed: ${error}`);
+  }
+
+  return {
+    success: true,
+    message: 'Agent connection successful',
+    responseTime: 0, // Could measure this
+  };
+}
+
+export async function refreshOAuthToken(refreshToken: string, oauthConfig: any): Promise<any> {
+  // Refresh the OAuth token
+  const response = await electronFetch(oauthConfig.token_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: oauthConfig.client_id,
+      client_secret: oauthConfig.client_secret,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Token refresh failed: ${error}`);
+  }
+
+  return await response.json();
 }
 
 // ============================================================================
