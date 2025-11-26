@@ -1,8 +1,8 @@
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, Settings } from 'lucide-react';
 import { Switch } from "./ui/switch";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { RightSidePanel } from './RightSidePanel';
-import { MCPServer } from '../types/server';
+import { MCPServer, OAuthConfig } from '../types/server';
 
 interface ServerDetailsPanelProps {
   server: MCPServer | null;
@@ -19,6 +19,7 @@ interface ServerDetailsPanelProps {
   editedActive: boolean;
   isTransportDropdownOpen: boolean;
   isAuthDropdownOpen: boolean;
+  editedOAuthConfig: OAuthConfig | null;
   onClose: () => void;
   onSave: () => void;
   onNameChange: (value: string) => void;
@@ -32,6 +33,7 @@ interface ServerDetailsPanelProps {
   onActiveChange: (active: boolean) => void;
   onTransportDropdownToggle: (open: boolean) => void;
   onAuthDropdownToggle: (open: boolean) => void;
+  onOpenOAuthWizard: () => void;
 }
 
 export function ServerDetailsPanel({
@@ -49,6 +51,7 @@ export function ServerDetailsPanel({
   editedActive,
   isTransportDropdownOpen,
   isAuthDropdownOpen,
+  editedOAuthConfig,
   onClose,
   onSave,
   onNameChange,
@@ -62,6 +65,7 @@ export function ServerDetailsPanel({
   onActiveChange,
   onTransportDropdownToggle,
   onAuthDropdownToggle,
+  onOpenOAuthWizard,
 }: ServerDetailsPanelProps) {
   const removeTag = (index: number) => {
     onTagsChange(editedTags.filter((_, i) => i !== index));
@@ -320,11 +324,11 @@ export function ServerDetailsPanel({
               
               {isAuthDropdownOpen && (
                 <div className={`absolute top-full left-0 right-0 mt-1 rounded-md border shadow-lg z-50 overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'}`}>
-                  {['Basic', 'Bearer Token', 'Custom Headers', 'OAuth 2.0'].map((type) => (
+                  {['None', 'Basic', 'Bearer Token', 'Custom Headers', 'OAuth 2.0'].map((type) => (
                     <div
                       key={type}
                       className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
-                        editedAuthenticationType === type 
+                        editedAuthenticationType === type
                           ? theme === 'dark' ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-900'
                           : theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'
                       }`}
@@ -340,6 +344,77 @@ export function ServerDetailsPanel({
               )}
             </div>
           </div>
+
+          {/* OAuth Configuration Section */}
+          {editedAuthenticationType === 'OAuth 2.0' && (
+            <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-blue-50 border-blue-200'}`}>
+              {editedOAuthConfig ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      OAuth 2.0 Configuration
+                    </h4>
+                    <button
+                      onClick={onOpenOAuthWizard}
+                      className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-zinc-700 hover:bg-zinc-600 text-white'
+                          : 'bg-white hover:bg-gray-100 text-gray-900 border border-gray-300'
+                      }`}
+                    >
+                      <Settings size={12} />
+                      Edit Config
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>Grant Type:</span>
+                      <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {editedOAuthConfig.grant_type === 'client_credentials' ? 'Client Credentials' : 'Authorization Code'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>Client ID:</span>
+                      <span className={`font-mono text-xs ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {editedOAuthConfig.client_id.substring(0, 20)}...
+                      </span>
+                    </div>
+                    {editedOAuthConfig.scopes && editedOAuthConfig.scopes.length > 0 && (
+                      <div className="flex justify-between">
+                        <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>Scopes:</span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {editedOAuthConfig.scopes.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {editedOAuthConfig.access_token && (
+                      <div className={`mt-2 pt-2 border-t ${theme === 'dark' ? 'border-zinc-700' : 'border-blue-200'}`}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
+                            Token Active
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className={`text-sm mb-3 ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                    OAuth 2.0 requires configuration
+                  </p>
+                  <button
+                    onClick={onOpenOAuthWizard}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md transition-colors"
+                  >
+                    Configure OAuth 2.0
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Passthrough Headers */}
           <div>

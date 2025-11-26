@@ -9,6 +9,7 @@ import { ServerTableView } from './ServerTableView';
 import { ServerGridView } from './ServerGridView';
 import { ServerDetailsPanel } from './ServerDetailsPanel';
 import { ServerFilterDropdown } from './ServerFilterDropdown';
+import { OAuthConfigWizard } from './OAuthConfigWizard';
 import { PageHeader, DataTableToolbar, MCPIcon } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
 import { mapGatewayReadToMCPServer } from '../lib/api/server-mapper';
@@ -22,6 +23,7 @@ export function MCPServersPage() {
   const [serversData, setServersData] = useState<MCPServer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showOAuthWizard, setShowOAuthWizard] = useState(false);
 
   const { theme } = useTheme();
   const { selectedTeamId } = useTeam();
@@ -118,6 +120,16 @@ export function MCPServersPage() {
 
   const handleClosePanel = useCallback(() => {
     setShowSidePanel(false);
+  }, []);
+
+  const handleOAuthComplete = useCallback((config: any) => {
+    editorHook.setEditedOAuthConfig(config);
+    setShowOAuthWizard(false);
+    toast.success('OAuth configuration saved');
+  }, [editorHook]);
+
+  const handleOpenOAuthWizard = useCallback(() => {
+    setShowOAuthWizard(true);
   }, []);
 
   return (
@@ -268,6 +280,7 @@ export function MCPServersPage() {
           editedActive={editorHook.editedActive}
           isTransportDropdownOpen={editorHook.isTransportDropdownOpen}
           isAuthDropdownOpen={editorHook.isAuthDropdownOpen}
+          editedOAuthConfig={editorHook.editedOAuthConfig}
           onClose={handleClosePanel}
           onSave={handleSaveGateway}
           onNameChange={editorHook.setEditedName}
@@ -281,6 +294,18 @@ export function MCPServersPage() {
           onActiveChange={editorHook.setEditedActive}
           onTransportDropdownToggle={editorHook.setIsTransportDropdownOpen}
           onAuthDropdownToggle={editorHook.setIsAuthDropdownOpen}
+          onOpenOAuthWizard={handleOpenOAuthWizard}
+        />
+      )}
+
+      {/* OAuth Configuration Wizard */}
+      {showOAuthWizard && (
+        <OAuthConfigWizard
+          isOpen={showOAuthWizard}
+          onClose={() => setShowOAuthWizard(false)}
+          onComplete={handleOAuthComplete}
+          theme={theme as 'light' | 'dark'}
+          initialConfig={editorHook.editedOAuthConfig || undefined}
         />
       )}
     </div>

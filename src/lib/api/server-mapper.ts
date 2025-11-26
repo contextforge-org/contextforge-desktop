@@ -102,6 +102,7 @@ export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
     transportType: gateway.transport || 'SSE',
     authenticationType: gateway.authType || 'None',
     passthroughHeaders: gateway.passthroughHeaders || [],
+    oauthConfig: (gateway as any).oauthConfig || null,
   };
 }
 
@@ -142,6 +143,21 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
     payload.auth_type = authType;
   }
   
+  // Include OAuth config if authentication type is OAuth 2.0 and config exists
+  if (server.authenticationType === 'OAuth 2.0' && server.oauthConfig) {
+    payload.oauth_config = {
+      grant_type: server.oauthConfig.grant_type,
+      client_id: server.oauthConfig.client_id,
+      client_secret: server.oauthConfig.client_secret,
+      token_url: server.oauthConfig.token_url,
+      auth_url: server.oauthConfig.auth_url,
+      scopes: server.oauthConfig.scopes,
+      access_token: server.oauthConfig.access_token,
+      refresh_token: server.oauthConfig.refresh_token,
+      token_expires_at: server.oauthConfig.token_expires_at,
+    };
+  }
+  
   return payload;
 }
 
@@ -164,6 +180,21 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
   const authType = mapAuthTypeToAPI(server.authenticationType);
   if (authType !== null) {
     payload.auth_type = authType;
+  }
+  
+  // Include OAuth config if authentication type is OAuth 2.0 and config exists
+  if (server.authenticationType === 'OAuth 2.0' && server.oauthConfig) {
+    payload.oauth_config = {
+      grant_type: server.oauthConfig.grant_type,
+      client_id: server.oauthConfig.client_id,
+      client_secret: server.oauthConfig.client_secret,
+      token_url: server.oauthConfig.token_url,
+      auth_url: server.oauthConfig.auth_url,
+      scopes: server.oauthConfig.scopes,
+      access_token: server.oauthConfig.access_token,
+      refresh_token: server.oauthConfig.refresh_token,
+      token_expires_at: server.oauthConfig.token_expires_at,
+    };
   }
   
   return payload;

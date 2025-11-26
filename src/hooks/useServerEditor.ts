@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { MCPServer } from '../types/server';
+import { MCPServer, OAuthConfig } from '../types/server';
 
 export function useServerEditor() {
   const [editedName, setEditedName] = useState('');
@@ -14,6 +14,7 @@ export function useServerEditor() {
   const [editedActive, setEditedActive] = useState(true);
   const [isTransportDropdownOpen, setIsTransportDropdownOpen] = useState(false);
   const [isAuthDropdownOpen, setIsAuthDropdownOpen] = useState(false);
+  const [editedOAuthConfig, setEditedOAuthConfig] = useState<OAuthConfig | null>(null);
   
   // Associated items state
   const [editedTools, setEditedTools] = useState<string[]>([]);
@@ -39,6 +40,7 @@ export function useServerEditor() {
     setEditedTools((server as any).associatedTools || []);
     setEditedResources((server as any).associatedResources || []);
     setEditedPrompts((server as any).associatedPrompts || []);
+    setEditedOAuthConfig((server as any).oauthConfig || null);
   }, []);
 
   const resetForNewServer = useCallback(() => {
@@ -58,6 +60,7 @@ export function useServerEditor() {
     setToolsSearch('');
     setResourcesSearch('');
     setPromptsSearch('');
+    setEditedOAuthConfig(null);
   }, []);
 
   const getEditedServer = useCallback(() => ({
@@ -74,6 +77,7 @@ export function useServerEditor() {
     associatedTools: editedTools,
     associatedResources: editedResources,
     associatedPrompts: editedPrompts,
+    oauthConfig: editedOAuthConfig,
   }), [
     editedName,
     editedUrl,
@@ -88,6 +92,7 @@ export function useServerEditor() {
     editedTools,
     editedResources,
     editedPrompts,
+    editedOAuthConfig,
   ]);
 
   const toggleTool = useCallback((tool: string) => {
@@ -139,6 +144,7 @@ export function useServerEditor() {
     toolsSearch,
     resourcesSearch,
     promptsSearch,
+    editedOAuthConfig,
     setEditedName,
     setEditedUrl,
     setEditedIconUrl,
@@ -157,6 +163,7 @@ export function useServerEditor() {
     setToolsSearch,
     setResourcesSearch,
     setPromptsSearch,
+    setEditedOAuthConfig,
     toggleTool,
     removeTool,
     toggleResource,
