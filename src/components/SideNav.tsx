@@ -194,7 +194,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'settings') => void }) {
+export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'settings') => void }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useTheme();
 
@@ -279,8 +279,11 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
         <NavItem 
           icon={<LineChart size={18} strokeWidth={1.5} />} 
           label="Metrics" 
-          active={currentPage === 'Metrics'}
-          // onClick={() => onNavigate('Metrics')}
+          active={currentPage === 'metrics'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('metrics');
+          }}
           isCollapsed={isCollapsed}
           theme={theme}
         />

@@ -93,6 +93,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAvailablePermissions: () => ipcRenderer.invoke('api:get-available-permissions'),
     executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) =>
       ipcRenderer.invoke('api:execute-tool-rpc', toolName, params, passthroughHeaders, timeout),
+    getAggregatedMetrics: () => ipcRenderer.invoke('api:getAggregatedMetrics'),
   },
 });
 
@@ -169,6 +170,7 @@ declare global {
         revokeToken: (tokenId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         getAvailablePermissions: () => Promise<{ success: boolean; data?: any; error?: string }>;
         executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getAggregatedMetrics: () => Promise<{ success: boolean; data?: any; error?: string }>;
       };
     };
   }

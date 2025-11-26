@@ -18,6 +18,8 @@ import {
   getCurrentUserProfileAuthEmailMeGet,
   listUsersAuthEmailAdminUsersGet,
   createUserAuthEmailAdminUsersPost,
+  getAggregatedMetricsAdminMetricsGet,
+  getSystemStatsAdminSystemStatsGet,
   updateUserAuthEmailAdminUsersUserEmailPut,
   deleteUserAuthEmailAdminUsersUserEmailDelete,
   adminActivateUserAdminUsersUserEmailActivatePost,
@@ -973,7 +975,47 @@ export async function getAvailablePermissions(): Promise<PermissionListResponse>
  * @param params - Parameters to pass to the tool
  * @param passthroughHeaders - Optional custom headers to pass through
  * @param timeout - Request timeout in milliseconds (default: 60000)
- * @returns The JSON-RPC response
+ * @returns The JSON-RPC response **/
+// ============================================================================
+// Metrics Operations
+// ============================================================================
+
+export async function getAggregatedMetrics() {
+  // Call both endpoints to get complete data:
+  // - system stats for users, teams, and resource counts
+  // - metrics for execution stats and top performers
+  const [systemStatsResponse, metricsResponse] = await Promise.all([
+    getSystemStatsAdminSystemStatsGet(),
+    getAggregatedMetricsAdminMetricsGet()
+  ]);
+  
+  if (systemStatsResponse.error) {
+    throw new Error('Failed to get system stats: ' + JSON.stringify(systemStatsResponse.error));
+  }
+  
+  if (metricsResponse.error) {
+    throw new Error('Failed to get metrics: ' + JSON.stringify(metricsResponse.error));
+  }
+  
+  // Merge the two responses
+  const mergedData = Object.assign({}, systemStatsResponse.data, {
+    // Override metrics from system stats with detailed metrics from metrics endpoint
+    metrics: metricsResponse.data
+  });
+  
+  // Import the mapper
+  const { mapMetricsResponse } = await import('./metrics-mapper');
+  
+  // Transform the merged response to match our interface
+  return mapMetricsResponse(mergedData);
+}
+
+// ============================================================================
+// RPC Operations
+// ============================================================================
+
+/**
+ * Execute a tool via RPC
  */
 export async function executeToolRpc(
   toolName: string,

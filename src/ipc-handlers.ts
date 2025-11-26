@@ -584,6 +584,17 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
       return { success: false, error: (error as Error).message };
     }
   });
+
+  // Metrics handlers
+  ipcMain.handle('api:getAggregatedMetrics', async () => {
+    try {
+      const data = await mainApi.getAggregatedMetrics();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   ipcMain.handle('api:get-available-permissions', async () => {
     try {
       const response = await mainApi.getAvailablePermissions();
@@ -662,4 +673,5 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:assign-role-to-user');
   ipcMain.removeHandler('api:revoke-role-from-user');
   ipcMain.removeHandler('api:execute-tool-rpc');
+  ipcMain.removeHandler('api:getAggregatedMetrics');
 }

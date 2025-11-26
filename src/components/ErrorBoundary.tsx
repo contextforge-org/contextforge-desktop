@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to console in development
-    if (process.env['NODE_ENV'] === 'development') {
+    if (import.meta.env.DEV) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
@@ -111,7 +111,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   <p className="text-sm font-mono text-red-400 mb-2">
                     {this.state.error.name}: {this.state.error.message}
                   </p>
-                  {process.env['NODE_ENV'] === 'development' && this.state.errorInfo && (
+                  {import.meta.env.DEV && this.state.errorInfo && (
                     <details className="mt-4">
                       <summary className="text-sm text-zinc-400 cursor-pointer hover:text-zinc-300">
                         Stack trace
@@ -143,7 +143,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </Button>
             </div>
 
-            {process.env['NODE_ENV'] === 'development' && (
+            {import.meta.env.DEV && (
               <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                 <p className="text-sm text-yellow-400">
                   <strong>Development Mode:</strong> This error boundary is showing

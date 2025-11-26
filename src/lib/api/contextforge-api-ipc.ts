@@ -927,3 +927,18 @@ export type {
   ResourceCreate,
   ResourceUpdate
 };
+
+// Metrics operations
+export async function getAggregatedMetrics() {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getAggregatedMetrics();
+  
+  if (!response.success) {
+    throw new Error('Failed to get metrics: ' + response.error);
+  }
+  
+  return response.data;
+}
