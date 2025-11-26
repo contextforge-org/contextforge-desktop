@@ -1,12 +1,16 @@
-import { MoreVertical, Power, Pencil, Copy, Trash2 } from 'lucide-react';
+import { MoreVertical, Power, Pencil, Copy, Trash2, Download, ChevronRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "./ui/dropdown-menu";
 import { MCPServer } from '../types/server';
+import { ConfigType } from '../lib/serverUtils';
 
 interface ServerActionsDropdownProps {
   server: MCPServer;
@@ -15,6 +19,7 @@ interface ServerActionsDropdownProps {
   onEdit: (server: MCPServer) => void;
   onDuplicate: (serverId: string) => void;
   onDelete: (serverId: string) => void;
+  onDownloadConfig?: (serverId: string, configType: ConfigType) => void;
 }
 
 export function ServerActionsDropdown({
@@ -24,6 +29,7 @@ export function ServerActionsDropdown({
   onEdit,
   onDuplicate,
   onDelete,
+  onDownloadConfig,
 }: ServerActionsDropdownProps) {
   return (
     <DropdownMenu>
@@ -33,7 +39,7 @@ export function ServerActionsDropdown({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className={theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}>
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={(e) => {
             e.stopPropagation();
             onToggleActive(server.id);
@@ -43,7 +49,7 @@ export function ServerActionsDropdown({
           <Power size={14} className="mr-2" />
           {server.active ? 'Deactivate' : 'Activate'}
         </DropdownMenuItem>
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={(e) => {
             e.stopPropagation();
             onEdit(server);
@@ -53,7 +59,7 @@ export function ServerActionsDropdown({
           <Pencil size={14} className="mr-2" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={(e) => {
             e.stopPropagation();
             onDuplicate(server.id);
@@ -63,8 +69,51 @@ export function ServerActionsDropdown({
           <Copy size={14} className="mr-2" />
           Duplicate
         </DropdownMenuItem>
+        
+        {/* Download Config submenu */}
+        {onDownloadConfig && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger
+              className={`cursor-pointer ${theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'}`}
+            >
+              <Download size={14} className="mr-2" />
+              Download Config
+              <ChevronRight size={14} className="ml-auto" />
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className={theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownloadConfig(server.id, 'stdio');
+                }}
+                className={`cursor-pointer ${theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'}`}
+              >
+                STDIO Config
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownloadConfig(server.id, 'sse');
+                }}
+                className={`cursor-pointer ${theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'}`}
+              >
+                SSE Config
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownloadConfig(server.id, 'http');
+                }}
+                className={`cursor-pointer ${theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'}`}
+              >
+                HTTP Config
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+        
         <DropdownMenuSeparator className={theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-200'} />
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={(e) => {
             e.stopPropagation();
             onDelete(server.id);

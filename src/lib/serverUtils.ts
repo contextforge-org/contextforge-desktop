@@ -146,3 +146,104 @@ export function showUndoToast(
   });
 }
 
+/**
+ * Configuration type for MCP server configs
+ */
+export type ConfigType = 'stdio' | 'sse' | 'http';
+
+/**
+ * Generate configuration object based on server and type
+ * @param server - Server object from API
+ * @param configType - Configuration type ('stdio', 'sse', or 'http')
+ * @returns Generated configuration object
+ */
+export function generateConfig(server: MCPServer, configType: ConfigType): object {
+  // Use the API URL from environment variable, fallback to localhost:4444
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4444';
+  const baseUrl = apiUrl.replace(/\/$/, ''); // Remove trailing slash if present
+
+  // Clean server name for use as config key (alphanumeric and hyphens only)
+  const cleanServerName = server.name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  switch (configType) {
+    case 'stdio':
+      return {
+        mcpServers: {
+          'mcpgateway-wrapper': {
+            command: 'python',
+            args: ['-m', 'mcpgateway.wrapper'],
+            env: {
+              MCP_AUTH: 'Bearer <your-token-here>',
+              MCP_SERVER_URL: `${baseUrl}/servers/${server.id}`,
+              MCP_TOOL_CALL_TIMEOUT: '120',
+            },
+          },
+        },
+      };
+
+    case 'sse':
+      return {
+        servers: {
+          [cleanServerName]: {
+            type: 'sse',
+            url: `${baseUrl}/servers/${server.id}/sse`,
+            headers: {
+              Authorization: 'Bearer your-token-here',
+            },
+          },
+        },
+      };
+
+    case 'http':
+      return {
+        servers: {
+          [cleanServerName]: {
+            type: 'http',
+            url: `${baseUrl}/servers/${server.id}/mcp`,
+            headers: {
+              Authorization: 'Bearer your-token-here',
+            },
+          },
+        },
+      };
+
+    default:
+      throw new Error(`Unknown config type: ${configType}`);
+  }
+}
+
+/**
+ * Download a configuration file for a server
+ * @param server - Server object
+ * @param configType - Configuration type
+ */
+export function downloadConfig(server: MCPServer, configType: ConfigType): void {
+  try {
+    const config = generateConfig(server, configType);
+    const configJson = JSON.stringify(config, null, 2);
+    
+    // Create blob and download
+    const blob = new Blob([configJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${server.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-${configType}-config.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`Configuration downloaded`, {
+      description: `${configType.toUpperCase()} config for "${server.name}"`,
+    });
+  } catch (error) {
+    toast.error('Failed to download configuration', {
+      description: (error as Error).message,
+    });
+  }
+}
+

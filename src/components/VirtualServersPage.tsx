@@ -8,12 +8,14 @@ import { useServerActions } from '../hooks/useServerActions';
 import { ServerTableView } from './ServerTableView';
 import { ServerGridView } from './ServerGridView';
 import { VirtualServerDetailsPanel } from './VirtualServerDetailsPanel';
+import { ConfigPreviewModal } from './ConfigPreviewModal';
 import { ServerFilterDropdown } from './ServerFilterDropdown';
 import { PageHeader, DataTableToolbar } from './common';
 import { Server } from 'lucide-react';
 import * as api from '../lib/api/contextforge-api-ipc';
 import { mapServerReadToMCPServer } from '../lib/api/server-mapper';
 import { toast } from '../lib/toastWithTray';
+import { ConfigType } from '../lib/serverUtils';
 
 export function VirtualServersPage() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -26,6 +28,9 @@ export function VirtualServersPage() {
   const [availableTools, setAvailableTools] = useState<Array<{id: string, name: string}>>([]);
   const [availableResources, setAvailableResources] = useState<Array<{id: string, name: string}>>([]);
   const [availablePrompts, setAvailablePrompts] = useState<Array<{id: string, name: string}>>([]);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configModalServer, setConfigModalServer] = useState<MCPServer | null>(null);
+  const [configModalType, setConfigModalType] = useState<ConfigType | null>(null);
 
   const { theme } = useTheme();
   const { selectedTeamId } = useTeam();
@@ -301,6 +306,15 @@ export function VirtualServersPage() {
     setShowSidePanel(false);
   }, []);
 
+  const handleDownloadConfig = useCallback((serverId: string, configType: ConfigType) => {
+    const server = serversData.find(s => s.id === serverId);
+    if (server) {
+      setConfigModalServer(server);
+      setConfigModalType(configType);
+      setShowConfigModal(true);
+    }
+  }, [serversData]);
+
   return (
     <div className="flex h-full">
       {/* Main Content */}
@@ -418,6 +432,7 @@ export function VirtualServersPage() {
                 onToggleActive={actionsHook.toggleServerActive}
                 onDuplicate={actionsHook.duplicateServer}
                 onDelete={actionsHook.deleteServer}
+                onDownloadConfig={handleDownloadConfig}
               />
             ) : (
               <ServerGridView
@@ -427,6 +442,7 @@ export function VirtualServersPage() {
                 onToggleActive={actionsHook.toggleServerActive}
                 onDuplicate={actionsHook.duplicateServer}
                 onDelete={actionsHook.deleteServer}
+                onDownloadConfig={handleDownloadConfig}
               />
             )}
             </div>
@@ -486,6 +502,15 @@ export function VirtualServersPage() {
           onPromptsSearchChange={editorHook.setPromptsSearch}
         />
       )}
+
+      {/* Config Preview Modal */}
+      <ConfigPreviewModal
+        isOpen={showConfigModal}
+        onClose={() => setShowConfigModal(false)}
+        server={configModalServer}
+        configType={configModalType}
+        theme={theme}
+      />
     </div>
   );
 }

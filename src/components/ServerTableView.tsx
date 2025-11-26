@@ -1,6 +1,7 @@
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ServerActionsDropdown } from './ServerActionsDropdown';
 import { MCPServer } from '../types/server';
+import { ConfigType } from '../lib/serverUtils';
 
 // Helper function to get consistent tag colors
 type TagColors = {
@@ -49,6 +50,7 @@ interface ServerTableViewProps {
   onToggleActive: (serverId: string) => void;
   onDuplicate: (serverId: string) => void;
   onDelete: (serverId: string) => void;
+  onDownloadConfig?: (serverId: string, configType: ConfigType) => void;
 }
 
 export function ServerTableView({
@@ -59,13 +61,14 @@ export function ServerTableView({
   onToggleActive,
   onDuplicate,
   onDelete,
+  onDownloadConfig,
 }: ServerTableViewProps) {
   return (
     <table className="w-full">
       <thead className={`border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
         <tr>
           <th className={`text-left px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>Name</th>
-          <th className={`text-left px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>URL</th>
+          <th className={`text-left px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>UUID</th>
           <th className={`text-left px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>Description</th>
           <th className={`text-left px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>Tags</th>
           <th className={`text-left px-4 py-3 text-sm font-medium w-12 ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}></th>
@@ -102,8 +105,8 @@ export function ServerTableView({
                 </div>
               </div>
             </td>
-            <td className={`px-4 py-4 text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-              {server.url}
+            <td className={`px-4 py-4 text-sm font-mono ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+              {server.id}
             </td>
             <td className={`px-4 py-4 text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
               {server.description}
@@ -131,6 +134,7 @@ export function ServerTableView({
                 onEdit={onServerClick}
                 onDuplicate={onDuplicate}
                 onDelete={onDelete}
+                onDownloadConfig={onDownloadConfig}
               />
             </td>
           </tr>

@@ -1,6 +1,7 @@
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ServerActionsDropdown } from './ServerActionsDropdown';
 import { MCPServer } from '../types/server';
+import { ConfigType } from '../lib/serverUtils';
 
 // Helper function to get consistent tag colors
 type TagColors = {
@@ -48,6 +49,7 @@ interface ServerGridViewProps {
   onToggleActive: (serverId: string) => void;
   onDuplicate: (serverId: string) => void;
   onDelete: (serverId: string) => void;
+  onDownloadConfig?: (serverId: string, configType: ConfigType) => void;
 }
 
 export function ServerGridView({
@@ -57,6 +59,7 @@ export function ServerGridView({
   onToggleActive,
   onDuplicate,
   onDelete,
+  onDownloadConfig,
 }: ServerGridViewProps) {
   return (
     <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -91,11 +94,12 @@ export function ServerGridView({
               onEdit={onServerClick}
               onDuplicate={onDuplicate}
               onDelete={onDelete}
+              onDownloadConfig={onDownloadConfig}
             />
           </div>
           
-          <p className={`text-xs mb-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-            {server.url}
+          <p className={`text-xs mb-2 font-mono ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+            {server.id}
           </p>
           
           <p className={`text-sm mb-3 line-clamp-2 ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
