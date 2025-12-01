@@ -64,6 +64,7 @@ import {
   updateA2aAgentA2aAgentIdPut,
   deleteA2aAgentA2aAgentIdDelete,
   toggleA2aAgentStatusA2aAgentIdTogglePost,
+  adminTestA2aAgentAdminA2aAgentIdTestPost,
   listTeamsTeamsGet,
   createTeamTeamsPost,
   updateTeamTeamsTeamIdPut,
@@ -593,6 +594,22 @@ export async function toggleA2AAgentStatus(agentId: string, activate?: boolean) 
   
   if (response.error) {
     throw new Error('Failed to toggle A2A agent status: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+/**
+ * Test A2A agent connection
+ * This endpoint tests the agent's connectivity and authentication
+ */
+export async function testA2AAgent(agentId: string): Promise<any> {
+  const response = await adminTestA2aAgentAdminA2aAgentIdTestPost({
+    path: { agent_id: agentId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to test A2A agent: ' + JSON.stringify(response.error));
   }
   
   return response.data;

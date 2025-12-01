@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateA2AAgent: (agentId: string, agentData: any) => ipcRenderer.invoke('api:update-a2a-agent', agentId, agentData),
     deleteA2AAgent: (agentId: string) => ipcRenderer.invoke('api:delete-a2a-agent', agentId),
     toggleA2AAgentStatus: (agentId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-a2a-agent-status', agentId, activate),
+    testA2AAgent: (agentId: string) => ipcRenderer.invoke('api:test-a2a-agent', agentId),
     // OAuth Gateway-based operations
     initiateOAuthFlow: (gatewayId: string) => ipcRenderer.invoke('api:initiate-oauth-flow', gatewayId),
     getOAuthStatus: (gatewayId: string) => ipcRenderer.invoke('api:get-oauth-status', gatewayId),
@@ -61,6 +62,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     testAgentConnection: (agentEndpoint: string, accessToken: string) => ipcRenderer.invoke('api:test-agent-connection', agentEndpoint, accessToken),
     refreshOAuthToken: (refreshToken: string, oauthConfig: any) => ipcRenderer.invoke('api:refresh-oauth-token', refreshToken, oauthConfig),
     getClientCredentialsToken: (oauthConfig: any) => ipcRenderer.invoke('api:get-client-credentials-token', oauthConfig),
+    // Native OAuth flow - performs complete authorization code flow with local callback server
+    performNativeOAuthFlow: (oauthConfig: any, timeoutMs?: number) => ipcRenderer.invoke('api:perform-native-oauth-flow', oauthConfig, timeoutMs),
     listTools: () => ipcRenderer.invoke('api:list-tools'),
     createTool: (toolData: any) => ipcRenderer.invoke('api:create-tool', toolData),
     updateTool: (toolId: string, toolData: any) => ipcRenderer.invoke('api:update-tool', toolId, toolData),
@@ -134,6 +137,7 @@ declare global {
         updateA2AAgent: (agentId: string, agentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteA2AAgent: (agentId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         toggleA2AAgentStatus: (agentId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
+        testA2AAgent: (agentId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         // OAuth Gateway-based operations
         initiateOAuthFlow: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         getOAuthStatus: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
@@ -145,6 +149,8 @@ declare global {
         testAgentConnection: (agentEndpoint: string, accessToken: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         refreshOAuthToken: (refreshToken: string, oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         getClientCredentialsToken: (oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        // Native OAuth flow - performs complete authorization code flow with local callback server
+        performNativeOAuthFlow: (oauthConfig: any, timeoutMs?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
         listTools: () => Promise<{ success: boolean; data?: any; error?: string }>;
         createTool: (toolData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         updateTool: (toolId: string, toolData: any) => Promise<{ success: boolean; data?: any; error?: string }>;

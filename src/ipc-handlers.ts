@@ -373,6 +373,15 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  ipcMain.handle('api:test-a2a-agent', async (_event, agentId: string) => {
+    try {
+      const response = await mainApi.testA2AAgent(agentId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // OAuth Gateway-based handlers
   ipcMain.handle('api:initiate-oauth-flow', async (_event, gatewayId: string) => {
     try {
@@ -451,6 +460,23 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     try {
       const response = await mainApi.getClientCredentialsToken(oauthConfig);
       return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Native OAuth flow handler - performs complete OAuth authorization code flow with local callback server
+  ipcMain.handle('api:perform-native-oauth-flow', async (_event, oauthConfig: any, timeoutMs?: number) => {
+    try {
+      // Import the performNativeOAuthFlow function
+      const { performNativeOAuthFlow } = await import('./oauth-handler');
+      const result = await performNativeOAuthFlow(oauthConfig, timeoutMs);
+      
+      if (result.success) {
+        return { success: true, data: result };
+      } else {
+        return { success: false, error: result.error };
+      }
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }

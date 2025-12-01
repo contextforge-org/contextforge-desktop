@@ -9,7 +9,7 @@ import { ServerTableView } from './ServerTableView';
 import { ServerGridView } from './ServerGridView';
 import { ServerDetailsPanel } from './ServerDetailsPanel';
 import { ServerFilterDropdown } from './ServerFilterDropdown';
-import { OAuthConfigWizard } from './OAuthConfigWizard';
+import { OAuthFlowWizard, type OAuthConfig } from './OAuthFlowWizard';
 import { PageHeader, DataTableToolbar, MCPIcon } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
 import { mapGatewayReadToMCPServer } from '../lib/api/server-mapper';
@@ -122,7 +122,7 @@ export function MCPServersPage() {
     setShowSidePanel(false);
   }, []);
 
-  const handleOAuthComplete = useCallback((config: any) => {
+  const handleOAuthComplete = useCallback((config: OAuthConfig) => {
     editorHook.setEditedOAuthConfig(config);
     setShowOAuthWizard(false);
     toast.success('OAuth configuration saved');
@@ -300,12 +300,22 @@ export function MCPServersPage() {
 
       {/* OAuth Configuration Wizard */}
       {showOAuthWizard && (
-        <OAuthConfigWizard
+        <OAuthFlowWizard
           isOpen={showOAuthWizard}
           onClose={() => setShowOAuthWizard(false)}
           onComplete={handleOAuthComplete}
           theme={theme as 'light' | 'dark'}
-          initialConfig={editorHook.editedOAuthConfig || undefined}
+          entityType="gateway"
+          entityId={selectedServer?.id}
+          entityName={editorHook.editedName || 'Gateway'}
+          initialConfig={editorHook.editedOAuthConfig ? {
+            grant_type: editorHook.editedOAuthConfig.grant_type || 'client_credentials',
+            client_id: editorHook.editedOAuthConfig.client_id || '',
+            client_secret: editorHook.editedOAuthConfig.client_secret || '',
+            token_url: editorHook.editedOAuthConfig.token_url || '',
+            auth_url: editorHook.editedOAuthConfig.auth_url,
+            scopes: editorHook.editedOAuthConfig.scopes,
+          } : undefined}
         />
       )}
     </div>
