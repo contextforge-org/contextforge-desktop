@@ -532,30 +532,101 @@ export async function toggleA2AAgentStatus(agentId: string, activate?: boolean) 
   return response.data;
 }
 
-// OAuth Testing operations
-export async function getOAuthAuthorizationUrl(oauthConfig: any): Promise<string> {
+// OAuth Testing operations - Gateway-based OAuth flow
+export async function initiateOAuthFlow(gatewayId: string): Promise<any> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
-  const response = await window.electronAPI.api.getOAuthAuthorizationUrl(oauthConfig);
+  const response = await window.electronAPI.api.initiateOAuthFlow(gatewayId);
   
   if (!response.success) {
-    throw new Error('Failed to get OAuth authorization URL: ' + response.error);
+    throw new Error('Failed to initiate OAuth flow: ' + response.error);
   }
   
   return response.data;
 }
 
-export async function exchangeOAuthCode(code: string, oauthConfig: any): Promise<any> {
+export async function getOAuthStatus(gatewayId: string): Promise<any> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
-  const response = await window.electronAPI.api.exchangeOAuthCode(code, oauthConfig);
+  const response = await window.electronAPI.api.getOAuthStatus(gatewayId);
   
   if (!response.success) {
-    throw new Error('Failed to exchange OAuth code: ' + response.error);
+    throw new Error('Failed to get OAuth status: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function fetchToolsAfterOAuth(gatewayId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.fetchToolsAfterOAuth(gatewayId);
+  
+  if (!response.success) {
+    throw new Error('Failed to fetch tools after OAuth: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function listRegisteredOAuthClients(): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listRegisteredOAuthClients();
+  
+  if (!response.success) {
+    throw new Error('Failed to list registered OAuth clients: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function getRegisteredClientForGateway(gatewayId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getRegisteredClientForGateway(gatewayId);
+  
+  if (!response.success) {
+    throw new Error('Failed to get registered client: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function deleteRegisteredOAuthClient(clientId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.deleteRegisteredOAuthClient(clientId);
+  
+  if (!response.success) {
+    throw new Error('Failed to delete registered client: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+// Legacy OAuth functions - for direct OAuth testing with external providers
+export async function getClientCredentialsToken(oauthConfig: any): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getClientCredentialsToken(oauthConfig);
+  
+  if (!response.success) {
+    throw new Error('Failed to get client credentials token: ' + response.error);
   }
   
   return response.data;
@@ -584,20 +655,6 @@ export async function refreshOAuthToken(refreshToken: string, oauthConfig: any):
   
   if (!response.success) {
     throw new Error('Failed to refresh OAuth token: ' + response.error);
-  }
-  
-  return response.data;
-}
-
-export async function getClientCredentialsToken(oauthConfig: any): Promise<any> {
-  if (!isElectron) {
-    throw new Error('This API wrapper requires Electron environment');
-  }
-
-  const response = await window.electronAPI.api.getClientCredentialsToken(oauthConfig);
-  
-  if (!response.success) {
-    throw new Error('Failed to get client credentials token: ' + response.error);
   }
   
   return response.data;

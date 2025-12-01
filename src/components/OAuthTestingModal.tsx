@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, ExternalLink, CheckCircle, XCircle, Loader2, Copy } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ExternalLink, CheckCircle, XCircle, Loader2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { A2AAgent } from '../types/agent';
@@ -11,43 +11,65 @@ interface OAuthTestingModalProps {
   onClose: () => void;
   agent: A2AAgent;
   theme: 'light' | 'dark';
+  /** Gateway ID is required for Authorization Code flow */
+  gatewayId?: string;
 }
 
-type TestStep = 'idle' | 'authorization' | 'token-exchange' | 'testing' | 'success' | 'error';
+type TestStep = 'idle' | 'authorization' | 'polling' | 'token-exchange' | 'testing' | 'success' | 'error';
 
-export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestingModalProps) {
+export function OAuthTestingModal({ isOpen, onClose, agent, theme, gatewayId }: OAuthTestingModalProps) {
   const [currentStep, setCurrentStep] = useState<TestStep>('idle');
-  const [authorizationUrl, setAuthorizationUrl] = useState<string>('');
-  const [authCode, setAuthCode] = useState<string>('');
-  const [accessToken, setAccessToken] = useState<string>('');
   const [tokenResponse, setTokenResponse] = useState<any>(null);
   const [testResult, setTestResult] = useState<any>(null);
   const [error, setError] = useState<string>('');
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const oauthConfig = agent.oauthConfig;
   const isAuthorizationCode = oauthConfig?.grant_type === 'authorization_code';
   const isClientCredentials = oauthConfig?.grant_type === 'client_credentials';
 
+  // Cleanup polling on unmount or close
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  // Reset polling when modal closes
+  useEffect(() => {
+    if (!isOpen && pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, [isOpen]);
+
   const handleStartAuthorizationFlow = async () => {
+    if (!gatewayId) {
+      toast.error('Gateway ID is required for Authorization Code flow');
+      return;
+    }
+
     try {
       setCurrentStep('authorization');
       setError('');
       
-      // Get authorization URL from backend
-      const url = await api.getOAuthAuthorizationUrl({
-        ...oauthConfig,
-        redirect_uri: 'http://localhost:3000/oauth/callback'
-      });
+      // Initiate OAuth flow via backend - this returns the authorization URL
+      const response = await api.initiateOAuthFlow(gatewayId);
       
-      setAuthorizationUrl(url);
-      
-      // Open in external browser (using shell.openExternal)
-      if (window.electronAPI) {
-        // We'll need to add this to the IPC API
-        window.open(url, '_blank');
+      if (response.authorization_url) {
+        // Open in external browser
+        window.open(response.authorization_url, '_blank');
+        toast.info('Authorization page opened in browser. Complete the flow there.');
+        
+        // Start polling for OAuth status
+        setCurrentStep('polling');
+        startPolling();
+      } else {
+        throw new Error('No authorization URL returned from server');
       }
-      
-      toast.info('Authorization URL opened in browser');
     } catch (err) {
       setError((err as Error).message);
       setCurrentStep('error');
@@ -55,33 +77,51 @@ export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestin
     }
   };
 
-  const handleExchangeCode = async () => {
-    if (!authCode.trim()) {
-      toast.error('Please enter the authorization code');
-      return;
+  const startPolling = () => {
+    if (!gatewayId) return;
+
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
     }
 
-    try {
-      setCurrentStep('token-exchange');
-      setError('');
+    let pollCount = 0;
+    const maxPolls = 60; // 5 minutes with 5 second interval
+
+    pollingIntervalRef.current = setInterval(async () => {
+      pollCount++;
       
-      // Exchange code for token
-      const response = await api.exchangeOAuthCode(authCode, {
-        ...oauthConfig,
-        redirect_uri: 'http://localhost:3000/oauth/callback'
-      });
-      
-      setTokenResponse(response);
-      setAccessToken(response.access_token);
-      setCurrentStep('testing');
-      
-      // Automatically test the connection
-      await testConnection(response.access_token);
-    } catch (err) {
-      setError((err as Error).message);
-      setCurrentStep('error');
-      toast.error('Failed to exchange code: ' + (err as Error).message);
-    }
+      if (pollCount > maxPolls) {
+        clearInterval(pollingIntervalRef.current!);
+        pollingIntervalRef.current = null;
+        setError('OAuth flow timed out. Please try again.');
+        setCurrentStep('error');
+        return;
+      }
+
+      try {
+        const status = await api.getOAuthStatus(gatewayId);
+        
+        if (status.authenticated) {
+          // OAuth complete!
+          clearInterval(pollingIntervalRef.current!);
+          pollingIntervalRef.current = null;
+          
+          setTokenResponse({
+            authenticated: true,
+            token_type: status.token_type,
+            expires_at: status.expires_at,
+          });
+          setCurrentStep('testing');
+          
+          // Test the connection with the stored token
+          await testConnection();
+        }
+      } catch (err) {
+        console.error('OAuth status poll error:', err);
+        // Continue polling unless it's a fatal error
+      }
+    }, 5000);
   };
 
   const handleClientCredentialsFlow = async () => {
@@ -93,10 +133,9 @@ export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestin
       const response = await api.getClientCredentialsToken(oauthConfig);
       
       setTokenResponse(response);
-      setAccessToken(response.access_token);
       setCurrentStep('testing');
       
-      // Automatically test the connection
+      // Test the connection with the token
       await testConnection(response.access_token);
     } catch (err) {
       setError((err as Error).message);
@@ -105,12 +144,12 @@ export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestin
     }
   };
 
-  const testConnection = async (token: string) => {
+  const testConnection = async (token?: string) => {
     try {
       setCurrentStep('testing');
       
-      // Test the agent connection with the token
-      const result = await api.testAgentConnection(agent.endpointUrl, token);
+      // If no token provided, the backend should use the stored OAuth token for the gateway
+      const result = await api.testAgentConnection(agent.endpointUrl, token || '');
       
       setTestResult(result);
       setCurrentStep('success');
@@ -122,19 +161,15 @@ export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestin
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
-  };
-
   const handleReset = () => {
     setCurrentStep('idle');
-    setAuthorizationUrl('');
-    setAuthCode('');
-    setAccessToken('');
     setTokenResponse(null);
     setTestResult(null);
     setError('');
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
   };
 
   return (
@@ -173,23 +208,29 @@ export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestin
 
           {/* Step Indicator */}
           <div className="flex items-center justify-between">
-            {['Authorization', 'Token Exchange', 'Testing', 'Complete'].map((step, index) => (
+            {['Authorization', 'Waiting', 'Testing', 'Complete'].map((step, index) => {
+              const stepStates = ['idle', 'authorization', 'polling', 'token-exchange', 'testing', 'success'];
+              const currentIndex = stepStates.indexOf(currentStep);
+              // Map step index to state index for comparison
+              const stepToStateIndex = [0, 1, 3, 5]; // idle, authorization, testing, success
+              
+              return (
               <div key={step} className="flex items-center">
                 <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  index < ['idle', 'authorization', 'token-exchange', 'testing', 'success'].indexOf(currentStep)
+                  stepToStateIndex[index] < currentIndex
                     ? 'bg-green-500 text-white'
-                    : index === ['idle', 'authorization', 'token-exchange', 'testing', 'success'].indexOf(currentStep)
+                    : stepToStateIndex[index] === currentIndex || (index === 1 && currentStep === 'polling')
                     ? 'bg-blue-500 text-white'
                     : theme === 'dark' ? 'bg-zinc-700 text-zinc-400' : 'bg-gray-300 text-gray-600'
                 }`}>
-                  {index < ['idle', 'authorization', 'token-exchange', 'testing', 'success'].indexOf(currentStep) ? (
+                  {stepToStateIndex[index] < currentIndex ? (
                     <CheckCircle size={16} />
                   ) : (
                     index + 1
                   )}
                 </div>
                 <span className={`ml-2 text-sm ${
-                  index <= ['idle', 'authorization', 'token-exchange', 'testing', 'success'].indexOf(currentStep)
+                  stepToStateIndex[index] <= currentIndex || (index === 1 && currentStep === 'polling')
                     ? theme === 'dark' ? 'text-white' : 'text-gray-900'
                     : theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
                 }`}>
@@ -197,24 +238,33 @@ export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestin
                 </span>
                 {index < 3 && (
                   <div className={`w-12 h-0.5 mx-2 ${
-                    index < ['idle', 'authorization', 'token-exchange', 'testing', 'success'].indexOf(currentStep)
+                    stepToStateIndex[index] < currentIndex
                       ? 'bg-green-500'
                       : theme === 'dark' ? 'bg-zinc-700' : 'bg-gray-300'
                   }`} />
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Step 1: Authorization (for Authorization Code flow) */}
           {isAuthorizationCode && currentStep === 'idle' && (
             <div className="space-y-4">
+              {!gatewayId && (
+                <div className={`p-3 rounded ${theme === 'dark' ? 'bg-yellow-900/20' : 'bg-yellow-50'}`}>
+                  <p className="text-sm text-yellow-600">
+                    Authorization Code flow requires a gateway ID. Please configure OAuth on a gateway first.
+                  </p>
+                </div>
+              )}
               <p className={theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}>
                 Click the button below to start the OAuth Authorization Code flow. This will open the authorization URL in your browser.
               </p>
               <Button
                 onClick={handleStartAuthorizationFlow}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                disabled={!gatewayId}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
               >
                 <ExternalLink size={16} className="mr-2" />
                 Start Authorization Flow
@@ -222,43 +272,24 @@ export function OAuthTestingModal({ isOpen, onClose, agent, theme }: OAuthTestin
             </div>
           )}
 
-          {/* Step 2: Enter Authorization Code */}
-          {isAuthorizationCode && currentStep === 'authorization' && (
+          {/* Step 2: Waiting for OAuth completion (polling) */}
+          {isAuthorizationCode && (currentStep === 'authorization' || currentStep === 'polling') && (
             <div className="space-y-4">
-              {authorizationUrl && (
-                <div className={`p-3 rounded ${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Authorization URL:</span>
-                    <button
-                      onClick={() => copyToClipboard(authorizationUrl)}
-                      className={`p-1 rounded ${theme === 'dark' ? 'hover:bg-zinc-700' : 'hover:bg-gray-200'}`}
-                    >
-                      <Copy size={14} />
-                    </button>
-                  </div>
-                  <p className="text-xs break-all">{authorizationUrl}</p>
-                </div>
-              )}
-              
-              <div>
-                <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                  Authorization Code
-                </label>
-                <input
-                  type="text"
-                  value={authCode}
-                  onChange={(e) => setAuthCode(e.target.value)}
-                  placeholder="Paste the authorization code here"
-                  className={`w-full px-3 py-2 border rounded-md ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                />
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="animate-spin mb-4" size={48} />
+                <p className={`text-center ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
+                  Waiting for OAuth authorization to complete...
+                </p>
+                <p className={`text-sm mt-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  Complete the authorization in your browser. This page will update automatically.
+                </p>
               </div>
-              
               <Button
-                onClick={handleExchangeCode}
-                disabled={!authCode.trim()}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
+                onClick={handleReset}
+                className="w-full"
+                variant="outline"
               >
-                Exchange Code for Token
+                Cancel
               </Button>
             </div>
           )}

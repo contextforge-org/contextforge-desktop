@@ -48,6 +48,14 @@ import {
   listGatewaysGatewaysGet,
   registerGatewayGatewaysPost,
   updateGatewayGatewaysGatewayIdPut,
+  // OAuth operations
+  initiateOauthFlowOauthAuthorizeGatewayIdGet,
+  oauthCallbackOauthCallbackGet,
+  getOauthStatusOauthStatusGatewayIdGet,
+  fetchToolsAfterOauthOauthFetchToolsGatewayIdPost,
+  listRegisteredOauthClientsOauthRegisteredClientsGet,
+  getRegisteredClientForGatewayOauthRegisteredClientsGatewayIdGet,
+  deleteRegisteredClientOauthRegisteredClientsClientIdDelete,
   deleteGatewayGatewaysGatewayIdDelete,
   toggleGatewayStatusGatewaysGatewayIdTogglePost,
   listA2aAgentsA2aGet,
@@ -591,46 +599,117 @@ export async function toggleA2AAgentStatus(agentId: string, activate?: boolean) 
 }
 
 // ============================================================================
-// OAuth Testing Operations
+// OAuth Operations (using backend endpoints)
 // ============================================================================
 
-export async function getOAuthAuthorizationUrl(oauthConfig: any): Promise<string> {
-  // This will be implemented with the OAuth handler
-  // For now, construct the URL manually
-  const params = new URLSearchParams({
-    client_id: oauthConfig.client_id,
-    redirect_uri: 'http://localhost:3000/oauth/callback',
-    response_type: 'code',
-    scope: oauthConfig.scopes?.join(' ') || '',
-    state: Math.random().toString(36).substring(2, 15),
+/**
+ * Initiate OAuth flow for a gateway
+ * This redirects to the OAuth provider's authorization page
+ * The backend handles generating the proper authorization URL with correct redirect URI
+ */
+export async function initiateOAuthFlow(gatewayId: string): Promise<any> {
+  const response = await initiateOauthFlowOauthAuthorizeGatewayIdGet({
+    path: { gateway_id: gatewayId }
   });
-
-  return `${oauthConfig.auth_url}?${params.toString()}`;
-}
-
-export async function exchangeOAuthCode(code: string, oauthConfig: any): Promise<any> {
-  // This will use the Electron fetch adapter to exchange the code for a token
-  const response = await electronFetch(oauthConfig.token_url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: 'http://localhost:3000/oauth/callback',
-      client_id: oauthConfig.client_id,
-      client_secret: oauthConfig.client_secret,
-    }).toString(),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Token exchange failed: ${error}`);
+  
+  if (response.error) {
+    throw new Error('Failed to initiate OAuth flow: ' + JSON.stringify(response.error));
   }
-
-  return await response.json();
+  
+  return response.data;
 }
+
+/**
+ * Handle OAuth callback (typically called by the backend, but exposed for completeness)
+ */
+export async function handleOAuthCallback(code: string, state: string): Promise<any> {
+  const response = await oauthCallbackOauthCallbackGet({
+    query: { code, state }
+  });
+  
+  if (response.error) {
+    throw new Error('OAuth callback failed: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get OAuth status for a gateway
+ * Use this to check if OAuth is complete and tokens are available
+ */
+export async function getOAuthStatus(gatewayId: string): Promise<any> {
+  const response = await getOauthStatusOauthStatusGatewayIdGet({
+    path: { gateway_id: gatewayId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to get OAuth status: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+/**
+ * Fetch tools after OAuth completion
+ */
+export async function fetchToolsAfterOAuth(gatewayId: string): Promise<any> {
+  const response = await fetchToolsAfterOauthOauthFetchToolsGatewayIdPost({
+    path: { gateway_id: gatewayId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to fetch tools after OAuth: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+/**
+ * List registered OAuth clients
+ */
+export async function listRegisteredOAuthClients(): Promise<any> {
+  const response = await listRegisteredOauthClientsOauthRegisteredClientsGet();
+  
+  if (response.error) {
+    throw new Error('Failed to list registered OAuth clients: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get registered OAuth client for a gateway
+ */
+export async function getRegisteredClientForGateway(gatewayId: string): Promise<any> {
+  const response = await getRegisteredClientForGatewayOauthRegisteredClientsGatewayIdGet({
+    path: { gateway_id: gatewayId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to get registered client: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+/**
+ * Delete a registered OAuth client
+ */
+export async function deleteRegisteredOAuthClient(clientId: string): Promise<any> {
+  const response = await deleteRegisteredClientOauthRegisteredClientsClientIdDelete({
+    path: { client_id: clientId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to delete registered client: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
+// Legacy OAuth functions - kept for backwards compatibility but now use electronFetch for direct calls
+// These are used when testing OAuth with external providers directly (not through gateways)
 
 export async function getClientCredentialsToken(oauthConfig: any): Promise<any> {
   // Client Credentials flow - directly request token from token endpoint

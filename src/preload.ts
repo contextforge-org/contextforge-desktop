@@ -50,8 +50,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateA2AAgent: (agentId: string, agentData: any) => ipcRenderer.invoke('api:update-a2a-agent', agentId, agentData),
     deleteA2AAgent: (agentId: string) => ipcRenderer.invoke('api:delete-a2a-agent', agentId),
     toggleA2AAgentStatus: (agentId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-a2a-agent-status', agentId, activate),
-    getOAuthAuthorizationUrl: (oauthConfig: any) => ipcRenderer.invoke('api:get-oauth-authorization-url', oauthConfig),
-    exchangeOAuthCode: (code: string, oauthConfig: any) => ipcRenderer.invoke('api:exchange-oauth-code', code, oauthConfig),
+    // OAuth Gateway-based operations
+    initiateOAuthFlow: (gatewayId: string) => ipcRenderer.invoke('api:initiate-oauth-flow', gatewayId),
+    getOAuthStatus: (gatewayId: string) => ipcRenderer.invoke('api:get-oauth-status', gatewayId),
+    fetchToolsAfterOAuth: (gatewayId: string) => ipcRenderer.invoke('api:fetch-tools-after-oauth', gatewayId),
+    listRegisteredOAuthClients: () => ipcRenderer.invoke('api:list-registered-oauth-clients'),
+    getRegisteredClientForGateway: (gatewayId: string) => ipcRenderer.invoke('api:get-registered-client-for-gateway', gatewayId),
+    deleteRegisteredOAuthClient: (clientId: string) => ipcRenderer.invoke('api:delete-registered-oauth-client', clientId),
+    // Legacy OAuth operations (for direct OAuth testing)
     testAgentConnection: (agentEndpoint: string, accessToken: string) => ipcRenderer.invoke('api:test-agent-connection', agentEndpoint, accessToken),
     refreshOAuthToken: (refreshToken: string, oauthConfig: any) => ipcRenderer.invoke('api:refresh-oauth-token', refreshToken, oauthConfig),
     getClientCredentialsToken: (oauthConfig: any) => ipcRenderer.invoke('api:get-client-credentials-token', oauthConfig),
@@ -128,8 +134,14 @@ declare global {
         updateA2AAgent: (agentId: string, agentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteA2AAgent: (agentId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         toggleA2AAgentStatus: (agentId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
-        getOAuthAuthorizationUrl: (oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;
-        exchangeOAuthCode: (code: string, oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        // OAuth Gateway-based operations
+        initiateOAuthFlow: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getOAuthStatus: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        fetchToolsAfterOAuth: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        listRegisteredOAuthClients: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getRegisteredClientForGateway: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deleteRegisteredOAuthClient: (clientId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        // Legacy OAuth operations
         testAgentConnection: (agentEndpoint: string, accessToken: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         refreshOAuthToken: (refreshToken: string, oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         getClientCredentialsToken: (oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;

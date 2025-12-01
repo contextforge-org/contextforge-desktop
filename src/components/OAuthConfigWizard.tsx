@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, CheckCircle, ArrowRight, ArrowLeft, Loader2, Copy, ExternalLink, Wand2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { CheckCircle, ArrowRight, ArrowLeft, Loader2, ExternalLink, Wand2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import * as api from '../lib/api/contextforge-api-ipc';
@@ -11,6 +11,7 @@ interface OAuthConfigWizardProps {
   onComplete: (config: OAuthConfig) => void;
   theme: 'light' | 'dark';
   initialConfig?: Partial<OAuthConfig>;
+  gatewayId?: string; // If provided, use gateway-based OAuth flow
 }
 
 interface OAuthConfig {
@@ -27,7 +28,7 @@ interface OAuthConfig {
 
 type WizardStep = 'grant-type' | 'credentials' | 'urls' | 'scopes' | 'test' | 'complete';
 
-export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialConfig }: OAuthConfigWizardProps) {
+export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialConfig, gatewayId }: OAuthConfigWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('grant-type');
   const [config, setConfig] = useState<Partial<OAuthConfig>>({
     grant_type: initialConfig?.grant_type,
@@ -41,11 +42,21 @@ export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialC
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [testError, setTestError] = useState<string>('');
-  const [authCode, setAuthCode] = useState('');
-  const [authorizationUrl, setAuthorizationUrl] = useState('');
+  const [oauthStatus, setOAuthStatus] = useState<any>(null);
+  const [pollingForOAuth, setPollingForOAuth] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const isAuthorizationCode = config.grant_type === 'authorization_code';
   const isClientCredentials = config.grant_type === 'client_credentials';
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   const updateConfig = (updates: Partial<OAuthConfig>) => {
     setConfig(prev => ({ ...prev, ...updates }));
@@ -89,6 +100,46 @@ export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialC
     }
   };
 
+  // Poll for OAuth status when using gateway-based flow
+  const startPollingOAuthStatus = () => {
+    if (!gatewayId) return;
+    
+    setPollingForOAuth(true);
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const status = await api.getOAuthStatus(gatewayId);
+        setOAuthStatus(status);
+        
+        if (status.is_authorized || status.access_token) {
+          // OAuth complete!
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+          }
+          setPollingForOAuth(false);
+          setTestResult(status);
+          updateConfig({
+            access_token: status.access_token,
+            refresh_token: status.refresh_token,
+            token_expires_at: status.token_expires_at,
+          });
+          toast.success('OAuth authorization successful!');
+          setCurrentStep('complete');
+        }
+      } catch (err) {
+        console.error('Error polling OAuth status:', err);
+      }
+    }, 2000); // Poll every 2 seconds
+  };
+
+  const stopPollingOAuthStatus = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setPollingForOAuth(false);
+  };
+
   const handleTestOAuth = async () => {
     setTesting(true);
     setTestError('');
@@ -96,7 +147,7 @@ export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialC
 
     try {
       if (isClientCredentials) {
-        // Client Credentials flow
+        // Client Credentials flow - direct token request
         const response = await api.getClientCredentialsToken(config);
         setTestResult(response);
         updateConfig({
@@ -108,15 +159,25 @@ export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialC
         });
         toast.success('OAuth configuration successful!');
         setCurrentStep('complete');
+      } else if (gatewayId) {
+        // Authorization Code flow with gateway - use backend's OAuth flow
+        try {
+          const response = await api.initiateOAuthFlow(gatewayId);
+          // The backend will redirect to the OAuth provider
+          // We need to open the authorization URL in a browser
+          if (response && response.authorization_url) {
+            window.open(response.authorization_url, '_blank');
+          }
+          toast.info('Authorization page opened in browser. Complete the authorization and return here.');
+          // Start polling for completion
+          startPollingOAuthStatus();
+        } catch (err) {
+          throw new Error('Failed to initiate OAuth flow: ' + (err as Error).message);
+        }
       } else {
-        // Authorization Code flow - start authorization
-        const url = await api.getOAuthAuthorizationUrl({
-          ...config,
-          redirect_uri: 'http://localhost:3000/oauth/callback'
-        });
-        setAuthorizationUrl(url);
-        window.open(url, '_blank');
-        toast.info('Authorization URL opened in browser');
+        // Authorization Code flow without gateway - show manual instructions
+        toast.info('Gateway-based OAuth flow not available. Please save this configuration first, then test OAuth from the gateway settings.');
+        setTestError('To test Authorization Code flow, please save this configuration to a gateway first, then use the "Test OAuth" option.');
       }
     } catch (err) {
       setTestError((err as Error).message);
@@ -126,49 +187,12 @@ export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialC
     }
   };
 
-  const handleExchangeCode = async () => {
-    if (!authCode.trim()) {
-      toast.error('Please enter the authorization code');
-      return;
-    }
-
-    setTesting(true);
-    setTestError('');
-
-    try {
-      const response = await api.exchangeOAuthCode(authCode, {
-        ...config,
-        redirect_uri: 'http://localhost:3000/oauth/callback'
-      });
-      
-      setTestResult(response);
-      updateConfig({
-        access_token: response.access_token,
-        refresh_token: response.refresh_token,
-        token_expires_at: response.expires_in 
-          ? new Date(Date.now() + response.expires_in * 1000).toISOString()
-          : undefined,
-      });
-      toast.success('OAuth configuration successful!');
-      setCurrentStep('complete');
-    } catch (err) {
-      setTestError((err as Error).message);
-      toast.error('Token exchange failed: ' + (err as Error).message);
-    } finally {
-      setTesting(false);
-    }
-  };
-
   const handleComplete = () => {
+    stopPollingOAuthStatus();
     if (config.grant_type && config.client_id && config.client_secret && config.token_url) {
       onComplete(config as OAuthConfig);
       onClose();
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
   };
 
   return (
@@ -368,20 +392,24 @@ export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialC
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Test OAuth Configuration</h3>
                 <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                  Let's verify your OAuth configuration works correctly.
+                  {isClientCredentials 
+                    ? "Let's verify your OAuth configuration works correctly."
+                    : gatewayId 
+                      ? "Click below to start the authorization flow. Complete the authorization in your browser and return here."
+                      : "Save this configuration to a gateway first to test the Authorization Code flow."}
                 </p>
                 
-                {!testResult && !authorizationUrl && (
+                {!testResult && !pollingForOAuth && (
                   <div className="mt-6">
                     <Button
                       onClick={handleTestOAuth}
-                      disabled={testing}
+                      disabled={testing || (!isClientCredentials && !gatewayId)}
                       className="w-full bg-blue-500 hover:bg-blue-600 text-white"
                     >
                       {testing ? (
                         <>
                           <Loader2 className="animate-spin mr-2" size={16} />
-                          Testing...
+                          {isClientCredentials ? 'Getting Token...' : 'Starting Authorization...'}
                         </>
                       ) : (
                         <>
@@ -390,50 +418,33 @@ export function OAuthConfigWizard({ isOpen, onClose, onComplete, theme, initialC
                         </>
                       )}
                     </Button>
+                    {!isClientCredentials && !gatewayId && (
+                      <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                        Authorization Code flow requires a gateway. Save this configuration first, then test from the gateway settings.
+                      </p>
+                    )}
                   </div>
                 )}
 
-                {authorizationUrl && !testResult && (
+                {pollingForOAuth && !testResult && (
                   <div className="space-y-4 mt-6">
-                    <div className={`p-3 rounded ${theme === 'dark' ? 'bg-zinc-900' : 'bg-gray-100'}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Authorization URL:</span>
-                        <button
-                          onClick={() => copyToClipboard(authorizationUrl)}
-                          className={`p-1 rounded ${theme === 'dark' ? 'hover:bg-zinc-800' : 'hover:bg-gray-200'}`}
-                        >
-                          <Copy size={14} />
-                        </button>
+                    <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="animate-spin" size={20} />
+                        <div>
+                          <p className="text-sm font-medium">Waiting for authorization...</p>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                            Complete the authorization in your browser, then return here.
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs break-all">{authorizationUrl}</p>
                     </div>
-                    
-                    <div>
-                      <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                        Authorization Code
-                      </label>
-                      <input
-                        type="text"
-                        value={authCode}
-                        onChange={(e) => setAuthCode(e.target.value)}
-                        placeholder="Paste the authorization code here"
-                        className={`w-full px-3 py-2 border rounded-md ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                      />
-                    </div>
-                    
                     <Button
-                      onClick={handleExchangeCode}
-                      disabled={!authCode.trim() || testing}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                      onClick={stopPollingOAuthStatus}
+                      variant="outline"
+                      className="w-full"
                     >
-                      {testing ? (
-                        <>
-                          <Loader2 className="animate-spin mr-2" size={16} />
-                          Exchanging...
-                        </>
-                      ) : (
-                        'Exchange Code for Token'
-                      )}
+                      Cancel
                     </Button>
                   </div>
                 )}

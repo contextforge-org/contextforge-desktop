@@ -373,25 +373,62 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
-  // OAuth Testing handlers
-  ipcMain.handle('api:get-oauth-authorization-url', async (_event, oauthConfig: any) => {
+  // OAuth Gateway-based handlers
+  ipcMain.handle('api:initiate-oauth-flow', async (_event, gatewayId: string) => {
     try {
-      const response = await mainApi.getOAuthAuthorizationUrl(oauthConfig);
+      const response = await mainApi.initiateOAuthFlow(gatewayId);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
   });
 
-  ipcMain.handle('api:exchange-oauth-code', async (_event, code: string, oauthConfig: any) => {
+  ipcMain.handle('api:get-oauth-status', async (_event, gatewayId: string) => {
     try {
-      const response = await mainApi.exchangeOAuthCode(code, oauthConfig);
+      const response = await mainApi.getOAuthStatus(gatewayId);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
   });
 
+  ipcMain.handle('api:fetch-tools-after-oauth', async (_event, gatewayId: string) => {
+    try {
+      const response = await mainApi.fetchToolsAfterOAuth(gatewayId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:list-registered-oauth-clients', async () => {
+    try {
+      const response = await mainApi.listRegisteredOAuthClients();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-registered-client-for-gateway', async (_event, gatewayId: string) => {
+    try {
+      const response = await mainApi.getRegisteredClientForGateway(gatewayId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-registered-oauth-client', async (_event, clientId: string) => {
+    try {
+      const response = await mainApi.deleteRegisteredOAuthClient(clientId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Legacy OAuth handlers (for direct OAuth testing)
   ipcMain.handle('api:test-agent-connection', async (_event, agentEndpoint: string, accessToken: string) => {
     try {
       const response = await mainApi.testAgentConnection(agentEndpoint, accessToken);
