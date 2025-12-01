@@ -1,5 +1,5 @@
 import { toast } from './toastWithTray';
-import { MCPServer } from '../types/server';
+import { MCPServer, OAuthConfig, AuthHeader } from '../types/server';
 
 /**
  * Type for edited server data (excludes auto-generated fields)
@@ -8,6 +8,7 @@ export type EditedServerData = {
   name: string;
   url: string;
   iconUrl?: string;
+  logoUrl?: string; // Alias for iconUrl, used by getEditedServer
   description: string;
   tags: string[];
   visibility: 'public' | 'team' | 'private';
@@ -15,6 +16,13 @@ export type EditedServerData = {
   authenticationType: string;
   passthroughHeaders: string[];
   active: boolean;
+  // Authentication credentials
+  oauthConfig?: OAuthConfig | null;
+  authToken?: string;
+  authUsername?: string;
+  authPassword?: string;
+  authHeaders?: AuthHeader[];
+  // Associated items
   associatedTools?: string[];
   associatedResources?: string[];
   associatedPrompts?: string[];

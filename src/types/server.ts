@@ -10,6 +10,11 @@ export interface OAuthConfig {
   token_expires_at?: string;
 }
 
+export interface AuthHeader {
+  key: string;
+  value: string;
+}
+
 export type MCPServer = {
   id: string; // Changed from number to string to match API
   name: string;
@@ -25,6 +30,11 @@ export type MCPServer = {
   transportType: string;
   authenticationType: string;
   passthroughHeaders: string[];
+  // Authentication fields
+  authToken?: string;
+  authUsername?: string;
+  authPassword?: string;
+  authHeaders?: AuthHeader[];
   oauthConfig?: OAuthConfig | null;
   associatedTools?: string[];
   associatedResources?: string[];

@@ -100,10 +100,30 @@ export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
     teamId: gateway.teamId || null,
     visibility: (gateway.visibility as 'public' | 'team' | 'private') || 'private',
     transportType: gateway.transport || 'SSE',
-    authenticationType: gateway.authType || 'None',
+    authenticationType: mapAPIAuthTypeToUI(gateway.authType) || 'None',
     passthroughHeaders: gateway.passthroughHeaders || [],
     oauthConfig: (gateway as any).oauthConfig || null,
+    authToken: (gateway as any).authToken || '',
+    authUsername: (gateway as any).authUsername || '',
+    authPassword: (gateway as any).authPassword || '',
+    authHeaders: (gateway as any).authHeaders || [],
   };
+}
+
+/**
+ * Maps API auth_type to UI authentication type
+ */
+function mapAPIAuthTypeToUI(authType: string | null | undefined): string {
+  if (!authType) return 'None';
+  
+  const mapping: Record<string, string> = {
+    'basic': 'Basic',
+    'bearer': 'Bearer Token',
+    'headers': 'Custom Headers',
+    'oauth': 'OAuth 2.0',
+  };
+  
+  return mapping[authType.toLowerCase()] || authType;
 }
 
 /**
@@ -143,6 +163,24 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
     payload.auth_type = authType;
   }
   
+  // Include auth credentials based on authentication type
+  if (server.authenticationType === 'Bearer Token' && server.authToken) {
+    payload.auth_token = server.authToken;
+  }
+  
+  if (server.authenticationType === 'Basic' && (server.authUsername || server.authPassword)) {
+    payload.auth_username = server.authUsername || '';
+    payload.auth_password = server.authPassword || '';
+  }
+  
+  if (server.authenticationType === 'Custom Headers' && server.authHeaders && server.authHeaders.length > 0) {
+    // Filter out empty headers and convert to API format (array of single key-value objects)
+    const validHeaders = server.authHeaders.filter(h => h.key && h.key.trim());
+    if (validHeaders.length > 0) {
+      payload.auth_headers = validHeaders.map(h => ({ [h.key]: h.value }));
+    }
+  }
+  
   // Include OAuth config if authentication type is OAuth 2.0 and config exists
   if (server.authenticationType === 'OAuth 2.0' && server.oauthConfig) {
     payload.oauth_config = {
@@ -156,6 +194,15 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
       refresh_token: server.oauthConfig.refresh_token,
       token_expires_at: server.oauthConfig.token_expires_at,
     };
+    
+    console.log('[mapMCPServerToGatewayCreate] OAuth config included:', {
+      grant_type: server.oauthConfig.grant_type,
+      client_id: server.oauthConfig.client_id ? '***' : undefined,
+      has_access_token: !!server.oauthConfig.access_token,
+      has_refresh_token: !!server.oauthConfig.refresh_token,
+    });
+  } else if (server.authenticationType === 'OAuth 2.0') {
+    console.warn('[mapMCPServerToGatewayCreate] OAuth 2.0 selected but no oauthConfig provided');
   }
   
   return payload;
@@ -180,6 +227,24 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
   const authType = mapAuthTypeToAPI(server.authenticationType);
   if (authType !== null) {
     payload.auth_type = authType;
+  }
+  
+  // Include auth credentials based on authentication type
+  if (server.authenticationType === 'Bearer Token') {
+    payload.auth_token = server.authToken || '';
+  }
+  
+  if (server.authenticationType === 'Basic') {
+    payload.auth_username = server.authUsername || '';
+    payload.auth_password = server.authPassword || '';
+  }
+  
+  if (server.authenticationType === 'Custom Headers') {
+    // Filter out empty headers and convert to API format (array of single key-value objects)
+    const validHeaders = (server.authHeaders || []).filter(h => h.key && h.key.trim());
+    payload.auth_headers = validHeaders.length > 0 
+      ? validHeaders.map(h => ({ [h.key]: h.value }))
+      : [];
   }
   
   // Include OAuth config if authentication type is OAuth 2.0 and config exists

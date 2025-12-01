@@ -193,19 +193,32 @@ export function useServerActions(
     try {
       if (panelMode === 'add') {
         // Add new entity via API
-        const entityCreate = mapToCreate({
+        const serverData = {
           id: editedServer.url || undefined, // For servers, url field is used as custom UUID
           name: editedServer.name,
           url: editedServer.url,
           description: editedServer.description,
           tags: editedServer.tags,
           visibility: editedServer.visibility,
-          logoUrl: editedServer.iconUrl || '',
+          logoUrl: editedServer.logoUrl || editedServer.iconUrl || '',
           active: editedServer.active,
+          transportType: editedServer.transportType,
+          authenticationType: editedServer.authenticationType,
+          passthroughHeaders: editedServer.passthroughHeaders,
+          oauthConfig: editedServer.oauthConfig,
+          authToken: editedServer.authToken,
+          authUsername: editedServer.authUsername,
+          authPassword: editedServer.authPassword,
+          authHeaders: editedServer.authHeaders,
           associatedTools: editedServer.associatedTools,
           associatedResources: editedServer.associatedResources,
           associatedPrompts: editedServer.associatedPrompts,
-        } as Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[] });
+        } as Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[] };
+        
+        const entityCreate = mapToCreate(serverData);
+        
+        // Debug logging
+        console.log('[saveServer] Creating gateway with data:', JSON.stringify(entityCreate, null, 2));
         
         const createdServer = await createEntity(entityCreate as any);
         
@@ -214,7 +227,7 @@ export function useServerActions(
         const newServer: MCPServer = {
           id: createdServer.id || createdServer.uuid || generateNextId(serversData),
           name: editedServer.name,
-          logoUrl: editedServer.iconUrl || '',
+          logoUrl: editedServer.logoUrl || editedServer.iconUrl || '',
           url: editedServer.url || '',
           description: editedServer.description,
           tags: editedServer.tags,

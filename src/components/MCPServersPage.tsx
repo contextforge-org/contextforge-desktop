@@ -112,7 +112,12 @@ export function MCPServersPage() {
   }, [editorHook]);
 
   const handleSaveGateway = useCallback(async () => {
-    const success = await actionsHook.saveServer(panelMode, editorHook.getEditedServer());
+    const editedServer = editorHook.getEditedServer();
+    console.log('[MCPServersPage] Saving gateway with editedServer:', JSON.stringify(editedServer, null, 2));
+    console.log('[MCPServersPage] OAuth config present:', !!editedServer.oauthConfig);
+    console.log('[MCPServersPage] Auth type:', editedServer.authenticationType);
+    
+    const success = await actionsHook.saveServer(panelMode, editedServer);
     if (success) {
       setShowSidePanel(false);
     }
@@ -123,6 +128,8 @@ export function MCPServersPage() {
   }, []);
 
   const handleOAuthComplete = useCallback((config: OAuthConfig) => {
+    console.log('[MCPServersPage] OAuth complete, config received:', JSON.stringify(config, null, 2));
+    console.log('[MCPServersPage] Has access_token:', !!config.access_token);
     editorHook.setEditedOAuthConfig(config);
     setShowOAuthWizard(false);
     toast.success('OAuth configuration saved');
@@ -281,6 +288,10 @@ export function MCPServersPage() {
           isTransportDropdownOpen={editorHook.isTransportDropdownOpen}
           isAuthDropdownOpen={editorHook.isAuthDropdownOpen}
           editedOAuthConfig={editorHook.editedOAuthConfig}
+          editedAuthToken={editorHook.editedAuthToken}
+          editedAuthUsername={editorHook.editedAuthUsername}
+          editedAuthPassword={editorHook.editedAuthPassword}
+          editedAuthHeaders={editorHook.editedAuthHeaders}
           onClose={handleClosePanel}
           onSave={handleSaveGateway}
           onNameChange={editorHook.setEditedName}
@@ -294,6 +305,10 @@ export function MCPServersPage() {
           onActiveChange={editorHook.setEditedActive}
           onTransportDropdownToggle={editorHook.setIsTransportDropdownOpen}
           onAuthDropdownToggle={editorHook.setIsAuthDropdownOpen}
+          onAuthTokenChange={editorHook.setEditedAuthToken}
+          onAuthUsernameChange={editorHook.setEditedAuthUsername}
+          onAuthPasswordChange={editorHook.setEditedAuthPassword}
+          onAuthHeadersChange={editorHook.setEditedAuthHeaders}
           onOpenOAuthWizard={handleOpenOAuthWizard}
         />
       )}
