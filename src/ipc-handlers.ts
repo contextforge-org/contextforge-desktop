@@ -411,14 +411,40 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   });
 
   // Get the backend OAuth authorize URL and open it in external browser
+  // We call the API endpoint with auth, then extract and open the redirect URL
   ipcMain.handle('api:open-backend-oauth-flow', async (_event, gatewayId: string) => {
     try {
       const { shell } = require('electron');
-      const authorizeUrl = mainApi.getBackendOAuthAuthorizeUrl(gatewayId);
-      console.log('[IPC] Opening backend OAuth authorize URL:', authorizeUrl);
-      await shell.openExternal(authorizeUrl);
-      return { success: true, data: { url: authorizeUrl } };
+      
+      // Call the OAuth authorize endpoint - it returns a redirect to the OAuth provider
+      // We need to intercept the redirect URL instead of following it
+      const authorizeEndpoint = `${mainApi.getBackendOAuthAuthorizeUrl(gatewayId)}`;
+      
+      // Make a fetch request that doesn't follow redirects
+      const response = await fetch(authorizeEndpoint, {
+        method: 'GET',
+        redirect: 'manual', // Don't follow redirects
+        headers: {
+          'Authorization': `Bearer ${mainApi.getAuthToken()}`,
+        },
+      });
+      
+      // The endpoint returns a 307 redirect - get the Location header
+      if (response.status === 307 || response.status === 302) {
+        const redirectUrl = response.headers.get('Location');
+        if (redirectUrl) {
+          console.log('[IPC] Opening OAuth provider URL:', redirectUrl);
+          await shell.openExternal(redirectUrl);
+          return { success: true, data: { url: redirectUrl } };
+        }
+      }
+      
+      // If we didn't get a redirect, something went wrong
+      const errorText = await response.text();
+      console.error('[IPC] OAuth authorize did not redirect:', response.status, errorText);
+      return { success: false, error: `OAuth authorize failed: ${response.status} - ${errorText}` };
     } catch (error) {
+      console.error('[IPC] OAuth flow error:', error);
       return { success: false, error: (error as Error).message };
     }
   });
