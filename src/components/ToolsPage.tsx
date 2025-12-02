@@ -200,6 +200,7 @@ const sampleTools: Tool[] = [
 export function ToolsPage() {
   const { theme } = useTheme();
   const [toolsData, setToolsData] = useState<Tool[]>([]);
+  const [gatewaysData, setGatewaysData] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
@@ -250,15 +251,6 @@ export function ToolsPage() {
   const allMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
   const allVisibilityOptions = ['Public', 'Team', 'Private'];
 
-  // MCP Servers for Gateway Name dropdown
-  const mcpServers = [
-    { id: 1, name: 'Azure' },
-    { id: 2, name: 'Box' },
-    { id: 3, name: 'GitHub' },
-    { id: 4, name: 'Postman' },
-    { id: 5, name: 'Terraform' },
-  ];
-
   const [isGatewayDropdownOpen, setIsGatewayDropdownOpen] = useState(false);
   const [isIntegrationTypeDropdownOpen, setIsIntegrationTypeDropdownOpen] = useState(false);
   const [isRequestMethodDropdownOpen, setIsRequestMethodDropdownOpen] = useState(false);
@@ -287,7 +279,8 @@ export function ToolsPage() {
           // Map API response to Tool interface
           const mappedTools = tools.map((tool: any) => ({
             id: tool.id,
-            gatewayName: tool.gateway_name || tool.gatewayName || 'Unknown Gateway',
+            gatewayId: tool.gateway_id || tool.gatewayId || null,
+            gatewayName: tool.gateway_name || tool.gatewayName || tool.gateway_slug || tool.gatewaySlug || (tool.gatewayId ? `Gateway ${tool.gatewayId.slice(0, 8)}` : 'Local Tool'),
             name: tool.name,
             displayName: tool.display_name || tool.displayName || tool.name,
             url: tool.url,
@@ -323,7 +316,8 @@ export function ToolsPage() {
               const tools = await api.listTools();
               const mappedTools = tools.map((tool: any) => ({
                 id: tool.id,
-                gatewayName: tool.gateway_name || tool.gatewayName || 'Unknown Gateway',
+                gatewayId: tool.gateway_id || tool.gatewayId || null,
+                gatewayName: tool.gateway_name || tool.gatewayName || tool.gateway_slug || tool.gatewaySlug || (tool.gatewayId ? `Gateway ${tool.gatewayId.slice(0, 8)}` : 'Local Tool'),
                 teamId: tool.team_id || tool.teamId || null,
                 name: tool.name,
                 displayName: tool.display_name || tool.displayName || tool.name,
@@ -365,6 +359,24 @@ export function ToolsPage() {
     }
 
     fetchTools();
+  }, []);
+
+  // Fetch gateways for the dropdown
+  useEffect(() => {
+    async function fetchGateways() {
+      try {
+        const gateways = await api.listGateways();
+        const mappedGateways = gateways.map((gateway: any) => ({
+          id: gateway.id,
+          name: gateway.name,
+        }));
+        setGatewaysData(mappedGateways);
+      } catch (err) {
+        console.error('Failed to fetch gateways:', err);
+        // Don't show error toast for gateways - it's not critical
+      }
+    }
+    fetchGateways();
   }, []);
 
   const handleToolClick = (tool: Tool) => {
@@ -1301,22 +1313,28 @@ export function ToolsPage() {
                       theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
                     }`}
                   >
-                    {mcpServers.map((server) => (
-                      <DropdownMenuItem
-                        key={server.id}
-                        onClick={() => {
-                          setEditedGatewayName(server.name);
-                          setIsGatewayDropdownOpen(false);
-                        }}
-                        className={`cursor-pointer ${
-                          theme === 'dark' 
-                            ? 'text-white hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white' 
-                            : 'text-gray-900 hover:bg-gray-100 focus:bg-gray-100'
-                        } ${editedGatewayName === server.name ? (theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100') : ''}`}
-                      >
-                        {server.name}
+                    {gatewaysData.length === 0 ? (
+                      <DropdownMenuItem disabled className={theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}>
+                        No gateways available
                       </DropdownMenuItem>
-                    ))}
+                    ) : (
+                      gatewaysData.map((gateway) => (
+                        <DropdownMenuItem
+                          key={gateway.id}
+                          onClick={() => {
+                            setEditedGatewayName(gateway.name);
+                            setIsGatewayDropdownOpen(false);
+                          }}
+                          className={`cursor-pointer ${
+                            theme === 'dark' 
+                              ? 'text-white hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white' 
+                              : 'text-gray-900 hover:bg-gray-100 focus:bg-gray-100'
+                          } ${editedGatewayName === gateway.name ? (theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100') : ''}`}
+                        >
+                          {gateway.name}
+                        </DropdownMenuItem>
+                      ))
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
