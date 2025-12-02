@@ -526,58 +526,6 @@ export function AgentDetailsPanel({
             )}
           </div>
         )}
-
-        {/* Advanced Section */}
-        <div>
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center gap-2 text-sm ${theme === 'dark' ? 'text-zinc-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-          >
-            <ChevronDown 
-              size={16} 
-              className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-            />
-            Advanced Configuration
-          </button>
-        </div>
-
-        {showAdvanced && (
-          <>
-            {/* Capabilities JSON */}
-            <div>
-              <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                Capabilities (JSON)
-              </label>
-              <textarea
-                value={editedCapabilitiesJson}
-                onChange={(e) => onCapabilitiesJsonChange(e.target.value)}
-                rows={6}
-                placeholder='{"tools": [], "prompts": [], "resources": []}'
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
-              />
-              <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                Optional: Define agent capabilities in JSON format
-              </p>
-            </div>
-
-            {/* Config JSON */}
-            <div>
-              <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                Configuration (JSON)
-              </label>
-              <textarea
-                value={editedConfigJson}
-                onChange={(e) => onConfigJsonChange(e.target.value)}
-                rows={6}
-                placeholder='{"timeout": 30, "retries": 3}'
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
-              />
-              <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                Optional: Additional configuration in JSON format
-              </p>
-            </div>
-          </>
-        )}
       </div>
 
       {/* OAuth Configuration Wizard */}

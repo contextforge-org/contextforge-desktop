@@ -303,7 +303,7 @@ export function ToolsPage() {
             integrationType: tool.integration_type || tool.integrationType || 'REST',
             headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
             inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
-            outputSchema: tool.output_schema || tool.outputSchema || '',
+            outputSchema: typeof tool.output_schema === 'object' ? JSON.stringify(tool.output_schema, null, 2) : (typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : (tool.output_schema || tool.outputSchema || '')),
             jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
             authenticationType: tool.auth_type || tool.authenticationType || 'None',
             active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
@@ -339,7 +339,7 @@ export function ToolsPage() {
                 integrationType: tool.integration_type || tool.integrationType || 'REST',
                 headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
                 inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
-                outputSchema: tool.output_schema || tool.outputSchema || '',
+                outputSchema: typeof tool.output_schema === 'object' ? JSON.stringify(tool.output_schema, null, 2) : (typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : (tool.output_schema || tool.outputSchema || '')),
                 jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
                 authenticationType: tool.auth_type || tool.authenticationType || 'None',
                 active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
@@ -376,9 +376,10 @@ export function ToolsPage() {
     setEditedDescription(tool.description);
     setEditedRequestMethod(tool.requestMethod);
     setEditedIntegrationType(tool.integrationType);
-    setEditedHeaders(tool.headers);
-    setEditedInputSchema(tool.inputSchema);
-    setEditedOutputSchema(tool.outputSchema);
+    // Ensure JSON fields are strings, not objects
+    setEditedHeaders(typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers);
+    setEditedInputSchema(typeof tool.inputSchema === 'object' ? JSON.stringify(tool.inputSchema, null, 2) : tool.inputSchema);
+    setEditedOutputSchema(typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : tool.outputSchema);
     setEditedJsonPathFilter(tool.jsonPathFilter);
     setEditedAuthenticationType(tool.authenticationType);
     setEditedAnnotations(tool.annotations);
