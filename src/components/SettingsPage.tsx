@@ -1221,6 +1221,7 @@ export function SettingsPage() {
                                 <BarChart3 size={16} />
                               </button>
                               <button 
+                                onClick={() => revokeToken(token.id)}
                                 className={`p-1.5 rounded transition-colors ${
                                   theme === 'dark' 
                                     ? 'hover:bg-red-900/30 text-zinc-400 hover:text-red-400' 
