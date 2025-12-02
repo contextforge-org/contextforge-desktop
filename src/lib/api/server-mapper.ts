@@ -87,6 +87,25 @@ function formatLastSeen(updatedAt: string): string {
  * Maps a GatewayRead from the API to the MCPServer type used in the UI
  */
 export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
+  // Transform backend oauth_config (authorization_url) to UI format (auth_url)
+  let oauthConfig = null;
+  const backendOAuthConfig = (gateway as any).oauthConfig;
+  if (backendOAuthConfig) {
+    oauthConfig = {
+      grant_type: backendOAuthConfig.grant_type,
+      client_id: backendOAuthConfig.client_id,
+      client_secret: backendOAuthConfig.client_secret,
+      token_url: backendOAuthConfig.token_url,
+      // Backend uses 'authorization_url', UI uses 'auth_url'
+      auth_url: backendOAuthConfig.authorization_url || backendOAuthConfig.auth_url,
+      redirect_uri: backendOAuthConfig.redirect_uri,
+      scopes: backendOAuthConfig.scopes || [],
+      access_token: backendOAuthConfig.access_token,
+      refresh_token: backendOAuthConfig.refresh_token,
+      token_expires_at: backendOAuthConfig.token_expires_at,
+    };
+  }
+
   return {
     id: gateway.id || '',
     name: gateway.name,
@@ -102,7 +121,7 @@ export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
     transportType: gateway.transport || 'SSE',
     authenticationType: mapAPIAuthTypeToUI(gateway.authType) || 'None',
     passthroughHeaders: gateway.passthroughHeaders || [],
-    oauthConfig: (gateway as any).oauthConfig || null,
+    oauthConfig: oauthConfig,
     authToken: (gateway as any).authToken || '',
     authUsername: (gateway as any).authUsername || '',
     authPassword: (gateway as any).authPassword || '',
@@ -190,7 +209,8 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
       client_id: server.oauthConfig.client_id,
       client_secret: server.oauthConfig.client_secret,
       token_url: server.oauthConfig.token_url,
-      auth_url: server.oauthConfig.auth_url,
+      // Backend expects 'authorization_url', not 'auth_url'
+      authorization_url: server.oauthConfig.auth_url,
       redirect_uri: server.oauthConfig.redirect_uri,
       scopes: server.oauthConfig.scopes,
     };
@@ -208,6 +228,7 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
     console.log('[mapMCPServerToGatewayCreate] OAuth config included:', {
       grant_type: server.oauthConfig.grant_type,
       client_id: server.oauthConfig.client_id ? '***' : undefined,
+      authorization_url: server.oauthConfig.auth_url,
       redirect_uri: server.oauthConfig.redirect_uri,
       is_auth_code_flow: isAuthCodeFlow,
       has_access_token: !isAuthCodeFlow && !!server.oauthConfig.access_token,
@@ -268,7 +289,8 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
       client_id: server.oauthConfig.client_id,
       client_secret: server.oauthConfig.client_secret,
       token_url: server.oauthConfig.token_url,
-      auth_url: server.oauthConfig.auth_url,
+      // Backend expects 'authorization_url', not 'auth_url'
+      authorization_url: server.oauthConfig.auth_url,
       redirect_uri: server.oauthConfig.redirect_uri,
       scopes: server.oauthConfig.scopes,
     };
