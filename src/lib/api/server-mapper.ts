@@ -183,6 +183,8 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
   
   // Include OAuth config if authentication type is OAuth 2.0 and config exists
   if (server.authenticationType === 'OAuth 2.0' && server.oauthConfig) {
+    const isAuthCodeFlow = server.oauthConfig.grant_type === 'authorization_code';
+    
     payload.oauth_config = {
       grant_type: server.oauthConfig.grant_type,
       client_id: server.oauthConfig.client_id,
@@ -190,19 +192,24 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
       token_url: server.oauthConfig.token_url,
       auth_url: server.oauthConfig.auth_url,
       scopes: server.oauthConfig.scopes,
-      access_token: server.oauthConfig.access_token,
-      refresh_token: server.oauthConfig.refresh_token,
-      token_expires_at: server.oauthConfig.token_expires_at,
-      // Tell backend that authorization is complete if we have an access token
-      is_authorized: !!server.oauthConfig.access_token,
     };
+    
+    // For client_credentials flow: include tokens (backend uses them from oauth_config)
+    // For authorization_code flow: DON'T include tokens (backend uses per-user oauth_tokens table)
+    if (!isAuthCodeFlow) {
+      payload.oauth_config.access_token = server.oauthConfig.access_token;
+      payload.oauth_config.refresh_token = server.oauthConfig.refresh_token;
+      payload.oauth_config.token_expires_at = server.oauthConfig.token_expires_at;
+      // Tell backend that authorization is complete if we have an access token (client_credentials only)
+      payload.oauth_config.is_authorized = !!server.oauthConfig.access_token;
+    }
     
     console.log('[mapMCPServerToGatewayCreate] OAuth config included:', {
       grant_type: server.oauthConfig.grant_type,
       client_id: server.oauthConfig.client_id ? '***' : undefined,
-      has_access_token: !!server.oauthConfig.access_token,
-      has_refresh_token: !!server.oauthConfig.refresh_token,
-      is_authorized: !!server.oauthConfig.access_token,
+      is_auth_code_flow: isAuthCodeFlow,
+      has_access_token: !isAuthCodeFlow && !!server.oauthConfig.access_token,
+      is_authorized: !isAuthCodeFlow && !!server.oauthConfig.access_token,
     });
   } else if (server.authenticationType === 'OAuth 2.0') {
     console.warn('[mapMCPServerToGatewayCreate] OAuth 2.0 selected but no oauthConfig provided');
@@ -252,6 +259,8 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
   
   // Include OAuth config if authentication type is OAuth 2.0 and config exists
   if (server.authenticationType === 'OAuth 2.0' && server.oauthConfig) {
+    const isAuthCodeFlow = server.oauthConfig.grant_type === 'authorization_code';
+    
     payload.oauth_config = {
       grant_type: server.oauthConfig.grant_type,
       client_id: server.oauthConfig.client_id,
@@ -259,12 +268,16 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
       token_url: server.oauthConfig.token_url,
       auth_url: server.oauthConfig.auth_url,
       scopes: server.oauthConfig.scopes,
-      access_token: server.oauthConfig.access_token,
-      refresh_token: server.oauthConfig.refresh_token,
-      token_expires_at: server.oauthConfig.token_expires_at,
-      // Tell backend that authorization is complete if we have an access token
-      is_authorized: !!server.oauthConfig.access_token,
     };
+    
+    // For client_credentials flow: include tokens (backend uses them from oauth_config)
+    // For authorization_code flow: DON'T include tokens (backend uses per-user oauth_tokens table)
+    if (!isAuthCodeFlow) {
+      payload.oauth_config.access_token = server.oauthConfig.access_token;
+      payload.oauth_config.refresh_token = server.oauthConfig.refresh_token;
+      payload.oauth_config.token_expires_at = server.oauthConfig.token_expires_at;
+      payload.oauth_config.is_authorized = !!server.oauthConfig.access_token;
+    }
   }
   
   return payload;

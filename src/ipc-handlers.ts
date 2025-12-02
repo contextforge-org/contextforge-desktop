@@ -410,6 +410,19 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // Get the backend OAuth authorize URL and open it in external browser
+  ipcMain.handle('api:open-backend-oauth-flow', async (_event, gatewayId: string) => {
+    try {
+      const { shell } = require('electron');
+      const authorizeUrl = mainApi.getBackendOAuthAuthorizeUrl(gatewayId);
+      console.log('[IPC] Opening backend OAuth authorize URL:', authorizeUrl);
+      await shell.openExternal(authorizeUrl);
+      return { success: true, data: { url: authorizeUrl } };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   ipcMain.handle('api:list-registered-oauth-clients', async () => {
     try {
       const response = await mainApi.listRegisteredOAuthClients();

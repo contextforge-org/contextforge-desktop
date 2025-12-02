@@ -193,36 +193,51 @@ export function OAuthFlowWizard({
     }
   }, [currentStep, getSteps]);
 
-  // Poll for OAuth status when using gateway-based flow
+  // Poll for OAuth status when using backend-managed OAuth flow
   const startPollingOAuthStatus = useCallback(() => {
     if (!entityId || entityType !== 'gateway') return;
 
     setPollingForOAuth(true);
+    setTesting(false); // Clear testing state since we're now in polling mode
 
     pollingIntervalRef.current = setInterval(async () => {
       try {
         const status = await api.getOAuthStatus(entityId);
+        console.log('[OAuthFlowWizard] Polling OAuth status:', status);
 
-        if (status.is_authorized || status.access_token) {
-          // OAuth complete!
+        if (status.is_authorized || status.oauth_enabled) {
+          // OAuth complete! Backend has stored the tokens
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
           }
           setPollingForOAuth(false);
-          setTestResult(status);
-          updateConfig({
-            access_token: status.access_token,
-            refresh_token: status.refresh_token,
-            token_expires_at: status.token_expires_at,
+          
+          // For backend-managed OAuth, we don't get tokens back
+          // The backend stores them and uses them when making requests
+          setTestResult({ 
+            backend_managed: true,
+            is_authorized: true,
+            ...status 
           });
-          toast.success('OAuth authorization successful!');
+          
+          // Try to fetch tools now that OAuth is complete
+          try {
+            console.log('[OAuthFlowWizard] Fetching tools after OAuth completion...');
+            const toolsResult = await api.fetchToolsAfterOAuth(entityId);
+            console.log('[OAuthFlowWizard] Tools fetched:', toolsResult);
+            toast.success(`OAuth complete! ${toolsResult.message || 'Tools fetched successfully.'}`);
+          } catch (toolsErr) {
+            console.warn('[OAuthFlowWizard] Failed to fetch tools:', toolsErr);
+            toast.success('OAuth authorization successful!');
+          }
+          
           setCurrentStep('complete');
         }
       } catch (err) {
         console.error('Error polling OAuth status:', err);
       }
     }, 2000); // Poll every 2 seconds
-  }, [entityId, entityType, updateConfig]);
+  }, [entityId, entityType]);
 
   const stopPollingOAuthStatus = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -260,55 +275,69 @@ export function OAuthFlowWizard({
     }
   }, [config, updateConfig]);
 
-  const handleInitiateAuthCodeFlow = useCallback(async () => {
+  /**
+   * Handle Authorization Code flow for EXISTING gateways
+   * Uses backend-managed OAuth where the backend handles the callback and stores tokens
+   * This is required because the backend stores tokens per-user in its database
+   */
+  const handleBackendManagedAuthCodeFlow = useCallback(async () => {
+    if (!entityId) {
+      setTestError('Cannot use backend OAuth flow without a gateway ID');
+      return;
+    }
+
     setTesting(true);
     setTestError('');
 
-    console.log('[OAuthFlowWizard] handleInitiateAuthCodeFlow called');
-    console.log('[OAuthFlowWizard] entityType:', entityType);
-    console.log('[OAuthFlowWizard] entityId:', entityId);
-    console.log('[OAuthFlowWizard] hasEntityId:', hasEntityId);
+    console.log('[OAuthFlowWizard] Starting backend-managed OAuth flow for gateway:', entityId);
 
     try {
-      // Always use native OAuth flow for authorization code
-      // The backend-managed flow requires specific backend configuration
-      // The native flow works independently with a local callback server
       toast.info('Opening authorization page in browser...');
       
-      const result = await api.performNativeOAuthFlow({
-        grant_type: 'authorization_code',
-        client_id: config.client_id,
-        client_secret: config.client_secret,
-        auth_url: config.auth_url,
-        token_url: config.token_url,
-        scopes: config.scopes,
-      });
+      // Open the backend's OAuth authorize URL in the user's browser
+      // The backend will handle the OAuth callback and store tokens
+      const result = await api.openBackendOAuthFlow(entityId);
+      console.log('[OAuthFlowWizard] Backend OAuth URL opened:', result.url);
       
-      console.log('[OAuthFlowWizard] Native OAuth flow result:', result);
-      console.log('[OAuthFlowWizard] Result has access_token:', !!result?.access_token);
+      // Start polling for OAuth status
+      startPollingOAuthStatus();
       
-      if (result.success) {
-        setTestResult(result);
-        updateConfig({
-          access_token: result.access_token,
-          refresh_token: result.refresh_token,
-          token_expires_at: result.expires_in
-            ? new Date(Date.now() + result.expires_in * 1000).toISOString()
-            : undefined,
-        });
-        toast.success('OAuth authorization successful!');
-        setCurrentStep('complete');
-      } else {
-        throw new Error(result.error || 'OAuth flow failed');
-      }
+      toast.info('Complete authorization in your browser, then return here.');
     } catch (err) {
       const errorMsg = (err as Error).message;
-      setTestError('Failed to initiate OAuth flow: ' + errorMsg);
+      setTestError('Failed to initiate backend OAuth flow: ' + errorMsg);
       toast.error('OAuth flow failed: ' + errorMsg);
-    } finally {
       setTesting(false);
     }
-  }, [config, entityId, entityType, updateConfig]);
+  }, [entityId, startPollingOAuthStatus]);
+
+  /**
+   * Main handler for authorization code flow
+   * 
+   * IMPORTANT: For Authorization Code flow, the backend stores tokens per-user
+   * in the `oauth_tokens` table, NOT in the gateway's `oauth_config`.
+   * This means:
+   * - For EXISTING gateways: Use backend-managed OAuth flow
+   * - For NEW gateways: Skip authorization now, user must authorize after saving
+   * 
+   * Capturing tokens locally won't work because the backend won't use them!
+   */
+  const handleInitiateAuthCodeFlow = useCallback(async () => {
+    // For existing gateways, use backend-managed OAuth flow
+    // The backend stores tokens per-user and handles refresh
+    if (hasEntityId && entityType === 'gateway') {
+      console.log('[OAuthFlowWizard] Using backend-managed OAuth flow for existing gateway');
+      return handleBackendManagedAuthCodeFlow();
+    }
+    
+    // For new gateways without entityId, we cannot complete OAuth yet
+    // The user must save the gateway first, then authorize
+    // This is because the backend needs the gateway_id to store tokens
+    console.log('[OAuthFlowWizard] New gateway - skipping OAuth, user must authorize after saving');
+    toast.info('Save the gateway first, then complete OAuth authorization.');
+    setTestResult({ skipped: true, reason: 'new_gateway' });
+    setCurrentStep('complete');
+  }, [hasEntityId, entityType, handleBackendManagedAuthCodeFlow]);
 
   const handleSkipAuthorization = useCallback(() => {
     // Allow proceeding without authorization
@@ -531,8 +560,8 @@ export function OAuthFlowWizard({
                   Enter the OAuth endpoint URLs from your provider's documentation.
                 </p>
 
-                {/* Redirect URI Info for Authorization Code flow */}
-                {isAuthorizationCode && (
+                {/* Redirect URI Info for Authorization Code flow - different for new vs existing gateways */}
+                {isAuthorizationCode && !hasEntityId && (
                   <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <div className="flex items-start gap-3">
                       <Globe size={20} className="text-blue-500 shrink-0 mt-0.5" />
@@ -556,6 +585,23 @@ export function OAuthFlowWizard({
                         </div>
                         <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
                           Add this URL to your OAuth provider's allowed redirect URIs before authorizing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info for existing gateways - backend handles the redirect */}
+                {isAuthorizationCode && hasEntityId && entityType === 'gateway' && (
+                  <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'}`}>
+                    <div className="flex items-start gap-3">
+                      <Shield size={20} className="text-green-500 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm mb-1">Backend-Managed OAuth Flow</h4>
+                        <p className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                          Since this gateway already exists, the backend will handle the OAuth callback.
+                          Make sure the backend's OAuth callback URL is registered with your OAuth provider.
+                          Tokens will be stored securely on the server for your user account.
                         </p>
                       </div>
                     </div>
@@ -729,56 +775,46 @@ export function OAuthFlowWizard({
                       </Button>
                     )}
 
-                    {/* For agents (any), use native OAuth flow */}
+                    {/* For agents, we could support native OAuth but backend needs similar per-user storage */}
                     {isAuthorizationCode && entityType === 'agent' && (
-                      <Button
-                        onClick={handleInitiateAuthCodeFlow}
-                        disabled={testing}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                      >
-                        {testing ? (
-                          <>
-                            <Loader2 className="animate-spin mr-2" size={16} />
-                            Authorizing...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink size={16} className="mr-2" />
-                            Authorize in Browser
-                          </>
-                        )}
-                      </Button>
+                      <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-yellow-900/20 border-yellow-800' : 'bg-yellow-50 border-yellow-200'}`}>
+                        <div className="flex items-start gap-3">
+                          <AlertCircle size={20} className="text-yellow-500 shrink-0 mt-0.5" />
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">Agent OAuth Coming Soon</h4>
+                            <p className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                              Agent OAuth with Authorization Code flow requires backend support for per-user token storage.
+                              For now, please use Client Credentials flow for agents.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     )}
 
-                    {/* For new gateways without entity ID, use native OAuth flow */}
+                    {/* For new gateways without entity ID - explain the flow */}
                     {isAuthorizationCode && !hasEntityId && entityType === 'gateway' && (
-                      <>
-                        <Button
-                          onClick={handleInitiateAuthCodeFlow}
-                          disabled={testing}
-                          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                        >
-                          {testing ? (
-                            <>
-                              <Loader2 className="animate-spin mr-2" size={16} />
-                              Authorizing...
-                            </>
-                          ) : (
-                            <>
-                              <ExternalLink size={16} className="mr-2" />
-                              Authorize in Browser
-                            </>
-                          )}
-                        </Button>
+                      <div className="space-y-4">
+                        <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                          <div className="flex items-start gap-3">
+                            <Shield size={20} className="text-blue-500 shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-semibold text-sm mb-1">Save Gateway First</h4>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                                For Authorization Code flow, the backend stores tokens per-user.
+                                Save your gateway configuration first, then complete OAuth authorization
+                                from the gateway details panel.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                         <Button
                           onClick={handleSkipAuthorization}
-                          variant="outline"
-                          className="w-full"
+                          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
                         >
                           <Settings size={16} className="mr-2" />
-                          Skip & Authorize Later
+                          Continue to Save Configuration
                         </Button>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}
@@ -826,10 +862,13 @@ export function OAuthFlowWizard({
                 <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
                   {testResult?.skipped
                     ? `Your OAuth configuration has been saved. Remember to authorize access after saving the ${entityType}.`
-                    : 'Your OAuth configuration has been tested and is ready to use.'}
+                    : testResult?.backend_managed
+                      ? 'Your OAuth authorization is complete. The backend is managing your tokens securely.'
+                      : 'Your OAuth configuration has been tested and is ready to use.'}
                 </p>
 
-                {testResult && !testResult.skipped && testResult.access_token && (
+                {/* Token info for native OAuth flow (tokens captured locally) */}
+                {testResult && !testResult.skipped && !testResult.backend_managed && testResult.access_token && (
                   <div
                     className={`p-4 rounded-lg text-left ${theme === 'dark' ? 'bg-zinc-900' : 'bg-gray-100'}`}
                   >
@@ -849,6 +888,24 @@ export function OAuthFlowWizard({
                           <span className="font-medium">Token Type:</span> {testResult.token_type}
                         </p>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Status info for backend-managed OAuth flow */}
+                {testResult?.backend_managed && (
+                  <div
+                    className={`p-4 rounded-lg text-left ${theme === 'dark' ? 'bg-green-900/20' : 'bg-green-50'}`}
+                  >
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Shield size={16} className="text-green-500" />
+                      Server-Managed Tokens
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <p className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>
+                        Your OAuth tokens are stored securely on the server and will be used automatically
+                        when accessing protected resources. The server handles token refresh automatically.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -875,6 +932,16 @@ export function OAuthFlowWizard({
                         </p>
                       )}
                     </div>
+                    
+                    {/* Specific message for new gateways with auth code */}
+                    {testResult.reason === 'new_gateway' && config.grant_type === 'authorization_code' && (
+                      <div className={`mt-3 pt-3 border-t ${theme === 'dark' ? 'border-zinc-700' : 'border-gray-200'}`}>
+                        <p className={`text-xs ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                          <strong>Next Step:</strong> After saving this gateway, open it and click "Authorize" 
+                          to complete the OAuth flow. The server will securely store your tokens.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

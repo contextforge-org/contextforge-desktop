@@ -592,6 +592,27 @@ export async function fetchToolsAfterOAuth(gatewayId: string): Promise<any> {
   return response.data;
 }
 
+/**
+ * Open the backend's OAuth authorization flow in the user's default browser
+ * This uses the backend-managed OAuth flow where the backend handles the callback
+ * and stores tokens per-user in its database
+ * 
+ * Use this for existing gateways where the backend needs to manage user tokens
+ */
+export async function openBackendOAuthFlow(gatewayId: string): Promise<{ url: string }> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.openBackendOAuthFlow(gatewayId);
+  
+  if (!response.success) {
+    throw new Error('Failed to open backend OAuth flow: ' + response.error);
+  }
+  
+  return response.data!;
+}
+
 export async function listRegisteredOAuthClients(): Promise<any> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');

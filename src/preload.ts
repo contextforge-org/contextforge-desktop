@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     initiateOAuthFlow: (gatewayId: string) => ipcRenderer.invoke('api:initiate-oauth-flow', gatewayId),
     getOAuthStatus: (gatewayId: string) => ipcRenderer.invoke('api:get-oauth-status', gatewayId),
     fetchToolsAfterOAuth: (gatewayId: string) => ipcRenderer.invoke('api:fetch-tools-after-oauth', gatewayId),
+    openBackendOAuthFlow: (gatewayId: string) => ipcRenderer.invoke('api:open-backend-oauth-flow', gatewayId),
     listRegisteredOAuthClients: () => ipcRenderer.invoke('api:list-registered-oauth-clients'),
     getRegisteredClientForGateway: (gatewayId: string) => ipcRenderer.invoke('api:get-registered-client-for-gateway', gatewayId),
     deleteRegisteredOAuthClient: (clientId: string) => ipcRenderer.invoke('api:delete-registered-oauth-client', clientId),
@@ -142,6 +143,7 @@ declare global {
         initiateOAuthFlow: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         getOAuthStatus: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         fetchToolsAfterOAuth: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        openBackendOAuthFlow: (gatewayId: string) => Promise<{ success: boolean; data?: { url: string }; error?: string }>;
         listRegisteredOAuthClients: () => Promise<{ success: boolean; data?: any; error?: string }>;
         getRegisteredClientForGateway: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteRegisteredOAuthClient: (clientId: string) => Promise<{ success: boolean; data?: any; error?: string }>;

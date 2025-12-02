@@ -1,4 +1,4 @@
-import { ChevronDown, X, Settings, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { ChevronDown, X, Settings, Plus, Trash2, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { Switch } from "./ui/switch";
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -26,6 +26,9 @@ interface ServerDetailsPanelProps {
   editedAuthUsername: string;
   editedAuthPassword: string;
   editedAuthHeaders: AuthHeader[];
+  // OAuth authorization state
+  isOAuthAuthorized?: boolean;
+  isAuthorizingOAuth?: boolean;
   onClose: () => void;
   onSave: () => void;
   onNameChange: (value: string) => void;
@@ -40,6 +43,7 @@ interface ServerDetailsPanelProps {
   onTransportDropdownToggle: (open: boolean) => void;
   onAuthDropdownToggle: (open: boolean) => void;
   onOpenOAuthWizard: () => void;
+  onAuthorizeOAuth?: () => void;
   // Authentication credential handlers
   onAuthTokenChange: (value: string) => void;
   onAuthUsernameChange: (value: string) => void;
@@ -67,6 +71,8 @@ export function ServerDetailsPanel({
   editedAuthUsername,
   editedAuthPassword,
   editedAuthHeaders,
+  isOAuthAuthorized,
+  isAuthorizingOAuth,
   onClose,
   onSave,
   onNameChange,
@@ -81,6 +87,7 @@ export function ServerDetailsPanel({
   onTransportDropdownToggle,
   onAuthDropdownToggle,
   onOpenOAuthWizard,
+  onAuthorizeOAuth,
   onAuthTokenChange,
   onAuthUsernameChange,
   onAuthPasswordChange,
@@ -559,16 +566,48 @@ export function ServerDetailsPanel({
                         </span>
                       </div>
                     )}
-                    {editedOAuthConfig.access_token && (
-                      <div className={`mt-2 pt-2 border-t ${theme === 'dark' ? 'border-zinc-700' : 'border-blue-200'}`}>
+                    
+                    {/* Authorization Status Section */}
+                    <div className={`mt-2 pt-2 border-t ${theme === 'dark' ? 'border-zinc-700' : 'border-blue-200'}`}>
+                      {/* For client_credentials with a token, or if isOAuthAuthorized is true */}
+                      {(editedOAuthConfig.grant_type === 'client_credentials' && editedOAuthConfig.access_token) || isOAuthAuthorized ? (
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-green-500"></div>
                           <span className={`text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
-                            Token Active
+                            {editedOAuthConfig.grant_type === 'authorization_code' ? 'User Authorized' : 'Token Active'}
                           </span>
                         </div>
-                      </div>
-                    )}
+                      ) : editedOAuthConfig.grant_type === 'authorization_code' && panelMode === 'view' && server?.id ? (
+                        // Authorization Code flow in view mode - need to authorize via backend
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                            <span className={`text-xs ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`}>
+                              Authorization Required
+                            </span>
+                          </div>
+                          {isAuthorizingOAuth ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                              <span className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                                Waiting for authorization...
+                              </span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={onAuthorizeOAuth}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors bg-blue-500 hover:bg-blue-600 text-white"
+                            >
+                              <ExternalLink size={12} />
+                              Authorize with OAuth
+                            </button>
+                          )}
+                          <p className={`text-xs ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                            Opens your browser to complete OAuth authorization
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               ) : (

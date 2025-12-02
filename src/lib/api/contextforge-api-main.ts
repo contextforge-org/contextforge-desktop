@@ -683,6 +683,15 @@ export async function fetchToolsAfterOAuth(gatewayId: string): Promise<any> {
 }
 
 /**
+ * Get the backend's OAuth authorize URL for a gateway
+ * This URL should be opened in a browser for the user to complete authorization
+ * The backend handles the OAuth callback and stores tokens per-user
+ */
+export function getBackendOAuthAuthorizeUrl(gatewayId: string): string {
+  return `${API_BASE_URL}/oauth/authorize/${gatewayId}`;
+}
+
+/**
  * List registered OAuth clients
  */
 export async function listRegisteredOAuthClients(): Promise<any> {

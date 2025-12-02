@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useTeam } from '../context/TeamContext';
 import { MCPServer } from '../types/server';
@@ -24,6 +24,11 @@ export function MCPServersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showOAuthWizard, setShowOAuthWizard] = useState(false);
+  
+  // OAuth authorization state for details panel
+  const [isOAuthAuthorized, setIsOAuthAuthorized] = useState(false);
+  const [isAuthorizingOAuth, setIsAuthorizingOAuth] = useState(false);
+  const oauthPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { theme } = useTheme();
   const { selectedTeamId } = useTeam();
@@ -96,6 +101,38 @@ export function MCPServersPage() {
     'gateway'
   );
 
+  // Check OAuth status when viewing a server with Authorization Code OAuth
+  useEffect(() => {
+    async function checkOAuthStatus() {
+      if (
+        panelMode === 'view' &&
+        selectedServer?.id &&
+        editorHook.editedAuthenticationType === 'OAuth 2.0' &&
+        editorHook.editedOAuthConfig?.grant_type === 'authorization_code'
+      ) {
+        try {
+          const status = await api.getOAuthStatus(selectedServer.id);
+          setIsOAuthAuthorized(status.is_authorized || status.oauth_enabled || false);
+        } catch (err) {
+          console.warn('Failed to check OAuth status:', err);
+          setIsOAuthAuthorized(false);
+        }
+      } else {
+        setIsOAuthAuthorized(false);
+      }
+    }
+    
+    checkOAuthStatus();
+    
+    // Cleanup polling on unmount or when server changes
+    return () => {
+      if (oauthPollingRef.current) {
+        clearInterval(oauthPollingRef.current);
+        oauthPollingRef.current = null;
+      }
+    };
+  }, [panelMode, selectedServer?.id, editorHook.editedAuthenticationType, editorHook.editedOAuthConfig?.grant_type]);
+
   // Memoized handlers
   const handleServerClick = useCallback((server: MCPServer) => {
     setSelectedServer(server);
@@ -138,6 +175,55 @@ export function MCPServersPage() {
   const handleOpenOAuthWizard = useCallback(() => {
     setShowOAuthWizard(true);
   }, []);
+
+  // Handle OAuth authorization for existing servers with Authorization Code flow
+  const handleAuthorizeOAuth = useCallback(async () => {
+    if (!selectedServer?.id) {
+      toast.error('No server selected');
+      return;
+    }
+
+    try {
+      setIsAuthorizingOAuth(true);
+      
+      // Open the backend OAuth flow in the user's browser
+      await api.openBackendOAuthFlow(selectedServer.id);
+      
+      // Start polling for OAuth status
+      oauthPollingRef.current = setInterval(async () => {
+        try {
+          const status = await api.getOAuthStatus(selectedServer.id);
+          console.log('[MCPServersPage] Polling OAuth status:', status);
+          
+          if (status.is_authorized || status.oauth_enabled) {
+            // OAuth complete!
+            if (oauthPollingRef.current) {
+              clearInterval(oauthPollingRef.current);
+              oauthPollingRef.current = null;
+            }
+            setIsAuthorizingOAuth(false);
+            setIsOAuthAuthorized(true);
+            
+            // Try to fetch tools now that OAuth is complete
+            try {
+              const toolsResult = await api.fetchToolsAfterOAuth(selectedServer.id);
+              toast.success(`OAuth complete! ${toolsResult.message || 'Tools fetched successfully.'}`);
+            } catch (toolsErr) {
+              console.warn('[MCPServersPage] Failed to fetch tools:', toolsErr);
+              toast.success('OAuth authorization successful!');
+            }
+          }
+        } catch (err) {
+          console.error('Error polling OAuth status:', err);
+        }
+      }, 2000); // Poll every 2 seconds
+      
+    } catch (err) {
+      console.error('Failed to start OAuth flow:', err);
+      setIsAuthorizingOAuth(false);
+      toast.error('Failed to start OAuth flow: ' + (err as Error).message);
+    }
+  }, [selectedServer?.id]);
 
   return (
     <div className="flex h-full">
@@ -310,6 +396,9 @@ export function MCPServersPage() {
           onAuthPasswordChange={editorHook.setEditedAuthPassword}
           onAuthHeadersChange={editorHook.setEditedAuthHeaders}
           onOpenOAuthWizard={handleOpenOAuthWizard}
+          onAuthorizeOAuth={handleAuthorizeOAuth}
+          isOAuthAuthorized={isOAuthAuthorized}
+          isAuthorizingOAuth={isAuthorizingOAuth}
         />
       )}
 
