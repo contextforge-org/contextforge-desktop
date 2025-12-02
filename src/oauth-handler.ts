@@ -79,12 +79,21 @@ export function generateAuthorizationUrl(config: OAuthConfig, state?: string): s
     throw new Error('Authorization URL is required for authorization code flow');
   }
 
+  console.log('[generateAuthorizationUrl] Config:', {
+    auth_url: config.auth_url,
+    client_id: config.client_id ? '***' : undefined,
+    redirect_uri: config.redirect_uri,
+    scopes: config.scopes,
+  });
+
   const url = new URL(config.auth_url);
   url.searchParams.set('client_id', config.client_id);
   url.searchParams.set('response_type', 'code');
   
   if (config.redirect_uri) {
     url.searchParams.set('redirect_uri', config.redirect_uri);
+  } else {
+    console.warn('[generateAuthorizationUrl] WARNING: No redirect_uri provided!');
   }
   
   if (config.scopes && config.scopes.length > 0) {
@@ -94,7 +103,10 @@ export function generateAuthorizationUrl(config: OAuthConfig, state?: string): s
   // Add state parameter for CSRF protection
   url.searchParams.set('state', state || generateRandomState());
   
-  return url.toString();
+  const finalUrl = url.toString();
+  console.log('[generateAuthorizationUrl] Final URL:', finalUrl);
+  
+  return finalUrl;
 }
 
 /**
@@ -209,6 +221,16 @@ export async function performNativeOAuthFlow(
   config: OAuthConfig,
   timeoutMs = 300000
 ): Promise<NativeOAuthResult> {
+  console.log('[performNativeOAuthFlow] Starting with config:', {
+    grant_type: config.grant_type,
+    client_id: config.client_id ? '***' : undefined,
+    client_secret: config.client_secret ? '***' : undefined,
+    token_url: config.token_url,
+    auth_url: config.auth_url,
+    scopes: config.scopes,
+    redirect_uri: config.redirect_uri,
+  });
+  
   if (!config.auth_url) {
     return {
       success: false,
@@ -229,6 +251,8 @@ export async function performNativeOAuthFlow(
     ...config,
     redirect_uri: redirectUri
   };
+
+  console.log('[performNativeOAuthFlow] Using redirect_uri:', redirectUri);
 
   return new Promise((resolve) => {
     // Create the callback server

@@ -258,47 +258,42 @@ export function OAuthFlowWizard({
     setTesting(true);
     setTestError('');
 
+    console.log('[OAuthFlowWizard] handleInitiateAuthCodeFlow called');
+    console.log('[OAuthFlowWizard] entityType:', entityType);
+    console.log('[OAuthFlowWizard] entityId:', entityId);
+    console.log('[OAuthFlowWizard] hasEntityId:', hasEntityId);
+
     try {
-      if (entityType === 'gateway' && entityId) {
-        // Use backend-managed OAuth flow for gateways
-        const response = await api.initiateOAuthFlow(entityId);
-        if (response && response.authorization_url) {
-          // Open authorization URL in system browser
-          window.open(response.authorization_url, '_blank');
-          toast.info('Authorization page opened in browser. Complete the authorization and return here.');
-          startPollingOAuthStatus();
-        }
-      } else {
-        // For agents (or new entities without ID), use native OAuth flow
-        // This performs the complete OAuth flow with a local callback server
-        toast.info('Opening authorization page in browser...');
-        
-        const result = await api.performNativeOAuthFlow({
-          grant_type: 'authorization_code',
-          client_id: config.client_id,
-          client_secret: config.client_secret,
-          auth_url: config.auth_url,
-          token_url: config.token_url,
-          scopes: config.scopes,
+      // Always use native OAuth flow for authorization code
+      // The backend-managed flow requires specific backend configuration
+      // The native flow works independently with a local callback server
+      toast.info('Opening authorization page in browser...');
+      
+      const result = await api.performNativeOAuthFlow({
+        grant_type: 'authorization_code',
+        client_id: config.client_id,
+        client_secret: config.client_secret,
+        auth_url: config.auth_url,
+        token_url: config.token_url,
+        scopes: config.scopes,
+      });
+      
+      console.log('[OAuthFlowWizard] Native OAuth flow result:', result);
+      console.log('[OAuthFlowWizard] Result has access_token:', !!result?.access_token);
+      
+      if (result.success) {
+        setTestResult(result);
+        updateConfig({
+          access_token: result.access_token,
+          refresh_token: result.refresh_token,
+          token_expires_at: result.expires_in
+            ? new Date(Date.now() + result.expires_in * 1000).toISOString()
+            : undefined,
         });
-        
-        console.log('[OAuthFlowWizard] Native OAuth flow result:', result);
-        console.log('[OAuthFlowWizard] Result has access_token:', !!result?.access_token);
-        
-        if (result.success) {
-          setTestResult(result);
-          updateConfig({
-            access_token: result.access_token,
-            refresh_token: result.refresh_token,
-            token_expires_at: result.expires_in
-              ? new Date(Date.now() + result.expires_in * 1000).toISOString()
-              : undefined,
-          });
-          toast.success('OAuth authorization successful!');
-          setCurrentStep('complete');
-        } else {
-          throw new Error(result.error || 'OAuth flow failed');
-        }
+        toast.success('OAuth authorization successful!');
+        setCurrentStep('complete');
+      } else {
+        throw new Error(result.error || 'OAuth flow failed');
       }
     } catch (err) {
       const errorMsg = (err as Error).message;
@@ -307,7 +302,7 @@ export function OAuthFlowWizard({
     } finally {
       setTesting(false);
     }
-  }, [config, entityId, entityType, startPollingOAuthStatus, updateConfig]);
+  }, [config, entityId, entityType, updateConfig]);
 
   const handleSkipAuthorization = useCallback(() => {
     // Allow proceeding without authorization
