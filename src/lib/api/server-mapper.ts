@@ -118,7 +118,7 @@ export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
     team: gateway.team || 'Unknown',
     teamId: gateway.teamId || null,
     visibility: (gateway.visibility as 'public' | 'team' | 'private') || 'private',
-    transportType: gateway.transport || 'SSE',
+    transportType: mapTransportTypeToUI(gateway.transport),
     authenticationType: mapAPIAuthTypeToUI(gateway.authType) || 'None',
     passthroughHeaders: gateway.passthroughHeaders || [],
     oauthConfig: oauthConfig,
@@ -163,6 +163,26 @@ function mapAuthTypeToAPI(authType: string | undefined): string | null {
 }
 
 /**
+ * Maps UI transport type to API transport type
+ */
+function mapTransportTypeToAPI(transportType: string | undefined): string {
+  if (!transportType) return 'SSE';
+  // UI uses "Streamable HTTP" but API expects "STREAMABLEHTTP"
+  if (transportType === 'Streamable HTTP') return 'STREAMABLEHTTP';
+  return transportType;
+}
+
+/**
+ * Maps API transport type to UI transport type
+ */
+function mapTransportTypeToUI(transportType: string | undefined): string {
+  if (!transportType) return 'SSE';
+  // API uses "STREAMABLEHTTP" but UI expects "Streamable HTTP"
+  if (transportType === 'STREAMABLEHTTP') return 'Streamable HTTP';
+  return transportType;
+}
+
+/**
  * Maps an MCPServer to GatewayCreate for API calls
  */
 export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
@@ -172,7 +192,7 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
     description: server.description || null,
     tags: server.tags || [],
     visibility: server.visibility || 'private',
-    transport: server.transportType || 'SSE',
+    transport: mapTransportTypeToAPI(server.transportType),
     passthrough_headers: server.passthroughHeaders || [],
   };
   
@@ -251,7 +271,7 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
     description: server.description || null,
     tags: server.tags,
     visibility: server.visibility,
-    transport: server.transportType,
+    transport: mapTransportTypeToAPI(server.transportType),
     passthrough_headers: server.passthroughHeaders,
     enabled: server.active,
   };

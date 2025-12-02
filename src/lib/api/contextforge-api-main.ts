@@ -46,6 +46,7 @@ import {
   togglePromptStatusPromptsPromptIdTogglePost,
   getPromptPromptsPromptIdPost,
   listGatewaysGatewaysGet,
+  adminListGatewaysAdminGatewaysGet,
   registerGatewayGatewaysPost,
   updateGatewayGatewaysGatewayIdPut,
   // OAuth operations
@@ -460,7 +461,8 @@ export async function executePrompt(promptId: string, args: Record<string, any>)
 // ============================================================================
 
 export async function listGateways(includeInactive = true): Promise<GatewayRead[]> {
-  const response = await listGatewaysGatewaysGet({
+  // Use admin endpoint to get full gateway details including OAuth config
+  const response = await adminListGatewaysAdminGatewaysGet({
     query: { include_inactive: includeInactive }
   });
   
