@@ -1,4 +1,4 @@
-import { ChevronDown, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Switch } from "./ui/switch";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { RightSidePanel } from './RightSidePanel';
@@ -15,12 +15,7 @@ interface VirtualServerDetailsPanelProps {
   editedDescription: string;
   editedTags: string[];
   editedVisibility: 'public' | 'team' | 'private';
-  editedTransportType: string;
-  editedAuthenticationType: string;
-  editedPassthroughHeaders: string[];
   editedActive: boolean;
-  isTransportDropdownOpen: boolean;
-  isAuthDropdownOpen: boolean;
   editedTools: string[];
   editedResources: string[];
   editedPrompts: string[];
@@ -38,12 +33,7 @@ interface VirtualServerDetailsPanelProps {
   onDescriptionChange: (value: string) => void;
   onTagsChange: (tags: string[]) => void;
   onVisibilityChange: (visibility: 'public' | 'team' | 'private') => void;
-  onTransportTypeChange: (type: string) => void;
-  onAuthenticationTypeChange: (type: string) => void;
-  onPassthroughHeadersChange: (headers: string[]) => void;
   onActiveChange: (active: boolean) => void;
-  onTransportDropdownToggle: (open: boolean) => void;
-  onAuthDropdownToggle: (open: boolean) => void;
   onToggleTool: (tool: string) => void;
   onRemoveTool: (tool: string) => void;
   onToggleResource: (resource: string) => void;
@@ -65,12 +55,7 @@ export function VirtualServerDetailsPanel({
   editedDescription,
   editedTags,
   editedVisibility,
-  editedTransportType,
-  editedAuthenticationType,
-  editedPassthroughHeaders,
   editedActive,
-  isTransportDropdownOpen,
-  isAuthDropdownOpen,
   editedTools,
   editedResources,
   editedPrompts,
@@ -88,12 +73,7 @@ export function VirtualServerDetailsPanel({
   onDescriptionChange,
   onTagsChange,
   onVisibilityChange,
-  onTransportTypeChange,
-  onAuthenticationTypeChange,
-  onPassthroughHeadersChange,
   onActiveChange,
-  onTransportDropdownToggle,
-  onAuthDropdownToggle,
   onToggleTool,
   onRemoveTool,
   onToggleResource,
@@ -315,105 +295,6 @@ export function VirtualServerDetailsPanel({
                 <span className={theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}>Private</span>
               </label>
             </div>
-          </div>
-
-          {/* Transport Type */}
-          <div>
-            <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-              Transport Type
-            </label>
-            <div className="relative">
-              <div className={`relative rounded-md w-full ${theme === 'dark' ? 'border-zinc-700' : 'border-gray-200'}`}>
-                <button
-                  onClick={() => onTransportDropdownToggle(!isTransportDropdownOpen)}
-                  className={`w-full px-3 py-2 border rounded-md text-left flex items-center justify-between transition-colors ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800/30' : 'bg-white border-gray-200 text-gray-900 hover:bg-gray-100'}`}
-                >
-                  <span className={`text-sm ${!editedTransportType && (theme === 'dark' ? 'text-zinc-500' : 'text-gray-400')}`}>
-                    {editedTransportType || 'Select Transport Type'}
-                  </span>
-                  <ChevronDown size={14} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
-                </button>
-              </div>
-              
-              {isTransportDropdownOpen && (
-                <div className={`absolute top-full left-0 right-0 mt-1 rounded-md border shadow-lg z-50 overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'}`}>
-                  {['SSE', 'Streamable HTTP'].map((type) => (
-                    <div
-                      key={type}
-                      className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
-                        editedTransportType === type 
-                          ? theme === 'dark' ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-900'
-                          : theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'
-                      }`}
-                      onClick={() => {
-                        onTransportTypeChange(type);
-                        onTransportDropdownToggle(false);
-                      }}
-                    >
-                      {type}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Authentication Type */}
-          <div>
-            <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-              Authentication Type
-            </label>
-            <div className="relative">
-              <div className={`relative rounded-md w-full ${theme === 'dark' ? 'border-zinc-700' : 'border-gray-200'}`}>
-                <button
-                  onClick={() => onAuthDropdownToggle(!isAuthDropdownOpen)}
-                  className={`w-full px-3 py-2 border rounded-md text-left flex items-center justify-between transition-colors ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800/30' : 'bg-white border-gray-200 text-gray-900 hover:bg-gray-100'}`}
-                >
-                  <span className={`text-sm ${!editedAuthenticationType && (theme === 'dark' ? 'text-zinc-500' : 'text-gray-400')}`}>
-                    {editedAuthenticationType || 'Select Authentication Type'}
-                  </span>
-                  <ChevronDown size={14} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
-                </button>
-              </div>
-              
-              {isAuthDropdownOpen && (
-                <div className={`absolute top-full left-0 right-0 mt-1 rounded-md border shadow-lg z-50 overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'}`}>
-                  {['None', 'Basic', 'Bearer Token', 'Custom Headers', 'OAuth 2.0'].map((type) => (
-                    <div
-                      key={type}
-                      className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
-                        editedAuthenticationType === type
-                          ? theme === 'dark' ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-900'
-                          : theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'
-                      }`}
-                      onClick={() => {
-                        onAuthenticationTypeChange(type);
-                        onAuthDropdownToggle(false);
-                      }}
-                    >
-                      {type}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Passthrough Headers */}
-          <div>
-            <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-              Passthrough Headers
-            </label>
-            <input
-              type="text"
-              value={editedPassthroughHeaders.join(', ')}
-              onChange={(e) => onPassthroughHeadersChange(e.target.value.split(',').map(h => h.trim()).filter(h => h))}
-              placeholder="e.g., Authorization, X-Tenant-Id, X-Trace-Id"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
-            />
-            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-              List of headers to pass through from client requests (comma-separated, e.g., "Authorization, X-Tenant-Id, X-Trace-Id"). Leave empty to use global defaults.
-            </p>
           </div>
 
           {/* Associated Tools */}

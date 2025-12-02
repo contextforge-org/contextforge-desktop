@@ -224,13 +224,55 @@ export function VirtualServersPage() {
     'server'
   );
 
+  // Helper to convert tool names to IDs (backend returns names but expects IDs when saving)
+  const mapToolNamesToIds = useCallback((toolNames: string[]): string[] => {
+    return toolNames.map(nameOrId => {
+      // First check if it's already an ID
+      const foundById = availableTools.find(t => t.id === nameOrId);
+      if (foundById) return nameOrId;
+      // Otherwise, look up by name
+      const foundByName = availableTools.find(t => t.name === nameOrId);
+      return foundByName ? foundByName.id : nameOrId;
+    });
+  }, [availableTools]);
+
+  // Helper to convert resource names to IDs
+  const mapResourceNamesToIds = useCallback((resourceNames: string[]): string[] => {
+    return resourceNames.map(nameOrId => {
+      const foundById = availableResources.find(r => r.id === nameOrId);
+      if (foundById) return nameOrId;
+      const foundByName = availableResources.find(r => r.name === nameOrId);
+      return foundByName ? foundByName.id : nameOrId;
+    });
+  }, [availableResources]);
+
+  // Helper to convert prompt names to IDs
+  const mapPromptNamesToIds = useCallback((promptNames: string[]): string[] => {
+    return promptNames.map(nameOrId => {
+      const foundById = availablePrompts.find(p => p.id === nameOrId);
+      if (foundById) return nameOrId;
+      const foundByName = availablePrompts.find(p => p.name === nameOrId);
+      return foundByName ? foundByName.id : nameOrId;
+    });
+  }, [availablePrompts]);
+
   // Memoized handlers
   const handleServerClick = useCallback((server: MCPServer) => {
     setSelectedServer(server);
     setPanelMode('view');
-    editorHook.loadServerForEditing(server);
+    
+    // Convert tool/resource/prompt names to IDs before loading for editing
+    // The backend returns names but expects IDs when saving
+    const serverWithMappedIds = {
+      ...server,
+      associatedTools: mapToolNamesToIds((server as any).associatedTools || []),
+      associatedResources: mapResourceNamesToIds((server as any).associatedResources || []),
+      associatedPrompts: mapPromptNamesToIds((server as any).associatedPrompts || []),
+    };
+    
+    editorHook.loadServerForEditing(serverWithMappedIds);
     setShowSidePanel(true);
-  }, [editorHook]);
+  }, [editorHook, mapToolNamesToIds, mapResourceNamesToIds, mapPromptNamesToIds]);
 
   const handleActiveToggleInPanel = useCallback(async (active: boolean) => {
     if (!selectedServer) return;
@@ -462,12 +504,7 @@ export function VirtualServersPage() {
           editedDescription={editorHook.editedDescription}
           editedTags={editorHook.editedTags}
           editedVisibility={editorHook.editedVisibility}
-          editedTransportType={editorHook.editedTransportType}
-          editedAuthenticationType={editorHook.editedAuthenticationType}
-          editedPassthroughHeaders={editorHook.editedPassthroughHeaders}
           editedActive={editorHook.editedActive}
-          isTransportDropdownOpen={editorHook.isTransportDropdownOpen}
-          isAuthDropdownOpen={editorHook.isAuthDropdownOpen}
           editedTools={editorHook.editedTools}
           editedResources={editorHook.editedResources}
           editedPrompts={editorHook.editedPrompts}
@@ -485,12 +522,7 @@ export function VirtualServersPage() {
           onDescriptionChange={editorHook.setEditedDescription}
           onTagsChange={editorHook.setEditedTags}
           onVisibilityChange={editorHook.setEditedVisibility}
-          onTransportTypeChange={editorHook.setEditedTransportType}
-          onAuthenticationTypeChange={editorHook.setEditedAuthenticationType}
-          onPassthroughHeadersChange={editorHook.setEditedPassthroughHeaders}
           onActiveChange={handleActiveToggleInPanel}
-          onTransportDropdownToggle={editorHook.setIsTransportDropdownOpen}
-          onAuthDropdownToggle={editorHook.setIsAuthDropdownOpen}
           onToggleTool={editorHook.toggleTool}
           onRemoveTool={editorHook.removeTool}
           onToggleResource={editorHook.toggleResource}
