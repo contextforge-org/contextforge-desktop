@@ -59,6 +59,7 @@ export function useTokenActions() {
 
   /**
    * Create new token
+   * Returns the created token response including the access_token (only available at creation time)
    */
   const createToken = useCallback(async (tokenData: Omit<APIToken, 'id' | 'dateCreated' | 'lastUsed'>) => {
     setLoading(true);
@@ -73,7 +74,7 @@ export function useTokenActions() {
         expiresInDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       }
       
-      await api.createToken({
+      const result = await api.createToken({
         name: tokenData.tokenName,
         description: tokenData.description,
         expires_in_days: expiresInDays,
@@ -84,6 +85,7 @@ export function useTokenActions() {
       });
       await loadTokens();
       toast.success(`Token ${tokenData.tokenName} created`);
+      return result; // Return the result which includes access_token
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create token';
       setError(message);

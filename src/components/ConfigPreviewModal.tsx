@@ -1,4 +1,4 @@
-import { X, Copy, Download } from 'lucide-react';
+import { Copy, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { MCPServer } from '../types/server';
 import { generateConfig, ConfigType } from '../lib/serverUtils';

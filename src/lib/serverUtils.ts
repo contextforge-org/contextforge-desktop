@@ -129,7 +129,10 @@ export function updateServerProperties(
     transportType: editedServer.transportType,
     authenticationType: editedServer.authenticationType,
     passthroughHeaders: editedServer.passthroughHeaders,
-    active: editedServer.active
+    active: editedServer.active,
+    associatedTools: editedServer.associatedTools,
+    associatedResources: editedServer.associatedResources,
+    associatedPrompts: editedServer.associatedPrompts,
   };
 }
 
