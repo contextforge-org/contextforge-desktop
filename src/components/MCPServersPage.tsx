@@ -41,40 +41,39 @@ export function MCPServersPage() {
     return serversData.filter(server => server.teamId === selectedTeamId);
   }, [serversData, selectedTeamId]);
 
+  // Reusable function to fetch/refresh gateways
+  const refreshGateways = useCallback(async () => {
+    try {
+      const gateways = await api.listGateways();
+      const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
+      setServersData(mappedGateways);
+    } catch (fetchError) {
+      // If fetch fails due to auth, try to login
+      const errorMsg = (fetchError as Error).message;
+      if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
+        console.log('Not authenticated, attempting login...');
+        await api.login(
+          import.meta.env['VITE_API_EMAIL'],
+          import.meta.env['VITE_API_PASSWORD']
+        );
+        // Retry fetching gateways
+        const gateways = await api.listGateways();
+        const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
+        setServersData(mappedGateways);
+        toast.success('Connected to ContextForge backend');
+      } else {
+        throw fetchError;
+      }
+    }
+  }, []);
+
   // Fetch servers on mount and when team changes
   useEffect(() => {
     async function fetchServers() {
       try {
         setIsLoading(true);
         setError(null);
-        
-        // Try to fetch gateways
-        try {
-          const gateways = await api.listGateways();
-          const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
-          setServersData(mappedGateways);
-        } catch (fetchError) {
-          // If fetch fails due to auth, try to login
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              // Retry fetching gateways
-              const gateways = await api.listGateways();
-              const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
-              setServersData(mappedGateways);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        await refreshGateways();
       } catch (err) {
         console.log(err)
         const errorMessage = (err as Error).message;
@@ -87,7 +86,7 @@ export function MCPServersPage() {
     }
 
     fetchServers();
-  }, []);
+  }, [refreshGateways]);
 
   // Use custom hooks for filters, editor, and actions
   const filterHook = useServerFilters(filteredServers);
@@ -98,7 +97,8 @@ export function MCPServersPage() {
     selectedServer,
     setSelectedServer,
     editorHook.setEditedActive,
-    'gateway'
+    'gateway',
+    refreshGateways
   );
 
   // Check OAuth status when viewing a server with Authorization Code OAuth
@@ -112,7 +112,9 @@ export function MCPServersPage() {
       ) {
         try {
           const status = await api.getOAuthStatus(selectedServer.id);
-          setIsOAuthAuthorized(status.is_authorized || status.oauth_enabled || false);
+          // Only check is_authorized, NOT oauth_enabled
+          // oauth_enabled means OAuth is configured, not that the user has authorized
+          setIsOAuthAuthorized(status.is_authorized === true);
         } catch (err) {
           console.warn('Failed to check OAuth status:', err);
           setIsOAuthAuthorized(false);

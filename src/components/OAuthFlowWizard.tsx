@@ -199,45 +199,81 @@ export function OAuthFlowWizard({
   }, [currentStep, getSteps]);
 
   // Poll for OAuth status when using backend-managed OAuth flow
+  // Since /oauth/status doesn't return user-specific authorization status,
+  // we poll by trying to fetch tools - if it succeeds, OAuth is complete
   const startPollingOAuthStatus = useCallback(() => {
     if (!entityId || entityType !== 'gateway') return;
 
     setPollingForOAuth(true);
     setTesting(false); // Clear testing state since we're now in polling mode
+    
+    let pollCount = 0;
+    const maxPolls = 60; // 2 minutes max (60 * 2 seconds)
 
     pollingIntervalRef.current = setInterval(async () => {
-      try {
-        const status = await api.getOAuthStatus(entityId);
-
-        // Only consider authorized if is_authorized is explicitly true
-        // oauth_enabled just means OAuth is configured, not that the user has authorized
-        if (status.is_authorized === true) {
-          // OAuth complete! Backend has stored the tokens
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-          }
-          setPollingForOAuth(false);
-          
-          // For backend-managed OAuth, we don't get tokens back
-          // The backend stores them and uses them when making requests
-          setTestResult({ 
-            backend_managed: true,
-            is_authorized: true,
-            ...status 
-          });
-          
-          // Try to fetch tools now that OAuth is complete
-          try {
-            const toolsResult = await api.fetchToolsAfterOAuth(entityId);
-            toast.success(`OAuth complete! ${toolsResult.message || 'Tools fetched successfully.'}`);
-          } catch (toolsErr) {
-            toast.success('OAuth authorization successful!');
-          }
-          
-          setCurrentStep('complete');
+      pollCount++;
+      
+      if (pollCount > maxPolls) {
+        // Timeout - stop polling
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
         }
-      } catch (err) {
-        console.error('Error polling OAuth status:', err);
+        setPollingForOAuth(false);
+        toast.error('OAuth authorization timed out. Please try again.');
+        return;
+      }
+      
+      try {
+        // Try to fetch tools - if OAuth is complete, this will succeed
+        const toolsResult = await api.fetchToolsAfterOAuth(entityId);
+        
+        // If we get here without error, OAuth is complete!
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+        setPollingForOAuth(false);
+        
+        // For backend-managed OAuth, we don't get tokens back
+        // The backend stores them and uses them when making requests
+        setTestResult({ 
+          backend_managed: true,
+          is_authorized: true
+        });
+        
+        toast.success(`OAuth complete! ${toolsResult.message || 'Tools fetched successfully.'}`);
+        setCurrentStep('complete');
+      } catch (err: unknown) {
+        // Check if error indicates OAuth not complete vs other errors
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        
+        // If it's specifically an OAuth/auth error, keep polling
+        // If it's a different error (like gateway not found), stop and report
+        if (!errorMessage.toLowerCase().includes('oauth') && 
+            !errorMessage.toLowerCase().includes('unauthorized') &&
+            !errorMessage.toLowerCase().includes('401') &&
+            !errorMessage.toLowerCase().includes('not authorized')) {
+          // This might be a different error - check OAuth status as fallback
+          try {
+            const status = await api.getOAuthStatus(entityId);
+            if (status.is_authorized === true) {
+              // OAuth is complete even if tools fetch failed
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+              }
+              setPollingForOAuth(false);
+              setTestResult({ 
+                backend_managed: true,
+                is_authorized: true,
+                ...status 
+              });
+              toast.success('OAuth authorization successful!');
+              setCurrentStep('complete');
+            }
+          } catch {
+            // Continue polling
+          }
+        }
+        // Otherwise keep polling - user may not have completed authorization yet
       }
     }, 2000); // Poll every 2 seconds
   }, [entityId, entityType]);
@@ -827,7 +863,8 @@ export function OAuthFlowWizard({
                         <div>
                           <p className="text-sm font-medium">Waiting for authorization...</p>
                           <p className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                            Complete the authorization in your browser, then return here.
+                            Complete the authorization in your browser. After you authorize, 
+                            you can close the browser tab and return here.
                           </p>
                         </div>
                       </div>
