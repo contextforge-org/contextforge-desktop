@@ -314,10 +314,34 @@ export function OAuthFlowWizard({
   const handleComplete = useCallback(() => {
     stopPollingOAuthStatus();
     if (config.grant_type && config.client_id && config.client_secret && config.token_url) {
-      onComplete(config as OAuthConfig);
+      // Merge config with any tokens from testResult to ensure we capture tokens
+      // even if React state hasn't updated yet
+      const finalConfig: OAuthConfig = {
+        grant_type: config.grant_type,
+        client_id: config.client_id,
+        client_secret: config.client_secret,
+        token_url: config.token_url,
+        auth_url: config.auth_url,
+        scopes: config.scopes || [],
+        // Prefer testResult tokens (freshest) over config tokens (may be stale)
+        access_token: testResult?.access_token || config.access_token,
+        refresh_token: testResult?.refresh_token || config.refresh_token,
+        token_expires_at: testResult?.expires_in 
+          ? new Date(Date.now() + testResult.expires_in * 1000).toISOString()
+          : config.token_expires_at,
+      };
+      
+      console.log('[OAuthFlowWizard] handleComplete - finalConfig:', {
+        grant_type: finalConfig.grant_type,
+        has_access_token: !!finalConfig.access_token,
+        has_refresh_token: !!finalConfig.refresh_token,
+        testResult_has_token: !!testResult?.access_token,
+      });
+      
+      onComplete(finalConfig);
       onClose();
     }
-  }, [config, onComplete, onClose, stopPollingOAuthStatus]);
+  }, [config, testResult, onComplete, onClose, stopPollingOAuthStatus]);
 
   const getStepLabel = (step: WizardStep): string => {
     switch (step) {
