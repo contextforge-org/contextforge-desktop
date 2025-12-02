@@ -241,19 +241,7 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
       payload.oauth_config.access_token = server.oauthConfig.access_token;
       payload.oauth_config.refresh_token = server.oauthConfig.refresh_token;
       payload.oauth_config.token_expires_at = server.oauthConfig.token_expires_at;
-      // Tell backend that authorization is complete if we have an access token (client_credentials only)
-      payload.oauth_config.is_authorized = !!server.oauthConfig.access_token;
     }
-    
-    console.log('[mapMCPServerToGatewayCreate] OAuth config included:', {
-      grant_type: server.oauthConfig.grant_type,
-      client_id: server.oauthConfig.client_id ? '***' : undefined,
-      authorization_url: server.oauthConfig.auth_url,
-      redirect_uri: server.oauthConfig.redirect_uri,
-      is_auth_code_flow: isAuthCodeFlow,
-      has_access_token: !isAuthCodeFlow && !!server.oauthConfig.access_token,
-      is_authorized: !isAuthCodeFlow && !!server.oauthConfig.access_token,
-    });
   } else if (server.authenticationType === 'OAuth 2.0') {
     console.warn('[mapMCPServerToGatewayCreate] OAuth 2.0 selected but no oauthConfig provided');
   }

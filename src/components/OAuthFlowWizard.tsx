@@ -205,7 +205,6 @@ export function OAuthFlowWizard({
     pollingIntervalRef.current = setInterval(async () => {
       try {
         const status = await api.getOAuthStatus(entityId);
-        console.log('[OAuthFlowWizard] Polling OAuth status:', status);
 
         if (status.is_authorized || status.oauth_enabled) {
           // OAuth complete! Backend has stored the tokens
@@ -224,12 +223,9 @@ export function OAuthFlowWizard({
           
           // Try to fetch tools now that OAuth is complete
           try {
-            console.log('[OAuthFlowWizard] Fetching tools after OAuth completion...');
             const toolsResult = await api.fetchToolsAfterOAuth(entityId);
-            console.log('[OAuthFlowWizard] Tools fetched:', toolsResult);
             toast.success(`OAuth complete! ${toolsResult.message || 'Tools fetched successfully.'}`);
           } catch (toolsErr) {
-            console.warn('[OAuthFlowWizard] Failed to fetch tools:', toolsErr);
             toast.success('OAuth authorization successful!');
           }
           
@@ -256,8 +252,6 @@ export function OAuthFlowWizard({
 
     try {
       const response = await api.getClientCredentialsToken(config);
-      console.log('[OAuthFlowWizard] Client credentials response:', response);
-      console.log('[OAuthFlowWizard] Response has access_token:', !!response?.access_token);
       setTestResult(response);
       updateConfig({
         access_token: response.access_token,
@@ -291,15 +285,12 @@ export function OAuthFlowWizard({
     setTesting(true);
     setTestError('');
 
-    console.log('[OAuthFlowWizard] Starting backend-managed OAuth flow for gateway:', entityId);
-
     try {
       toast.info('Opening authorization page in browser...');
       
       // Open the backend's OAuth authorize URL in the user's browser
       // The backend will handle the OAuth callback and store tokens
-      const result = await api.openBackendOAuthFlow(entityId);
-      console.log('[OAuthFlowWizard] Backend OAuth URL opened:', result.url);
+      await api.openBackendOAuthFlow(entityId);
       
       // Start polling for OAuth status
       startPollingOAuthStatus();
@@ -328,14 +319,12 @@ export function OAuthFlowWizard({
     // For existing gateways, use backend-managed OAuth flow
     // The backend stores tokens per-user and handles refresh
     if (hasEntityId && entityType === 'gateway') {
-      console.log('[OAuthFlowWizard] Using backend-managed OAuth flow for existing gateway');
       return handleBackendManagedAuthCodeFlow();
     }
     
     // For new gateways without entityId, we cannot complete OAuth yet
     // The user must save the gateway first, then authorize
     // This is because the backend needs the gateway_id to store tokens
-    console.log('[OAuthFlowWizard] New gateway - skipping OAuth, user must authorize after saving');
     toast.info('Save the gateway first, then complete OAuth authorization.');
     setTestResult({ skipped: true, reason: 'new_gateway' });
     setCurrentStep('complete');
@@ -370,14 +359,6 @@ export function OAuthFlowWizard({
           ? new Date(Date.now() + testResult.expires_in * 1000).toISOString()
           : config.token_expires_at,
       };
-      
-      console.log('[OAuthFlowWizard] handleComplete - finalConfig:', {
-        grant_type: finalConfig.grant_type,
-        redirect_uri: finalConfig.redirect_uri,
-        has_access_token: !!finalConfig.access_token,
-        has_refresh_token: !!finalConfig.refresh_token,
-        testResult_has_token: !!testResult?.access_token,
-      });
       
       onComplete(finalConfig);
       onClose();

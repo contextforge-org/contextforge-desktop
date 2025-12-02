@@ -150,10 +150,6 @@ export function MCPServersPage() {
 
   const handleSaveGateway = useCallback(async () => {
     const editedServer = editorHook.getEditedServer();
-    console.log('[MCPServersPage] Saving gateway with editedServer:', JSON.stringify(editedServer, null, 2));
-    console.log('[MCPServersPage] OAuth config present:', !!editedServer.oauthConfig);
-    console.log('[MCPServersPage] Auth type:', editedServer.authenticationType);
-    
     const success = await actionsHook.saveServer(panelMode, editedServer);
     if (success) {
       setShowSidePanel(false);
@@ -165,8 +161,6 @@ export function MCPServersPage() {
   }, []);
 
   const handleOAuthComplete = useCallback((config: OAuthConfig) => {
-    console.log('[MCPServersPage] OAuth complete, config received:', JSON.stringify(config, null, 2));
-    console.log('[MCPServersPage] Has access_token:', !!config.access_token);
     editorHook.setEditedOAuthConfig(config);
     setShowOAuthWizard(false);
     toast.success('OAuth configuration saved');
@@ -193,7 +187,6 @@ export function MCPServersPage() {
       oauthPollingRef.current = setInterval(async () => {
         try {
           const status = await api.getOAuthStatus(selectedServer.id);
-          console.log('[MCPServersPage] Polling OAuth status:', status);
           
           if (status.is_authorized || status.oauth_enabled) {
             // OAuth complete!
@@ -209,7 +202,6 @@ export function MCPServersPage() {
               const toolsResult = await api.fetchToolsAfterOAuth(selectedServer.id);
               toast.success(`OAuth complete! ${toolsResult.message || 'Tools fetched successfully.'}`);
             } catch (toolsErr) {
-              console.warn('[MCPServersPage] Failed to fetch tools:', toolsErr);
               toast.success('OAuth authorization successful!');
             }
           }
