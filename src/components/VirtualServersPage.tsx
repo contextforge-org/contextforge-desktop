@@ -143,8 +143,8 @@ export function VirtualServersPage() {
           console.log('Fetched resources:', resources);
           if (Array.isArray(resources) && resources.length > 0) {
             const resourceObjects = resources.map((r: any) => ({
-              id: r.id || r.name || String(r),
-              name: r.name || r.display_name || r.displayName || r.id || String(r)
+              id: String(r.id ?? r.name ?? r),
+              name: r.name || r.display_name || r.displayName || String(r.id) || String(r)
             }));
             setAvailableResources(resourceObjects);
           } else {
@@ -158,8 +158,11 @@ export function VirtualServersPage() {
               // Already logged in from tools fetch, just retry
               const resources = await api.listResources();
               if (Array.isArray(resources) && resources.length > 0) {
-                const resourceNames = resources.map((r: any) => r.name || r.display_name || r.displayName || r.id || String(r));
-                setAvailableResources(resourceNames);
+                const resourceObjects = resources.map((r: any) => ({
+                  id: String(r.id ?? r.name ?? r),
+                  name: r.name || r.display_name || r.displayName || String(r.id) || String(r)
+                }));
+                setAvailableResources(resourceObjects);
               }
             } catch (err) {
               console.error('Failed to fetch resources after auth:', err);
@@ -177,8 +180,8 @@ export function VirtualServersPage() {
           console.log('Fetched prompts:', prompts);
           if (Array.isArray(prompts) && prompts.length > 0) {
             const promptObjects = prompts.map((p: any) => ({
-              id: p.id || p.name || String(p),
-              name: p.name || p.display_name || p.displayName || p.id || String(p)
+              id: String(p.id ?? p.name ?? p),
+              name: p.name || p.display_name || p.displayName || String(p.id) || String(p)
             }));
             setAvailablePrompts(promptObjects);
           } else {
@@ -192,8 +195,11 @@ export function VirtualServersPage() {
               // Already logged in from tools fetch, just retry
               const prompts = await api.listPrompts();
               if (Array.isArray(prompts) && prompts.length > 0) {
-                const promptNames = prompts.map((p: any) => p.name || p.display_name || p.displayName || p.id || String(p));
-                setAvailablePrompts(promptNames);
+                const promptObjects = prompts.map((p: any) => ({
+                  id: String(p.id ?? p.name ?? p),
+                  name: p.name || p.display_name || p.displayName || String(p.id) || String(p)
+                }));
+                setAvailablePrompts(promptObjects);
               }
             } catch (err) {
               console.error('Failed to fetch prompts after auth:', err);
