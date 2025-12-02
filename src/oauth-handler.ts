@@ -48,9 +48,16 @@ const activeOAuthFlows: Map<string, {
 }> = new Map();
 
 /**
- * Find an available port for the OAuth callback server
+ * Default OAuth callback port - use a fixed port so users can pre-register the redirect URI
  */
-async function findAvailablePort(startPort = 54932, endPort = 54999): Promise<number> {
+export const OAUTH_CALLBACK_PORT = 54932;
+export const OAUTH_REDIRECT_URI = `http://127.0.0.1:${OAUTH_CALLBACK_PORT}/oauth/callback`;
+
+/**
+ * Find an available port for the OAuth callback server
+ * Prefers the default port, falls back to range if in use
+ */
+async function findAvailablePort(startPort = OAUTH_CALLBACK_PORT, endPort = 54999): Promise<number> {
   for (let port = startPort; port <= endPort; port++) {
     try {
       await new Promise<void>((resolve, reject) => {
