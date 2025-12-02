@@ -4,7 +4,6 @@ import { MCPServer } from '../types/server';
 import {
   findServerById,
   generateNextId,
-  createNewServer,
   duplicateServer as duplicateServerUtil,
   updateServerProperties,
   showUndoToast,
@@ -29,7 +28,8 @@ export function useServerActions(
   selectedServer: MCPServer | null,
   setSelectedServer: React.Dispatch<React.SetStateAction<MCPServer | null>>,
   setEditedActive: (active: boolean) => void,
-  apiType: ApiType = 'server'
+  apiType: ApiType = 'server',
+  onRefresh?: () => Promise<void>
 ) {
   const toggleStatus = apiType === 'gateway' ? api.toggleGatewayStatus : api.toggleServerStatus;
   const createEntity = apiType === 'gateway' ? api.createGateway : api.createServer;
@@ -125,7 +125,7 @@ export function useServerActions(
       if (serverToDuplicate) {
         // Create a new entity via API
         const entityCreate = mapToCreate(serverToDuplicate);
-        const createdServer = await createEntity({
+        await createEntity({
           ...entityCreate,
           name: `${serverToDuplicate.name} (Copy)`,
         } as any);
@@ -220,12 +220,20 @@ export function useServerActions(
         // Debug logging
         console.log('[saveServer] Creating gateway with data:', JSON.stringify(entityCreate, null, 2));
         
-        const createdServer = await createEntity(entityCreate as any);
+        await createEntity(entityCreate as any);
         
-        // Use the server data returned from API (has real ID and all fields)
+        // If OAuth is configured or onRefresh is provided, refresh from server to get full data
+        // This ensures OAuth status and other server-computed fields are loaded
+        if (onRefresh && (editedServer.oauthConfig || editedServer.authenticationType === 'OAuth 2.0')) {
+          await onRefresh();
+          toast.success(TOAST_CONFIG.MESSAGES.CREATED(editedServer.name));
+          return true;
+        }
+        
+        // Otherwise, use the server data returned from API (has real ID and all fields)
         // Map it to MCPServer format if needed
         const newServer: MCPServer = {
-          id: createdServer.id || createdServer.uuid || generateNextId(serversData),
+          id: generateNextId(serversData),
           name: editedServer.name,
           logoUrl: editedServer.logoUrl || editedServer.iconUrl || '',
           url: editedServer.url || '',

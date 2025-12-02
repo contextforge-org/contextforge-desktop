@@ -133,6 +133,13 @@ export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
+/**
+ * Get the current authentication token
+ */
+export function getAuthToken(): string | null {
+  return authToken;
+}
+
 // ============================================================================
 // Authentication
 // ============================================================================

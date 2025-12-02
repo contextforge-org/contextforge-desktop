@@ -411,14 +411,70 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   });
 
   // Get the backend OAuth authorize URL and open it in external browser
+  // We call the API endpoint with auth, then extract and open the redirect URL
   ipcMain.handle('api:open-backend-oauth-flow', async (_event, gatewayId: string) => {
     try {
       const { shell } = require('electron');
-      const authorizeUrl = mainApi.getBackendOAuthAuthorizeUrl(gatewayId);
-      console.log('[IPC] Opening backend OAuth authorize URL:', authorizeUrl);
-      await shell.openExternal(authorizeUrl);
-      return { success: true, data: { url: authorizeUrl } };
+      
+      const authToken = mainApi.getAuthToken();
+      if (!authToken) {
+        console.error('[IPC] No auth token available for OAuth flow');
+        return { success: false, error: 'Not authenticated. Please log in first.' };
+      }
+      
+      // Call the OAuth authorize endpoint - it returns a redirect to the OAuth provider
+      // We need to intercept the redirect URL instead of following it
+      const authorizeEndpoint = mainApi.getBackendOAuthAuthorizeUrl(gatewayId);
+      console.log('[IPC] Calling OAuth authorize endpoint:', authorizeEndpoint);
+      
+      // Make a fetch request that doesn't follow redirects
+      const response = await fetch(authorizeEndpoint, {
+        method: 'GET',
+        redirect: 'manual', // Don't follow redirects
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+        },
+      });
+      
+      console.log('[IPC] OAuth authorize response status:', response.status);
+      console.log('[IPC] OAuth authorize response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // The endpoint returns a 307 redirect - get the Location header
+      if (response.status === 307 || response.status === 302 || response.status === 303) {
+        const redirectUrl = response.headers.get('Location') || response.headers.get('location');
+        if (redirectUrl) {
+          console.log('[IPC] Opening OAuth provider URL:', redirectUrl);
+          await shell.openExternal(redirectUrl);
+          return { success: true, data: { url: redirectUrl } };
+        } else {
+          console.error('[IPC] Redirect response but no Location header');
+          return { success: false, error: 'OAuth redirect missing Location header' };
+        }
+      }
+      
+      // Check if it's an opaque redirect response (status 0 with type 'opaqueredirect')
+      // Node fetch with redirect: 'manual' may return this
+      if (response.type === 'opaqueredirect') {
+        // We can't read the Location header from opaque redirect
+        // Fall back to opening the authorize URL directly and let the browser handle auth
+        console.log('[IPC] Got opaque redirect, opening authorize URL directly');
+        await shell.openExternal(authorizeEndpoint);
+        return { success: true, data: { url: authorizeEndpoint } };
+      }
+      
+      // If we didn't get a redirect, something went wrong
+      const errorText = await response.text();
+      console.error('[IPC] OAuth authorize did not redirect:', response.status, errorText.substring(0, 500));
+      
+      // Check if it returned HTML (auth page)
+      if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+        return { success: false, error: 'Authentication required. The backend returned a login page instead of redirecting.' };
+      }
+      
+      return { success: false, error: `OAuth authorize failed: ${response.status}` };
     } catch (error) {
+      console.error('[IPC] OAuth flow error:', error);
       return { success: false, error: (error as Error).message };
     }
   });
