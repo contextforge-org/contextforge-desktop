@@ -51,6 +51,7 @@ interface ServerTableViewProps {
   onDuplicate: (serverId: string) => void;
   onDelete: (serverId: string) => void;
   onDownloadConfig?: (serverId: string, configType: ConfigType) => void;
+  onFetchTools?: (serverId: string) => void;
 }
 
 export function ServerTableView({
@@ -62,6 +63,7 @@ export function ServerTableView({
   onDuplicate,
   onDelete,
   onDownloadConfig,
+  onFetchTools,
 }: ServerTableViewProps) {
   return (
     <table className="w-full">
@@ -135,6 +137,7 @@ export function ServerTableView({
                 onDuplicate={onDuplicate}
                 onDelete={onDelete}
                 onDownloadConfig={onDownloadConfig}
+                onFetchTools={onFetchTools}
               />
             </td>
           </tr>

@@ -36,6 +36,7 @@ export interface ParsedField {
   required: boolean;
   enumValues?: any[];
   itemType?: string;
+  itemSchema?: JsonSchemaProperty; // Schema for array items (for objects)
   default?: any;
   validation?: {
     min?: number;
@@ -102,6 +103,7 @@ function parseField(name: string, schema: JsonSchemaProperty, required: boolean)
   // Determine field type
   let fieldType: ParsedField['type'] = 'string';
   let itemType: string | undefined;
+  let itemSchema: JsonSchemaProperty | undefined;
   let enumValues: any[] | undefined;
 
   if (schema.enum) {
@@ -114,6 +116,10 @@ function parseField(name: string, schema: JsonSchemaProperty, required: boolean)
         ? schema.items.anyOf.map(t => t.type)
         : [schema.items.type];
       itemType = itemTypes.find(t => t) as string || 'string';
+      // Store the full item schema for object arrays
+      if (itemType === 'object') {
+        itemSchema = schema.items;
+      }
     }
   } else if (schema.type === 'object') {
     fieldType = 'object';
@@ -140,6 +146,7 @@ function parseField(name: string, schema: JsonSchemaProperty, required: boolean)
     required,
     enumValues,
     itemType,
+    itemSchema,
     default: schema.default,
     validation: Object.keys(validation).length > 0 ? validation : undefined,
   };

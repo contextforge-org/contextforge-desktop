@@ -225,6 +225,18 @@ export function MCPServersPage() {
     }
   }, [selectedServer?.id]);
 
+  // Handle fetch tools for a gateway
+  const handleFetchTools = useCallback(async (serverId: string) => {
+    try {
+      toast.info('Fetching tools from gateway...');
+      const result = await api.fetchToolsAfterOAuth(serverId);
+      toast.success(result.message || 'Tools fetched successfully!');
+    } catch (err) {
+      console.error('Failed to fetch tools:', err);
+      toast.error('Failed to fetch tools: ' + (err as Error).message);
+    }
+  }, []);
+
   return (
     <div className="flex h-full">
       {/* Main Content */}
@@ -340,6 +352,7 @@ export function MCPServersPage() {
                 onToggleActive={actionsHook.toggleServerActive}
                 onDuplicate={actionsHook.duplicateServer}
                 onDelete={actionsHook.deleteServer}
+                onFetchTools={handleFetchTools}
               />
             ) : (
               <ServerGridView
@@ -349,6 +362,7 @@ export function MCPServersPage() {
                 onToggleActive={actionsHook.toggleServerActive}
                 onDuplicate={actionsHook.duplicateServer}
                 onDelete={actionsHook.deleteServer}
+                onFetchTools={handleFetchTools}
               />
             )}
             </div>
