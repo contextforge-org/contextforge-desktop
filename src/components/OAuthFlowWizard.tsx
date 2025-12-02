@@ -233,6 +233,8 @@ export function OAuthFlowWizard({
 
     try {
       const response = await api.getClientCredentialsToken(config);
+      console.log('[OAuthFlowWizard] Client credentials response:', response);
+      console.log('[OAuthFlowWizard] Response has access_token:', !!response?.access_token);
       setTestResult(response);
       updateConfig({
         access_token: response.access_token,
@@ -279,6 +281,9 @@ export function OAuthFlowWizard({
           token_url: config.token_url,
           scopes: config.scopes,
         });
+        
+        console.log('[OAuthFlowWizard] Native OAuth flow result:', result);
+        console.log('[OAuthFlowWizard] Result has access_token:', !!result?.access_token);
         
         if (result.success) {
           setTestResult(result);
@@ -633,15 +638,15 @@ export function OAuthFlowWizard({
                 {/* Info banner for gateway auth code without entity */}
                 {isAuthorizationCode && !hasEntityId && entityType === 'gateway' && (
                   <div
-                    className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-yellow-900/20 border-yellow-800' : 'bg-yellow-50 border-yellow-200'}`}
+                    className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}
                   >
                     <div className="flex items-start gap-3">
-                      <AlertCircle size={20} className="text-yellow-500 shrink-0 mt-0.5" />
+                      <Shield size={20} className="text-blue-500 shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-semibold text-sm mb-1">Gateway Authorization</h4>
+                        <h4 className="font-semibold text-sm mb-1">Authorization Code Flow</h4>
                         <p className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                          The backend-managed gateway OAuth flow requires the gateway to be saved first.
-                          You can save the configuration now and authorize later from the gateway settings.
+                          Click "Authorize in Browser" to complete the OAuth flow and obtain access tokens.
+                          The tokens will be saved with your gateway configuration.
                         </p>
                       </div>
                     </div>
@@ -713,16 +718,35 @@ export function OAuthFlowWizard({
                       </Button>
                     )}
 
-                    {/* For gateways without entity ID, show skip option */}
+                    {/* For new gateways without entity ID, use native OAuth flow */}
                     {isAuthorizationCode && !hasEntityId && entityType === 'gateway' && (
-                      <Button
-                        onClick={handleSkipAuthorization}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Settings size={16} className="mr-2" />
-                        Save Configuration & Authorize Later
-                      </Button>
+                      <>
+                        <Button
+                          onClick={handleInitiateAuthCodeFlow}
+                          disabled={testing}
+                          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          {testing ? (
+                            <>
+                              <Loader2 className="animate-spin mr-2" size={16} />
+                              Authorizing...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink size={16} className="mr-2" />
+                              Authorize in Browser
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={handleSkipAuthorization}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Settings size={16} className="mr-2" />
+                          Skip & Authorize Later
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}
