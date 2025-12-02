@@ -191,6 +191,7 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
       client_secret: server.oauthConfig.client_secret,
       token_url: server.oauthConfig.token_url,
       auth_url: server.oauthConfig.auth_url,
+      redirect_uri: server.oauthConfig.redirect_uri,
       scopes: server.oauthConfig.scopes,
     };
     
@@ -207,6 +208,7 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
     console.log('[mapMCPServerToGatewayCreate] OAuth config included:', {
       grant_type: server.oauthConfig.grant_type,
       client_id: server.oauthConfig.client_id ? '***' : undefined,
+      redirect_uri: server.oauthConfig.redirect_uri,
       is_auth_code_flow: isAuthCodeFlow,
       has_access_token: !isAuthCodeFlow && !!server.oauthConfig.access_token,
       is_authorized: !isAuthCodeFlow && !!server.oauthConfig.access_token,
@@ -267,6 +269,7 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
       client_secret: server.oauthConfig.client_secret,
       token_url: server.oauthConfig.token_url,
       auth_url: server.oauthConfig.auth_url,
+      redirect_uri: server.oauthConfig.redirect_uri,
       scopes: server.oauthConfig.scopes,
     };
     

@@ -18,9 +18,10 @@ import * as api from '../lib/api/contextforge-api-ipc';
 import { toast } from '../lib/toastWithTray';
 
 /**
- * The redirect URI that should be registered with the OAuth provider
+ * The backend's OAuth callback URL - used for Authorization Code flow
+ * The backend handles the OAuth callback and stores tokens per-user
  */
-const OAUTH_REDIRECT_URI = 'http://127.0.0.1:54932/oauth/callback';
+const OAUTH_REDIRECT_URI_BACKEND = 'http://localhost:4444/oauth/callback';
 
 /**
  * Entity type for OAuth configuration
@@ -36,6 +37,7 @@ export interface OAuthConfig {
   client_secret: string;
   token_url: string;
   auth_url?: string;
+  redirect_uri?: string;
   scopes: string[];
   access_token?: string;
   refresh_token?: string;
@@ -357,6 +359,9 @@ export function OAuthFlowWizard({
         client_secret: config.client_secret,
         token_url: config.token_url,
         auth_url: config.auth_url,
+        // For authorization_code flow, include the backend's redirect_uri
+        // The backend handles OAuth callbacks and stores tokens per-user
+        redirect_uri: config.grant_type === 'authorization_code' ? OAUTH_REDIRECT_URI_BACKEND : undefined,
         scopes: config.scopes || [],
         // Prefer testResult tokens (freshest) over config tokens (may be stale)
         access_token: testResult?.access_token || config.access_token,
@@ -368,6 +373,7 @@ export function OAuthFlowWizard({
       
       console.log('[OAuthFlowWizard] handleComplete - finalConfig:', {
         grant_type: finalConfig.grant_type,
+        redirect_uri: finalConfig.redirect_uri,
         has_access_token: !!finalConfig.access_token,
         has_refresh_token: !!finalConfig.refresh_token,
         testResult_has_token: !!testResult?.access_token,
@@ -560,8 +566,8 @@ export function OAuthFlowWizard({
                   Enter the OAuth endpoint URLs from your provider's documentation.
                 </p>
 
-                {/* Redirect URI Info for Authorization Code flow - different for new vs existing gateways */}
-                {isAuthorizationCode && !hasEntityId && (
+                {/* Redirect URI Info for Authorization Code flow - show backend's callback URL */}
+                {isAuthorizationCode && (
                   <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <div className="flex items-start gap-3">
                       <Globe size={20} className="text-blue-500 shrink-0 mt-0.5" />
@@ -569,12 +575,12 @@ export function OAuthFlowWizard({
                         <h4 className="font-semibold text-sm mb-1">Redirect URI (Register this with your OAuth provider)</h4>
                         <div className="flex items-center gap-2">
                           <code className={`text-xs px-2 py-1 rounded flex-1 truncate ${theme === 'dark' ? 'bg-zinc-800 text-blue-300' : 'bg-white text-blue-700'}`}>
-                            {OAUTH_REDIRECT_URI}
+                            {OAUTH_REDIRECT_URI_BACKEND}
                           </code>
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(OAUTH_REDIRECT_URI);
+                              navigator.clipboard.writeText(OAUTH_REDIRECT_URI_BACKEND);
                               toast.success('Redirect URI copied to clipboard');
                             }}
                             className={`p-1.5 rounded hover:bg-opacity-80 ${theme === 'dark' ? 'bg-zinc-700 hover:bg-zinc-600' : 'bg-gray-200 hover:bg-gray-300'}`}

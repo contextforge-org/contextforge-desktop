@@ -4,6 +4,7 @@ export interface OAuthConfig {
   client_secret: string;
   token_url: string;
   auth_url?: string;
+  redirect_uri?: string;
   scopes: string[];
   access_token?: string;
   refresh_token?: string;
