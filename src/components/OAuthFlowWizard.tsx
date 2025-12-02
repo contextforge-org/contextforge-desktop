@@ -649,6 +649,7 @@ export function OAuthFlowWizard({
                     type="text"
                     value={config.scopes?.join(' ') || ''}
                     onChange={e => updateConfig({ scopes: e.target.value.split(' ').filter(s => s) })}
+                    onKeyDown={e => e.stopPropagation()}
                     placeholder="read write admin"
                     className={`w-full px-3 py-2 border rounded-md ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                   />

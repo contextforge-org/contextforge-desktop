@@ -532,17 +532,36 @@ export function ServerDetailsPanel({
                     <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                       OAuth 2.0 Configuration
                     </h4>
-                    <button
-                      onClick={onOpenOAuthWizard}
-                      className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-zinc-700 hover:bg-zinc-600 text-white'
-                          : 'bg-white hover:bg-gray-100 text-gray-900 border border-gray-300'
-                      }`}
-                    >
-                      <Settings size={12} />
-                      Edit Config
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Authorize button - show for authorization_code flow when server is saved */}
+                      {editedOAuthConfig.grant_type === 'authorization_code' && panelMode === 'view' && server?.id && !isOAuthAuthorized && (
+                        isAuthorizingOAuth ? (
+                          <div className="flex items-center gap-1.5 px-2 py-1 text-xs">
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-blue-500 border-t-transparent"></div>
+                            <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>Authorizing...</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={onAuthorizeOAuth}
+                            className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors bg-blue-500 hover:bg-blue-600 text-white"
+                          >
+                            <ExternalLink size={12} />
+                            Authorize
+                          </button>
+                        )
+                      )}
+                      <button
+                        onClick={onOpenOAuthWizard}
+                        className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-zinc-700 hover:bg-zinc-600 text-white'
+                            : 'bg-white hover:bg-gray-100 text-gray-900 border border-gray-300'
+                        }`}
+                      >
+                        <Settings size={12} />
+                        Edit Config
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2 text-sm">
@@ -578,33 +597,12 @@ export function ServerDetailsPanel({
                           </span>
                         </div>
                       ) : editedOAuthConfig.grant_type === 'authorization_code' && panelMode === 'view' && server?.id ? (
-                        // Authorization Code flow in view mode - need to authorize via backend
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                            <span className={`text-xs ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`}>
-                              Authorization Required
-                            </span>
-                          </div>
-                          {isAuthorizingOAuth ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
-                              <span className={`text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                                Waiting for authorization...
-                              </span>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={onAuthorizeOAuth}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors bg-blue-500 hover:bg-blue-600 text-white"
-                            >
-                              <ExternalLink size={12} />
-                              Authorize with OAuth
-                            </button>
-                          )}
-                          <p className={`text-xs ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                            Opens your browser to complete OAuth authorization
-                          </p>
+                        // Authorization Code flow in view mode - show status only (button is in header)
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`}>
+                            Authorization Required
+                          </span>
                         </div>
                       ) : null}
                     </div>
