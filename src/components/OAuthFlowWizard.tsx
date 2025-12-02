@@ -101,6 +101,8 @@ export function OAuthFlowWizard({
     auth_url: initialConfig?.auth_url || '',
     scopes: initialConfig?.scopes || [],
   });
+  // Track raw scopes input to allow spaces while typing
+  const [scopesInput, setScopesInput] = useState(initialConfig?.scopes?.join(' ') || '');
 
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
@@ -124,6 +126,7 @@ export function OAuthFlowWizard({
         auth_url: initialConfig?.auth_url || '',
         scopes: initialConfig?.scopes || [],
       });
+      setScopesInput(initialConfig?.scopes?.join(' ') || '');
       setTesting(false);
       setTestResult(null);
       setTestError('');
@@ -206,7 +209,9 @@ export function OAuthFlowWizard({
       try {
         const status = await api.getOAuthStatus(entityId);
 
-        if (status.is_authorized || status.oauth_enabled) {
+        // Only consider authorized if is_authorized is explicitly true
+        // oauth_enabled just means OAuth is configured, not that the user has authorized
+        if (status.is_authorized === true) {
           // OAuth complete! Backend has stored the tokens
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
@@ -647,8 +652,12 @@ export function OAuthFlowWizard({
                   </label>
                   <input
                     type="text"
-                    value={config.scopes?.join(' ') || ''}
-                    onChange={e => updateConfig({ scopes: e.target.value.split(' ').filter(s => s) })}
+                    value={scopesInput}
+                    onChange={e => {
+                      setScopesInput(e.target.value);
+                      // Update config with parsed scopes (filter empty strings only for storage)
+                      updateConfig({ scopes: e.target.value.split(/\s+/).filter(s => s) });
+                    }}
                     onKeyDown={e => e.stopPropagation()}
                     placeholder="read write admin"
                     className={`w-full px-3 py-2 border rounded-md ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
