@@ -212,6 +212,17 @@ export function VirtualServersPage() {
     fetchAvailableItems();
   }, []);
 
+  // Refresh function to fetch fresh server data from backend
+  const refreshServers = useCallback(async () => {
+    try {
+      const servers = await api.listServers();
+      const mappedServers = servers.map(mapServerReadToMCPServer);
+      setServersData(mappedServers);
+    } catch (err) {
+      console.error('Failed to refresh servers:', err);
+    }
+  }, []);
+
   // Use custom hooks for filters, editor, and actions
   const filterHook = useServerFilters(filteredServers);
   const editorHook = useServerEditor();
@@ -221,7 +232,8 @@ export function VirtualServersPage() {
     selectedServer,
     setSelectedServer,
     editorHook.setEditedActive,
-    'server'
+    'server',
+    refreshServers  // Pass refresh callback to get real IDs after creation
   );
 
   // Helper to convert tool names to IDs (backend returns names but expects IDs when saving)

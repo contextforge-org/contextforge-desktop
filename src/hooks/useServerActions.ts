@@ -218,20 +218,19 @@ export function useServerActions(
         const entityCreate = mapToCreate(serverData);
         
         // Debug logging
-        console.log('[saveServer] Creating gateway with data:', JSON.stringify(entityCreate, null, 2));
+        console.log('[saveServer] Creating entity with data:', JSON.stringify(entityCreate, null, 2));
         
         await createEntity(entityCreate as any);
         
-        // If OAuth is configured or onRefresh is provided, refresh from server to get full data
-        // This ensures OAuth status and other server-computed fields are loaded
-        if (onRefresh && (editedServer.oauthConfig || editedServer.authenticationType === 'OAuth 2.0')) {
+        // Always refresh from server to get the real ID assigned by the backend
+        // This prevents showing a temporary/placeholder ID in the UI
+        if (onRefresh) {
           await onRefresh();
           toast.success(TOAST_CONFIG.MESSAGES.CREATED(editedServer.name));
           return true;
         }
         
-        // Otherwise, use the server data returned from API (has real ID and all fields)
-        // Map it to MCPServer format if needed
+        // Fallback if no refresh callback - use local data (may show temp ID)
         const newServer: MCPServer = {
           id: generateNextId(serversData),
           name: editedServer.name,
