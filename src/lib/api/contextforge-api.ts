@@ -14,7 +14,8 @@ import {
 import { client } from '../contextforge-client-ts/client.gen';
 
 // Configure the client
-const API_BASE_URL = 'http://localhost:4444';
+// API_BASE_URL can be set via environment variable or defaults to localhost
+const API_BASE_URL = import.meta.env['VITE_API_URL'] || 'http://localhost:4444';
 
 export function configureClient(token?: string) {
   client.setConfig({

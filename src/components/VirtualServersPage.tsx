@@ -13,6 +13,7 @@ import { ServerFilterDropdown } from './ServerFilterDropdown';
 import { PageHeader, DataTableToolbar } from './common';
 import { Server } from 'lucide-react';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import { mapServerReadToMCPServer } from '../lib/api/server-mapper';
 import { toast } from '../lib/toastWithTray';
 import { ConfigType } from '../lib/serverUtils';
@@ -51,32 +52,12 @@ export function VirtualServersPage() {
         setError(null);
         
         // Try to fetch servers
-        try {
-          const servers = await api.listServers();
-          const mappedServers = servers.map(mapServerReadToMCPServer);
-          setServersData(mappedServers);
-        } catch (fetchError) {
-          // If fetch fails due to auth, try to login
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              // Retry fetching servers
-              const servers = await api.listServers();
-              const mappedServers = servers.map(mapServerReadToMCPServer);
-              setServersData(mappedServers);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        const servers = await withAuth(
+          () => api.listServers(),
+          'Failed to load virtual servers'
+        );
+        const mappedServers = servers.map(mapServerReadToMCPServer);
+        setServersData(mappedServers);
       } catch (err) {
         console.log(err)
         const errorMessage = (err as Error).message;
@@ -97,7 +78,10 @@ export function VirtualServersPage() {
       try {
         // Fetch tools with auth retry
         try {
-          const tools = await api.listTools();
+          const tools = await withAuth(
+            () => api.listTools(),
+            'Failed to load tools'
+          );
           console.log('Fetched tools:', tools);
           if (Array.isArray(tools) && tools.length > 0) {
             const toolObjects = tools.map((t: any) => ({
@@ -111,30 +95,8 @@ export function VirtualServersPage() {
             setAvailableTools([]);
           }
         } catch (fetchError) {
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated for tools, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              const tools = await api.listTools();
-              if (Array.isArray(tools) && tools.length > 0) {
-                const toolObjects = tools.map((t: any) => ({
-                  id: t.id || t.name || String(t),
-                  name: t.name || t.display_name || t.displayName || t.id || String(t)
-                }));
-                setAvailableTools(toolObjects);
-              }
-            } catch (loginError) {
-              console.error('Failed to authenticate for tools:', loginError);
-              setAvailableTools([]);
-            }
-          } else {
-            console.error('Failed to fetch tools:', fetchError);
-            setAvailableTools([]);
-          }
+          console.error('Failed to fetch tools:', fetchError);
+          setAvailableTools([]);
         }
 
         // Fetch resources with auth retry

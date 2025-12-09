@@ -4,6 +4,7 @@ import started from 'electron-squirrel-startup';
 import { TrayManager } from './tray-manager';
 import { PythonProcessManager } from './python-process-manager';
 import { setupIpcHandlers, cleanupIpcHandlers } from './ipc-handlers';
+import { profileManager } from './services/ProfileManager';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -47,6 +48,11 @@ const createWindow = () => {
   // Initialize tray manager with Python manager
   trayManager = new TrayManager(mainWindow, pythonManager);
   trayManager.createTray();
+
+  // Initialize profile manager to load saved profiles and active profile
+  profileManager.initialize().catch(error => {
+    console.error('Failed to initialize ProfileManager:', error);
+  });
 
   // Setup IPC handlers
   setupIpcHandlers(trayManager, mainWindow);

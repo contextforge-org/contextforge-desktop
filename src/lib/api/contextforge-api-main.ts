@@ -104,14 +104,39 @@ import { client } from '../contextforge-client-ts/client.gen';
 import { createElectronFetchAdapter } from './electron-fetch-adapter';
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:4444';
+// API_BASE_URL is set dynamically by the profile system via setApiBaseUrl()
+// Default fallback is used only if no profile is loaded
+let API_BASE_URL = process.env['VITE_API_URL'] || 'http://localhost:4444';
 let authToken: string | null = null;
+
+/**
+ * Update the API base URL (called when switching profiles)
+ */
+export function setApiBaseUrl(url: string) {
+  API_BASE_URL = url;
+  client.setConfig({
+    baseUrl: API_BASE_URL,
+    fetch: electronFetch as any,
+    auth: () => {
+      return authToken || undefined;
+    }
+  });
+  console.log('API base URL updated to:', API_BASE_URL);
+}
+
+/**
+ * Get the current API base URL
+ */
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
 
 // Create and configure the Electron fetch adapter
 const electronFetch = createElectronFetchAdapter();
 
 // Initialize client on module load with auth callback
 // The callback will return undefined until login sets authToken
+// The baseUrl will be updated by setApiBaseUrl() when a profile is loaded
 client.setConfig({
   baseUrl: API_BASE_URL,
   fetch: electronFetch as any,

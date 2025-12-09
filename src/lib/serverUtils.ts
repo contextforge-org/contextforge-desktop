@@ -169,7 +169,8 @@ export type ConfigType = 'stdio' | 'sse' | 'http';
  * @returns Generated configuration object
  */
 export function generateConfig(server: MCPServer, configType: ConfigType): object {
-  // Use the API URL from environment variable, fallback to localhost:4444
+  // Get the API URL from the current profile's API configuration
+  // Falls back to environment variable or localhost if no profile is active
   const apiUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:4444';
   const baseUrl = apiUrl.replace(/\/$/, ''); // Remove trailing slash if present
 

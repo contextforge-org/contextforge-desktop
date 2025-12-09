@@ -12,6 +12,7 @@ import { ServerFilterDropdown } from './ServerFilterDropdown';
 import { OAuthFlowWizard, type OAuthConfig } from './OAuthFlowWizard';
 import { PageHeader, DataTableToolbar, MCPIcon } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import { mapGatewayReadToMCPServer } from '../lib/api/server-mapper';
 import { toast } from '../lib/toastWithTray';
 
@@ -43,28 +44,13 @@ export function MCPServersPage() {
 
   // Reusable function to fetch/refresh gateways
   const refreshGateways = useCallback(async () => {
-    try {
-      const gateways = await api.listGateways();
-      const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
-      setServersData(mappedGateways);
-    } catch (fetchError) {
-      // If fetch fails due to auth, try to login
-      const errorMsg = (fetchError as Error).message;
-      if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-        console.log('Not authenticated, attempting login...');
-        await api.login(
-          import.meta.env['VITE_API_EMAIL'],
-          import.meta.env['VITE_API_PASSWORD']
-        );
-        // Retry fetching gateways
-        const gateways = await api.listGateways();
-        const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
-        setServersData(mappedGateways);
-        toast.success('Connected to ContextForge backend');
-      } else {
-        throw fetchError;
-      }
-    }
+    const gateways = await withAuth(
+      () => api.listGateways(),
+      'Failed to load gateways'
+    );
+    const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
+    setServersData(mappedGateways);
+    toast.success('Connected to ContextForge backend');
   }, []);
 
   // Fetch servers on mount and when team changes

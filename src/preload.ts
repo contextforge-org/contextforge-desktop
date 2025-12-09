@@ -104,6 +104,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) =>
       ipcRenderer.invoke('api:execute-tool-rpc', toolName, params, passthroughHeaders, timeout),
     getAggregatedMetrics: () => ipcRenderer.invoke('api:getAggregatedMetrics'),
+    
+    // Profile management methods
+    initializeProfiles: () => ipcRenderer.invoke('profiles:initialize'),
+    getAllProfiles: () => ipcRenderer.invoke('profiles:get-all'),
+    getProfile: (profileId: string) => ipcRenderer.invoke('profiles:get', profileId),
+    createProfile: (request: any) => ipcRenderer.invoke('profiles:create', request),
+    updateProfile: (profileId: string, updates: any) => ipcRenderer.invoke('profiles:update', profileId, updates),
+    deleteProfile: (profileId: string) => ipcRenderer.invoke('profiles:delete', profileId),
+    switchProfile: (profileId: string) => ipcRenderer.invoke('profiles:switch', profileId),
+    loginWithProfile: (profileId: string) => ipcRenderer.invoke('profiles:login', profileId),
+    logoutProfile: () => ipcRenderer.invoke('profiles:logout'),
+    getCurrentProfile: () => ipcRenderer.invoke('profiles:get-current'),
+    testProfileCredentials: (email: string, password: string, apiUrl: string) => ipcRenderer.invoke('profiles:test-credentials', email, password, apiUrl),
   },
 });
 
@@ -191,6 +204,19 @@ declare global {
         getAvailablePermissions: () => Promise<{ success: boolean; data?: any; error?: string }>;
         executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) => Promise<{ success: boolean; data?: any; error?: string }>;
         getAggregatedMetrics: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        
+        // Profile management methods
+        initializeProfiles: () => Promise<{ success: boolean; error?: string }>;
+        getAllProfiles: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getProfile: (profileId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        createProfile: (request: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        updateProfile: (profileId: string, updates: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deleteProfile: (profileId: string) => Promise<{ success: boolean; error?: string }>;
+        switchProfile: (profileId: string) => Promise<{ success: boolean; profile?: any; token?: string; error?: string }>;
+        loginWithProfile: (profileId: string) => Promise<{ success: boolean; profile?: any; token?: string; error?: string }>;
+        logoutProfile: () => Promise<{ success: boolean; error?: string }>;
+        getCurrentProfile: () => Promise<{ success: boolean; data?: { profile: any; token: string; isAuthenticated: boolean }; error?: string }>;
+        testProfileCredentials: (email: string, password: string, apiUrl: string) => Promise<{ success: boolean; error?: string }>;
       };
     };
   }

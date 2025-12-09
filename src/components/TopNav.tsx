@@ -1,7 +1,12 @@
 import svgPaths from "../imports/svg-00ihbob3cz";
-import { Sun, Moon, User, Bell as BellIcon } from 'lucide-react';
+import { Sun, Moon, Bell as BellIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useCurrentUser } from '../hooks/useCurrentUser';
+import { ProfileSelector } from './ProfileSelector';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { ProfileForm } from './ProfileForm';
+import { useProfiles } from '../hooks/useProfiles';
+import type { ProfileCreateRequest } from '../types/profile';
 
 function Logo() {
   const { theme } = useTheme();
@@ -31,57 +36,77 @@ function Bell() {
   );
 }
 
-function Avatar() {
-  return (
-    <div className="box-border content-stretch flex h-[24px] isolate items-center relative shrink-0" data-name="avatar">
-      <div className="relative shrink-0 size-[20px] z-[1]" data-name="Profile photo for an enterprise user">
-        <User size={20} strokeWidth={1.5} className="text-zinc-400" />
-      </div>
-    </div>
-  );
-}
-
-function Count() {
-  return (
-    <div className="content-stretch flex gap-[4px] items-center relative shrink-0" data-name="count">
-      <div className="overflow-clip relative shrink-0 size-[20px] text-zinc-400" data-name="chevrons-up-down">
-        <div className="absolute inset-[16.67%_29.17%]" data-name="Vector">
-          <div className="absolute inset-[-5.21%_-8.33%]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 9 14">
-              <path d={svgPaths.p1f8c3380} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Profile() {
-  const { theme } = useTheme();
-  const { user, loading } = useCurrentUser();
-  
-  return (
-    <button className="content-stretch flex gap-[8px] items-center relative shrink-0 cursor-pointer group px-2" data-name="profile">
-      <div className={`${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-200'} h-[32px] opacity-0 rounded-[6px] group-hover:opacity-100 transition-opacity absolute inset-0 pointer-events-none`} data-name="hover-background" />
-      {!loading && user?.email && (
-        <span className={`font-['Inter',sans-serif] text-[14px] relative z-[1] ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-          {user.email}
-        </span>
-      )}
-      <Avatar />
-      <Count />
-    </button>
-  );
-}
-
 function End() {
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showManageDialog, setShowManageDialog] = useState(false);
+  const { createProfile } = useProfiles();
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateProfile = async (data: ProfileCreateRequest) => {
+    setIsCreating(true);
+    try {
+      const result = await createProfile(data);
+      if (result.success) {
+        setShowCreateDialog(false);
+        // TODO: Show success toast
+      } else {
+        // Error is handled in the form
+        console.error('Failed to create profile:', result.error);
+      }
+    } catch (error) {
+      console.error('Error creating profile:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
-    <div className="content-stretch flex gap-[16px] items-center justify-end relative shrink-0" data-name="end">
-      <ThemeSwitch />
-      <Bell />
-      <Profile />
-    </div>
+    <>
+      <div className="content-stretch flex gap-[16px] items-center justify-end relative shrink-0" data-name="end">
+        <ThemeSwitch />
+        <Bell />
+        <ProfileSelector
+          onCreateProfile={() => setShowCreateDialog(true)}
+          onManageProfiles={() => setShowManageDialog(true)}
+        />
+      </div>
+
+      {/* Create Profile Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Profile</DialogTitle>
+            <DialogDescription>
+              Add a new authentication profile for a different environment or account.
+            </DialogDescription>
+          </DialogHeader>
+          <ProfileForm
+            onSubmit={handleCreateProfile}
+            onCancel={() => setShowCreateDialog(false)}
+            isLoading={isCreating}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Profiles Dialog - TODO: Navigate to ProfileManagementPage instead */}
+      {showManageDialog && (
+        <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Profile Management</DialogTitle>
+              <DialogDescription>
+                Manage your authentication profiles. For full management features, visit the Settings page.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-4 text-center text-muted-foreground">
+              Profile management page integration coming soon.
+              <br />
+              Use the profile selector dropdown for quick switching.
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 

@@ -18,6 +18,7 @@ import { RightSidePanel } from './RightSidePanel';
 import { toast } from '../lib/toastWithTray';
 import { PageHeader, DataTableToolbar } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import {
   parseInputSchema,
   processInputParameters,
@@ -274,79 +275,36 @@ export function ToolsPage() {
         setError(null);
         
         // Try to fetch tools
-        try {
-          const tools = await api.listTools();
-          // Map API response to Tool interface
-          const mappedTools = tools.map((tool: any) => ({
-            id: tool.id,
-            gatewayId: tool.gateway_id || tool.gatewayId || null,
-            gatewayName: tool.gateway_name || tool.gatewayName || tool.gateway_slug || tool.gatewaySlug || (tool.gatewayId ? `Gateway ${tool.gatewayId.slice(0, 8)}` : 'Local Tool'),
-            name: tool.name,
-            displayName: tool.display_name || tool.displayName || tool.name,
-            url: tool.url,
-            type: tool.integration_type || tool.type || 'REST',
-            requestMethod: tool.request_type || tool.requestMethod || 'GET',
-            description: tool.description || '',
-            annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
-            tags: Array.isArray(tool.tags) ? tool.tags : [],
-            owner: tool.owner || 'Unknown',
-            team: tool.team || 'Default Team',
-            teamId: tool.team_id || tool.teamId || null,
-            visibility: tool.visibility || 'public',
-            integrationType: tool.integration_type || tool.integrationType || 'REST',
-            headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
-            inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
-            outputSchema: typeof tool.output_schema === 'object' ? JSON.stringify(tool.output_schema, null, 2) : (typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : (tool.output_schema || tool.outputSchema || '')),
-            jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
-            authenticationType: tool.auth_type || tool.authenticationType || 'None',
-            active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
-          }));
-          setToolsData(mappedTools);
-        } catch (fetchError) {
-          // If fetch fails due to auth, try to login
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              // Retry fetching tools
-              const tools = await api.listTools();
-              const mappedTools = tools.map((tool: any) => ({
-                id: tool.id,
-                gatewayId: tool.gateway_id || tool.gatewayId || null,
-                gatewayName: tool.gateway_name || tool.gatewayName || tool.gateway_slug || tool.gatewaySlug || (tool.gatewayId ? `Gateway ${tool.gatewayId.slice(0, 8)}` : 'Local Tool'),
-                teamId: tool.team_id || tool.teamId || null,
-                name: tool.name,
-                displayName: tool.display_name || tool.displayName || tool.name,
-                url: tool.url,
-                type: tool.integration_type || tool.type || 'REST',
-                requestMethod: tool.request_type || tool.requestMethod || 'GET',
-                description: tool.description || '',
-                annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
-                tags: Array.isArray(tool.tags) ? tool.tags : [],
-                owner: tool.owner || 'Unknown',
-                team: tool.team || 'Default Team',
-                visibility: tool.visibility || 'public',
-                integrationType: tool.integration_type || tool.integrationType || 'REST',
-                headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
-                inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
-                outputSchema: typeof tool.output_schema === 'object' ? JSON.stringify(tool.output_schema, null, 2) : (typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : (tool.output_schema || tool.outputSchema || '')),
-                jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
-                authenticationType: tool.auth_type || tool.authenticationType || 'None',
-                active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
-              }));
-              setToolsData(mappedTools);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        const tools = await withAuth(
+          () => api.listTools(),
+          'Failed to load tools'
+        );
+        // Map API response to Tool interface
+        const mappedTools = tools.map((tool: any) => ({
+          id: tool.id,
+          gatewayId: tool.gateway_id || tool.gatewayId || null,
+          gatewayName: tool.gateway_name || tool.gatewayName || tool.gateway_slug || tool.gatewaySlug || (tool.gatewayId ? `Gateway ${tool.gatewayId.slice(0, 8)}` : 'Local Tool'),
+          name: tool.name,
+          displayName: tool.display_name || tool.displayName || tool.name,
+          url: tool.url,
+          type: tool.integration_type || tool.type || 'REST',
+          requestMethod: tool.request_type || tool.requestMethod || 'GET',
+          description: tool.description || '',
+          annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
+          tags: Array.isArray(tool.tags) ? tool.tags : [],
+          owner: tool.owner || 'Unknown',
+          team: tool.team || 'Default Team',
+          teamId: tool.team_id || tool.teamId || null,
+          visibility: tool.visibility || 'public',
+          integrationType: tool.integration_type || tool.integrationType || 'REST',
+          headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
+          inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
+          outputSchema: typeof tool.output_schema === 'object' ? JSON.stringify(tool.output_schema, null, 2) : (typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : (tool.output_schema || tool.outputSchema || '')),
+          jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
+          authenticationType: tool.auth_type || tool.authenticationType || 'None',
+          active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
+        }));
+        setToolsData(mappedTools);
       } catch (err) {
         console.log(err);
         const errorMessage = (err as Error).message;

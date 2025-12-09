@@ -1,6 +1,8 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { TrayManager } from './tray-manager';
 import * as mainApi from './lib/api/contextforge-api-main';
+import { profileManager } from './services/ProfileManager';
+import type { ProfileCreateRequest, ProfileUpdateRequest } from './types/profile';
 
 /**
  * Setup IPC handlers for tray and window management
@@ -736,6 +738,113 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // Profile Management handlers
+  ipcMain.handle('profiles:initialize', async () => {
+    try {
+      await profileManager.initialize();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:get-all', async () => {
+    try {
+      const result = await profileManager.getAllProfiles();
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:get', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.getProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:create', async (_event, request: ProfileCreateRequest) => {
+    try {
+      const result = await profileManager.createProfile(request);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:update', async (_event, profileId: string, updates: ProfileUpdateRequest) => {
+    try {
+      const result = await profileManager.updateProfile(profileId, updates);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:delete', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.deleteProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:switch', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.switchProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:login', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.loginWithProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:logout', async () => {
+    try {
+      await profileManager.logout();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:get-current', async () => {
+    try {
+      const profile = profileManager.getCurrentProfile();
+      const token = profileManager.getCurrentToken();
+      return {
+        success: true,
+        data: {
+          profile,
+          token,
+          isAuthenticated: !!profile && !!token
+        }
+      };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:test-credentials', async (_event, email: string, password: string, apiUrl: string) => {
+    try {
+      const result = await profileManager.testCredentials(email, password, apiUrl);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
 
   // RPC handlers (Tool Execution)
   ipcMain.handle('api:execute-tool-rpc', async (
@@ -806,4 +915,17 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:revoke-role-from-user');
   ipcMain.removeHandler('api:execute-tool-rpc');
   ipcMain.removeHandler('api:getAggregatedMetrics');
+  
+  // Profile management handlers cleanup
+  ipcMain.removeHandler('profiles:initialize');
+  ipcMain.removeHandler('profiles:get-all');
+  ipcMain.removeHandler('profiles:get');
+  ipcMain.removeHandler('profiles:create');
+  ipcMain.removeHandler('profiles:update');
+  ipcMain.removeHandler('profiles:delete');
+  ipcMain.removeHandler('profiles:switch');
+  ipcMain.removeHandler('profiles:login');
+  ipcMain.removeHandler('profiles:logout');
+  ipcMain.removeHandler('profiles:get-current');
+  ipcMain.removeHandler('profiles:test-credentials');
 }

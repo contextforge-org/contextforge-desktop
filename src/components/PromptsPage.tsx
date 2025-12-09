@@ -9,6 +9,7 @@ import { PromptTableView } from './PromptTableView';
 import { PromptDetailsPanel } from './PromptDetailsPanel';
 import { PageHeader, DataTableToolbar } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import { toast } from '../lib/toastWithTray';
 import { FileText } from 'lucide-react';
 
@@ -39,31 +40,12 @@ export function PromptsPage() {
         setIsLoading(true);
         setError(null);
         
-        // Try to fetch prompts
-        try {
-          const prompts = await api.listPrompts();
-          setPromptsData(prompts);
-        } catch (fetchError) {
-          // If fetch fails due to auth, try to login
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              // Retry fetching prompts
-              const prompts = await api.listPrompts();
-              setPromptsData(prompts);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        const prompts = await withAuth(
+          () => api.listPrompts(),
+          'Failed to load prompts'
+        );
+        setPromptsData(prompts);
+        toast.success('Connected to ContextForge backend');
       } catch (err) {
         console.log(err);
         const errorMessage = (err as Error).message;
