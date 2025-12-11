@@ -18,6 +18,10 @@ GATEWAY_REPO_HTTPS="git+https://github.com/IBM/mcp-context-forge.git"
 CLI_REPO_SSH="git+ssh://git@github.com/contextforge-org/contextforge-cli.git"
 CLI_REPO_HTTPS="git+https://github.com/contextforge-org/contextforge-cli.git"
 OUTPUT_NAME="cforge"
+DEFAULT_HOME_DIR=${DEFAULT_HOME_DIR:-""}
+
+# Always run from the script's parent directory
+cd $(dirname ${BASH_SOURCE[0]})
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Context Forge Backend Build Script${NC}"
@@ -219,6 +223,38 @@ if [ -z "$CFORGE_PATH" ] || [ ! -f "$CFORGE_PATH" ]; then
     python -c "import cforge; import os; print('cforge location:', cforge.__file__); print('Package contents:'); import pkgutil; print([name for _, name, _ in pkgutil.iter_modules([os.path.dirname(cforge.__file__)])])" 2>/dev/null || echo "Could not inspect cforge package"
     echo ""
 fi
+
+# Create a wrapper script to redirect the home dir to the app's data path
+CFORGE_PATH="cforge_wrapper.py"
+cat > "$CFORGE_PATH" << EOF
+#!/usr/bin/env python3
+"""
+Wrapper script for cforge to default home to app data
+"""
+import os
+
+HOME_ENV = "CONTEXTFORGE_HOME"
+
+if __name__ == '__main__':
+    # Set the default env var for the home directory
+    if home_dir := os.getenv(HOME_ENV, "${DEFAULT_HOME_DIR}"):
+        os.environ[HOME_ENV] = home_dir
+
+    # Import the main entrypoint and run it
+    from cforge.main import main
+    sys.exit(main())
+EOF
+chmod +x "$CFORGE_PATH"
+print_success "Created wrapper script at: $CFORGE_PATH"
+
+# Verify the wrapper works
+print_status "Testing wrapper script..."
+if python "$CFORGE_PATH" --help >/dev/null 2>&1; then
+    print_success "Wrapper script works!"
+else
+    print_warning "Wrapper test inconclusive, but proceeding with build..."
+fi
+
 
 # Clean previous build artifacts
 print_status "Cleaning previous build artifacts..."
