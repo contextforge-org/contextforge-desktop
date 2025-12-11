@@ -94,10 +94,34 @@ export class PythonProcessManager {
    * Get spawn options for the Python process
    */
   private getSpawnOptions(execPath: string) {
+    // Set up environment variables for the internal backend
+    const env = {
+      ...process.env,
+      // Backend configuration
+      MCG_HOST: '127.0.0.1',
+      MCG_PORT: '4444',
+      HOST: '127.0.0.1',
+      PORT: '4444',
+      // Authentication - enable for internal backend
+      AUTH_REQUIRED: 'true',
+      BASIC_AUTH_USER: 'admin@example.com',
+      BASIC_AUTH_PASSWORD: 'changeme',
+      // Database
+      CONTEXTFORGE_HOME: path.join(app.getPath('userData'), '.contextforge'),
+      // Logging
+      LOG_LEVEL: 'INFO',
+      // UI - disable for internal backend
+      MCPGATEWAY_UI_ENABLED: 'false',
+      MCPGATEWAY_ADMIN_API_ENABLED: 'true',
+      // Development mode for easier setup
+      DEV_MODE: 'true',
+    };
+
     return {
       detached: false,
       stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'],
       cwd: path.dirname(execPath),
+      env,
     };
   }
 

@@ -64,6 +64,93 @@ export class ProfileManager extends EventEmitter {
   }
 
   /**
+   * Create or update the internal profile for the embedded backend
+   */
+  async ensureInternalProfile(skipCredentialTest = true): Promise<ProfileLoginResult> {
+    const INTERNAL_PROFILE_NAME = 'Internal Backend';
+    const INTERNAL_API_URL = 'http://127.0.0.1:4444';
+    const INTERNAL_EMAIL = 'admin@example.com';
+    const INTERNAL_PASSWORD = 'changeme';
+
+    try {
+      // Check if internal profile already exists
+      const allProfiles = await profileStorage.getAllProfiles();
+      let internalProfile: AuthProfile | undefined;
+
+      if (allProfiles.success && allProfiles.data) {
+        internalProfile = allProfiles.data.find(
+          p => p.name === INTERNAL_PROFILE_NAME || p.apiUrl === INTERNAL_API_URL
+        );
+      }
+
+      if (internalProfile) {
+        // Profile exists, update credentials if needed and login
+        console.log('Internal profile found, logging in...');
+        const updateResult = await profileStorage.updateProfile(internalProfile.id, {
+          email: INTERNAL_EMAIL,
+          apiUrl: INTERNAL_API_URL,
+          metadata: {
+            ...internalProfile.metadata,
+            environment: 'local',
+            description: 'Embedded backend server'
+          }
+        });
+
+        if (!updateResult.success) {
+          console.warn('Failed to update internal profile:', updateResult.error);
+        }
+
+        // Update credentials by updating the profile with password
+        const credentialsResult = await profileStorage.updateProfile(internalProfile.id, {
+          password: INTERNAL_PASSWORD
+        });
+
+        if (!credentialsResult.success) {
+          console.warn('Failed to update internal profile credentials:', credentialsResult.error);
+        }
+
+        // Login with the profile (will handle password change if needed)
+        return await this.loginWithProfile(internalProfile.id);
+      } else {
+        // Create new internal profile - always skip credential test for internal backend
+        console.log('Creating internal profile (skipping credential test)...');
+        
+        // Create profile directly in storage without going through createProfile
+        // which would test credentials
+        const createResult = await profileStorage.createProfile({
+          name: INTERNAL_PROFILE_NAME,
+          email: INTERNAL_EMAIL,
+          password: INTERNAL_PASSWORD,
+          apiUrl: INTERNAL_API_URL,
+          metadata: {
+            environment: 'local',
+            description: 'Embedded backend server',
+            icon: '🏠'
+          }
+        });
+
+        if (createResult.success && createResult.data) {
+          console.log('Internal profile created successfully');
+          // Try to login (will handle password change if needed)
+          const loginResult = await this.loginWithProfile(createResult.data.id);
+          return loginResult;
+        } else {
+          return {
+            success: false,
+            error: createResult.error || 'Failed to create internal profile'
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Failed to ensure internal profile:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
    * Create a new profile
    */
   async createProfile(request: ProfileCreateRequest): Promise<ProfileStorageResult<AuthProfile>> {
@@ -239,6 +326,43 @@ export class ProfileManager extends EventEmitter {
   }
 
   /**
+   * Change password for a user
+   */
+  private async changePassword(oldPassword: string, newPassword: string, token: string, apiUrl: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Use fetch directly to call the password change endpoint
+      const response = await fetch(`${apiUrl}/auth/email/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword
+        })
+      });
+
+      if (response.ok) {
+        console.log('Password changed successfully');
+        return { success: true };
+      }
+
+      const errorData = await response.json().catch(() => ({}));
+      return { 
+        success: false, 
+        error: errorData.detail || `Password change failed: ${response.status}` 
+      };
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
    * Login with a specific profile
    */
   async loginWithProfile(profileId: string): Promise<ProfileLoginResult> {
@@ -268,18 +392,70 @@ export class ProfileManager extends EventEmitter {
       const { setApiBaseUrl } = await import('../lib/api/contextforge-api-main');
       setApiBaseUrl(profile.apiUrl);
       
-      // Attempt login
-      const loginResponse = await mainApi.login(credentials.email, credentials.password);
-      
-      if (loginResponse) {
-        // Extract token (assuming it's in the response)
-        const token = (loginResponse as any)?.access_token;
-        if (token) {
-          this.authToken = token;
-          this.currentProfile = profile; // Set the current profile
+      // Attempt login - use fetch directly to handle 403 password change errors
+      try {
+        const loginResponse = await fetch(`${profile.apiUrl}/auth/email/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password
+          })
+        });
+
+        const responseData = await loginResponse.json();
+        console.log('Login response status:', loginResponse.status);
+        console.log('Login response data:', JSON.stringify(responseData, null, 2));
+        
+        // Check if we got a token despite error status
+        const token = responseData?.access_token;
+        
+        // Check if this is a password change required error (even without token)
+        if (!loginResponse.ok && responseData?.detail?.toLowerCase().includes('password change required')) {
+          console.log('Password change required detected');
           
-          // IMPORTANT: Update the main API client's auth token
-          // This ensures all subsequent API calls through IPC handlers are authenticated
+          // If we don't have a token, we can't proceed with password change
+          // This means the backend doesn't return a token with the 403 error
+          // We need to handle this differently - perhaps by directly modifying the database
+          if (!token) {
+            console.error('No token provided with password change requirement');
+            return {
+              success: false,
+              error: 'Password change required but no authentication token provided. This is a backend configuration issue - the backend should either not require password changes for the default admin user, or should provide a token with the 403 response.'
+            };
+          }
+          
+          console.log('Attempting to clear password change flag...');
+          
+          // Change password to the same password (to clear the password_change_required flag)
+          const changeResult = await this.changePassword(
+            credentials.password,
+            credentials.password,
+            token,
+            profile.apiUrl
+          );
+          
+          if (changeResult.success) {
+            console.log('Password change flag cleared successfully, retrying login...');
+            // Retry login - this should now succeed
+            return await this.loginWithProfile(profileId);
+          } else {
+            console.error('Failed to change password:', changeResult.error);
+            return {
+              success: false,
+              error: `Password change failed: ${changeResult.error}`
+            };
+          }
+        }
+        
+        if (token) {
+          // Normal successful login
+          this.authToken = token;
+          this.currentProfile = profile;
+          
+          // Update the main API client's auth token
           const { setAuthToken } = await import('../lib/api/contextforge-api-main');
           setAuthToken(token);
           
@@ -298,6 +474,15 @@ export class ProfileManager extends EventEmitter {
             token
           };
         }
+        
+        // No token in response
+        return {
+          success: false,
+          error: responseData?.detail || 'Login failed - no token received'
+        };
+      } catch (loginError: any) {
+        console.error('Login error:', loginError);
+        throw loginError;
       }
 
       this.emit('profile-login-failed', { 

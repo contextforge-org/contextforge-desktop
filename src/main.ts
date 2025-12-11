@@ -16,6 +16,80 @@ let mainWindow: BrowserWindow | null = null;
 let trayManager: TrayManager | null = null;
 let pythonManager: PythonProcessManager | null = null;
 
+/**
+ * Wait for backend to be ready by polling the health endpoint
+ */
+async function waitForBackendReady(maxAttempts = 30, delayMs = 1000): Promise<boolean> {
+  const apiUrl = 'http://127.0.0.1:4444';
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(`${apiUrl}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000)
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Backend is ready (attempt ${attempt}/${maxAttempts})`);
+        return true;
+      }
+    } catch (error) {
+      // Backend not ready yet, continue waiting
+      console.log(`⏳ Waiting for backend... (attempt ${attempt}/${maxAttempts})`);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  
+  console.warn('⚠️ Backend did not become ready within timeout');
+  return false;
+}
+
+/**
+ * Start the Python backend and setup the internal profile
+ */
+async function startBackendAndSetupProfile(manager: PythonProcessManager): Promise<void> {
+  try {
+    console.log('Starting Python backend...');
+    await manager.start();
+    console.log('Python backend process started');
+
+    // Wait for backend to be fully ready
+    console.log('Waiting for backend to be ready...');
+    const isReady = await waitForBackendReady();
+
+    if (!isReady) {
+      console.warn('⚠️ Backend may not be fully ready, but continuing with profile setup');
+    }
+
+    // Ensure internal profile exists and login
+    console.log('Setting up internal profile...');
+    const result = await profileManager.ensureInternalProfile(!isReady);
+    
+    if (result.success) {
+      console.log('✅ Internal profile setup complete and logged in');
+    } else {
+      console.warn('⚠️ Failed to setup internal profile:', result.error);
+      
+      // If backend wasn't ready, try again after a delay
+      if (!isReady) {
+        console.log('Retrying profile setup in 5 seconds...');
+        setTimeout(async () => {
+          const retryResult = await profileManager.ensureInternalProfile(false);
+          if (retryResult.success) {
+            console.log('✅ Internal profile setup successful on retry');
+          } else {
+            console.error('❌ Internal profile setup failed on retry:', retryResult.error);
+          }
+        }, 5000);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to start backend or setup profile:', error);
+    throw error;
+  }
+}
+
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -56,6 +130,11 @@ const createWindow = () => {
 
   // Setup IPC handlers
   setupIpcHandlers(trayManager, mainWindow);
+
+  // Start the Python backend and setup internal profile
+  startBackendAndSetupProfile(pythonManager).catch(error => {
+    console.error('Failed to start backend and setup profile:', error);
+  });
 
   // Handle window close event (minimize to tray)
   mainWindow.on('close', (event) => {

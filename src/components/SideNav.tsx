@@ -173,7 +173,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
       onClick={(e) => {
         e.stopPropagation();
         // Handle deploy action
-        console.log('Deploy to Code Engine');
+        console.log('Deploy');
       }}
     >
       <div className="flex flex-row items-center justify-center size-full">
@@ -185,7 +185,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
           </div>
           {!isCollapsed && (
             <p className="font-['Inter:Medium',sans-serif] font-medium leading-[16px] not-italic relative shrink-0 text-[13px] text-white whitespace-nowrap">
-              Deploy to Code Engine
+              Deploy
             </p>
           )}
         </div>
