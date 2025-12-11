@@ -103,7 +103,7 @@ export class PythonProcessManager {
       HOST: '127.0.0.1',
       PORT: '4444',
       // Authentication - enable for internal backend
-      AUTH_REQUIRED: 'true',
+      AUTH_REQUIRED: 'false',
       BASIC_AUTH_USER: 'admin@example.com',
       BASIC_AUTH_PASSWORD: 'changeme',
       // Database
