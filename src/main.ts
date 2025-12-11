@@ -21,14 +21,14 @@ let pythonManager: PythonProcessManager | null = null;
  */
 async function waitForBackendReady(maxAttempts = 30, delayMs = 1000): Promise<boolean> {
   const apiUrl = 'http://127.0.0.1:4444';
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const response = await fetch(`${apiUrl}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(2000)
       });
-      
+
       if (response.ok) {
         console.log(`✅ Backend is ready (attempt ${attempt}/${maxAttempts})`);
         return true;
@@ -37,10 +37,10 @@ async function waitForBackendReady(maxAttempts = 30, delayMs = 1000): Promise<bo
       // Backend not ready yet, continue waiting
       console.log(`⏳ Waiting for backend... (attempt ${attempt}/${maxAttempts})`);
     }
-    
+
     await new Promise(resolve => setTimeout(resolve, delayMs));
   }
-  
+
   console.warn('⚠️ Backend did not become ready within timeout');
   return false;
 }
@@ -51,7 +51,7 @@ async function waitForBackendReady(maxAttempts = 30, delayMs = 1000): Promise<bo
 async function startBackendAndSetupProfile(manager: PythonProcessManager): Promise<void> {
   try {
     console.log('Starting Python backend...');
-    await manager.start();
+    await manager.start(["serve"]);
     console.log('Python backend process started');
 
     // Wait for backend to be fully ready
@@ -65,12 +65,12 @@ async function startBackendAndSetupProfile(manager: PythonProcessManager): Promi
     // Ensure internal profile exists and login
     console.log('Setting up internal profile...');
     const result = await profileManager.ensureInternalProfile(!isReady);
-    
+
     if (result.success) {
       console.log('✅ Internal profile setup complete and logged in');
     } else {
       console.warn('⚠️ Failed to setup internal profile:', result.error);
-      
+
       // If backend wasn't ready, try again after a delay
       if (!isReady) {
         console.log('Retrying profile setup in 5 seconds...');
@@ -192,13 +192,13 @@ app.on('before-quit', async () => {
   if (trayManager) {
     trayManager.setQuitting(true);
   }
-  
+
   // Stop Python process if running
   if (pythonManager) {
     console.log('Stopping Python process before quit...');
     await pythonManager.stop();
   }
-  
+
   cleanupIpcHandlers();
   trayManager?.destroy();
 });
