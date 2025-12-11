@@ -34,13 +34,13 @@ export class TrayManager {
     }
 
     const iconPath = this.getTrayIconPath();
-    
+
     const icon = nativeImage.createFromPath(iconPath);
-    
+
     // Create tray with icon
     this.tray = new Tray(icon);
 
-    
+
     // Set tooltip
     this.tray.setToolTip('Context Forge');
 
@@ -173,17 +173,6 @@ export class TrayManager {
               }
             },
           },
-          ...(pythonStatus?.executablePath ? [
-            { type: 'separator' as const },
-            {
-              label: 'Executable Path',
-              enabled: false,
-            },
-            {
-              label: pythonStatus.executablePath,
-              enabled: false,
-            },
-          ] : []),
         ],
       }, { type: 'separator' as const }] : []),
       {
@@ -414,11 +403,11 @@ export class TrayManager {
     if (this.isQuitting) {
       return true;
     }
-    
+
     if (this.config.minimizeToTray && this.mainWindow) {
       event.preventDefault();
       this.hideWindow();
-      
+
       // Show notification on first minimize
       if (this.unreadCount === 0) {
         this.showNotification(
@@ -427,7 +416,7 @@ export class TrayManager {
           { silent: true }
         );
       }
-      
+
       return false; // Prevent default close
     }
     return true; // Allow close
@@ -439,7 +428,7 @@ export class TrayManager {
   private forceQuit(): void {
     // Set flag to allow window to close
     this.isQuitting = true;
-    
+
     // Quit the app
     app.quit();
   }
