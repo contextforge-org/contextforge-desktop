@@ -35,7 +35,7 @@ export class PythonProcessManager {
 
     if (app.isPackaged) {
       // Production: executable in resources folder
-      return path.join(process.resourcesPath, 'python', execName);
+      return path.join(process.resourcesPath, execName);
     } else {
       // Development: executable in project directory
       return path.join(__dirname, '..', '..', 'python', 'dist', execName);
