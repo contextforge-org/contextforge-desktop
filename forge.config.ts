@@ -1,5 +1,7 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
+import fs from 'fs';
+import os from 'os';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
@@ -13,18 +15,34 @@ const config: ForgeConfig = {
   hooks: {
     prePackage: async (forgeConfig, platform, arch) => {
       console.log(`[PrePackage Hook] Building cforge binary ${platform}-${arch}...`);
-
       try {
-        const buildScript = join(process.cwd(), 'python', 'build.sh');
-        // Example command: Replace this with your actual build command
-        // This command should build your artifact and place it at binaryOutputPath
-        execSync(buildScript, { stdio: 'inherit' });
 
-        console.log('[PrePackage Hook] Custom binary generated successfully.');
+        // Get the user data location for the default home
+        const appName = JSON.parse(fs.readFileSync('package.json', 'utf-8')).name;
+        let userData: string | undefined;
+        if (platform === 'darwin') {
+          userData = join(os.homedir(), 'Library', 'Application Support');
+        } else if (platform === 'linux') {
+          userData = process.env.XDG_CONFIG_HOME || join(os.homedir(), '.config');
+        } else if (platform === 'win32') {
+          userData = process.env.APPDATA;
+        }
+        if (userData === undefined) {
+          throw new Error(`Unable to determine user data directory on ${platform}-${arch}`);
+        }
+        const appUserData: string = join(userData, appName);
+
+        // Run the build script
+        const buildScript = join(process.cwd(), 'python', 'build.sh');
+        const envCopy = { ...process.env };
+        envCopy.DEFAULT_HOME_DIR = join(appUserData, '.contextforge');
+        execSync(buildScript, {stdio: 'inherit', env: envCopy});
+
+        console.log('[PrePackage Hook] Backend binary generated successfully.');
 
       } catch (error) {
-        console.error('[PrePackage Hook] Error generating custom binary:', error);
-        throw new Error('Custom binary generation failed. Aborting package step.');
+        console.error('[PrePackage Hook] Error generating Backend binary:', error);
+        throw new Error('Backend binary generation failed. Aborting package step.');
       }
     }
   },
