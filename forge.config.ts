@@ -1,3 +1,5 @@
+import { execSync } from 'child_process';
+import { join } from 'path';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
@@ -8,10 +10,29 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
+  hooks: {
+    prePackage: async (forgeConfig, platform, arch) => {
+      console.log(`[PrePackage Hook] Building cforge binary ${platform}-${arch}...`);
+
+      try {
+        const buildScript = join(process.cwd(), 'python', 'build.sh');
+        // Example command: Replace this with your actual build command
+        // This command should build your artifact and place it at binaryOutputPath
+        execSync(buildScript, { stdio: 'inherit' });
+
+        console.log('[PrePackage Hook] Custom binary generated successfully.');
+
+      } catch (error) {
+        console.error('[PrePackage Hook] Error generating custom binary:', error);
+        throw new Error('Custom binary generation failed. Aborting package step.');
+      }
+    }
+  },
   packagerConfig: {
     asar: true,
     extraResource: [
-      './assets'
+      './assets',
+      './python/dist/cforge',
     ],
   },
   rebuildConfig: {},
