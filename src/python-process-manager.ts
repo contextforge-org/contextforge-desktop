@@ -26,11 +26,11 @@ export class PythonProcessManager {
 
     // PyInstaller creates platform-specific executables
     if (platform === 'win32') {
-      execName = 'backend.exe';
+      execName = 'cforge.exe';
     } else if (platform === 'darwin') {
-      execName = 'backend';  // macOS
+      execName = 'cforge';  // macOS
     } else {
-      execName = 'backend';  // Linux
+      execName = 'cforge';  // Linux
     }
 
     if (app.isPackaged) {
