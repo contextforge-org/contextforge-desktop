@@ -17,7 +17,7 @@ GATEWAY_REPO_SSH="git+ssh://git@github.com/IBM/mcp-context-forge.git"
 GATEWAY_REPO_HTTPS="git+https://github.com/IBM/mcp-context-forge.git"
 CLI_REPO_SSH="git+ssh://git@github.com/contextforge-org/contextforge-cli.git"
 CLI_REPO_HTTPS="git+https://github.com/contextforge-org/contextforge-cli.git"
-OUTPUT_NAME="backend"
+OUTPUT_NAME="cforge"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Context Forge Backend Build Script${NC}"
@@ -46,10 +46,10 @@ print_status "Checking for UV installation..."
 if ! command -v uv &> /dev/null; then
     print_warning "UV not found. Installing UV..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    
+
     # Add UV to PATH for current session
     export PATH="$HOME/.cargo/bin:$PATH"
-    
+
     if ! command -v uv &> /dev/null; then
         print_error "Failed to install UV. Please install manually: https://github.com/astral-sh/uv"
         exit 1
@@ -167,16 +167,24 @@ print_status "Locating cforge.py entry point..."
 # Try multiple methods to find cforge.py
 CFORGE_PATH=""
 
+# Method 0: Just run `which cforge`
+if which cforge 2>/dev/null; then
+    CFORGE_PATH=$(which cforge)
+    print_success "cforge found at $CFORGE_PATH"
+fi
+
 # Method 1: Check if cforge module exists and find its location
-if python -c "import cforge" 2>/dev/null; then
-    print_success "cforge module found"
-    
-    # Try to find cforge.py in the package directory
-    CFORGE_PATH=$(python -c "import cforge; import os; pkg_dir = os.path.dirname(cforge.__file__); cforge_py = os.path.join(pkg_dir, 'cforge.py'); print(cforge_py if os.path.exists(cforge_py) else '')" 2>/dev/null)
-    
-    if [ -z "$CFORGE_PATH" ]; then
-        # Try __main__.py instead
-        CFORGE_PATH=$(python -c "import cforge; import os; pkg_dir = os.path.dirname(cforge.__file__); main_py = os.path.join(pkg_dir, '__main__.py'); print(main_py if os.path.exists(main_py) else '')" 2>/dev/null)
+if [ -z "$CFORGE_PATH" ] || [ ! -f "$CFORGE_PATH" ]; then
+    if python -c "import cforge" 2>/dev/null; then
+        print_success "cforge module found"
+
+        # Try to find cforge.py in the package directory
+        CFORGE_PATH=$(python -c "import cforge; import os; pkg_dir = os.path.dirname(cforge.__file__); cforge_py = os.path.join(pkg_dir, 'cforge.py'); print(cforge_py if os.path.exists(cforge_py) else '')" 2>/dev/null)
+
+        if [ -z "$CFORGE_PATH" ]; then
+            # Try __main__.py instead
+            CFORGE_PATH=$(python -c "import cforge; import os; pkg_dir = os.path.dirname(cforge.__file__); main_py = os.path.join(pkg_dir, '__main__.py'); print(main_py if os.path.exists(main_py) else '')" 2>/dev/null)
+        fi
     fi
 fi
 
@@ -192,7 +200,7 @@ if [ -z "$CFORGE_PATH" ] || [ ! -f "$CFORGE_PATH" ]; then
     if [ -f "$VENV_DIR/bin/cforge" ]; then
         print_warning "Found cforge console script, but need Python source file"
         print_status "Attempting to extract entry point from console script..."
-        
+
         # Try to find the module from the console script
         MODULE_INFO=$(grep -A 5 "from.*import" "$VENV_DIR/bin/cforge" | head -n 1)
         print_status "Console script info: $MODULE_INFO"
@@ -206,48 +214,10 @@ if [ -z "$CFORGE_PATH" ] || [ ! -f "$CFORGE_PATH" ]; then
     echo "Installed packages:"
     uv pip list | grep -E "(cforge|contextforge|mcp)" || echo "No matching packages found"
     echo ""
-    
+
     print_status "Checking cforge package structure..."
     python -c "import cforge; import os; print('cforge location:', cforge.__file__); print('Package contents:'); import pkgutil; print([name for _, name, _ in pkgutil.iter_modules([os.path.dirname(cforge.__file__)])])" 2>/dev/null || echo "Could not inspect cforge package"
     echo ""
-fi
-
-if [ -z "$CFORGE_PATH" ] || [ ! -f "$CFORGE_PATH" ]; then
-    print_warning "No cforge.py found, will create wrapper for module-based entry point"
-    
-    # The entry point should be: cforge serve
-    print_status "Creating wrapper script for 'cforge serve' command..."
-    
-    # Create a wrapper script that runs 'cforge serve'
-    CFORGE_PATH="cforge_wrapper.py"
-    cat > "$CFORGE_PATH" << 'EOF'
-#!/usr/bin/env python3
-"""
-Wrapper script for cforge serve
-This allows PyInstaller to bundle the cforge package
-Entry point: cforge serve (CLI command)
-"""
-import sys
-
-if __name__ == '__main__':
-    # Set sys.argv to run 'cforge serve' command
-    sys.argv = ['cforge', 'serve']
-    
-    from cforge.main import main
-    sys.exit(main())
-EOF
-    chmod +x "$CFORGE_PATH"
-    print_success "Created wrapper script at: $CFORGE_PATH"
-    
-    # Verify the wrapper works
-    print_status "Testing wrapper script..."
-    if python "$CFORGE_PATH" --help >/dev/null 2>&1; then
-        print_success "Wrapper script works!"
-    else
-        print_warning "Wrapper test inconclusive, but proceeding with build..."
-    fi
-else
-    print_success "Found cforge.py at: $CFORGE_PATH"
 fi
 
 # Clean previous build artifacts
@@ -299,10 +269,10 @@ if [ -f "dist/$OUTPUT_NAME" ]; then
     echo -e "${GREEN}  $(pwd)/dist/$OUTPUT_NAME${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo ""
-    
+
     # Make executable
     chmod +x "dist/$OUTPUT_NAME"
-    
+
     # Test the executable
     print_status "Testing executable..."
     if "dist/$OUTPUT_NAME" --version &> /dev/null || "dist/$OUTPUT_NAME" --help &> /dev/null; then
@@ -310,7 +280,7 @@ if [ -f "dist/$OUTPUT_NAME" ]; then
     else
         print_warning "Executable created but may have issues. Test it manually."
     fi
-    
+
     echo ""
     print_status "Next steps:"
     echo "  1. Test the executable: ./dist/$OUTPUT_NAME"
