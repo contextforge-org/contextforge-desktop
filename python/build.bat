@@ -205,5 +205,3 @@ if exist "dist\%OUTPUT_NAME%.exe" (
 )
 
 endlocal
-
-@REM Made with Bob

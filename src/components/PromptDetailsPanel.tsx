@@ -35,6 +35,7 @@ interface PromptDetailsPanelProps {
   onTagsChange: (tags: string[]) => void;
   onVisibilityChange: (visibility: 'public' | 'team' | 'private') => void;
   onActiveChange: (active: boolean) => void;
+  onToggleActive?: (promptId: string) => void;
   onExecute?: (args: Record<string, any>) => Promise<any>;
 }
 
@@ -63,6 +64,7 @@ export function PromptDetailsPanel({
   onTagsChange,
   onVisibilityChange,
   onActiveChange,
+  onToggleActive,
   onExecute,
 }: PromptDetailsPanelProps) {
   const [testArguments, setTestArguments] = useState<Record<string, any>>({});
@@ -201,7 +203,7 @@ export function PromptDetailsPanel({
         )}
 
         {/* Header with Name and Toggle */}
-        {panelMode === 'view' && prompt && (
+        {panelMode === 'view' && prompt && prompt.id && (
           <div className="flex items-start gap-4 pb-4 border-b" style={{ borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb' }}>
             <div className={`size-12 flex items-center justify-center shrink-0 rounded-lg ${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100'}`}>
               <FileText size={24} className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'} />
@@ -214,7 +216,7 @@ export function PromptDetailsPanel({
                 </h3>
                 <Switch
                   checked={editedActive}
-                  onCheckedChange={onActiveChange}
+                  onCheckedChange={() => onToggleActive?.(prompt.id.toString())}
                   className="data-[state=checked]:bg-cyan-500"
                 />
               </div>

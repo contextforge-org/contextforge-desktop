@@ -327,5 +327,3 @@ else
     print_error "Build failed! Check the output above for errors."
     exit 1
 fi
-
-# Made with Bob

@@ -19,6 +19,7 @@ export class TrayManager {
   };
   private unreadCount = 0;
   private isQuitting = false;
+  private menuUpdateInterval: NodeJS.Timeout | null = null;
 
   constructor(mainWindow: BrowserWindow, pythonManager?: PythonProcessManager) {
     this.mainWindow = mainWindow;
@@ -46,6 +47,9 @@ export class TrayManager {
 
     // Build and set context menu
     this.updateContextMenu();
+
+    // Start periodic menu updates (every 10 seconds) to keep uptime fresh
+    this.startMenuUpdateInterval();
 
     // Handle tray icon click
     this.tray.on('click', () => {
@@ -96,7 +100,7 @@ export class TrayManager {
   /**
    * Build and update the context menu
    */
-  private updateContextMenu(): void {
+  public updateContextMenu(): void {
     if (!this.tray) return;
 
     const isVisible = this.mainWindow?.isVisible() ?? false;
@@ -456,9 +460,32 @@ export class TrayManager {
   }
 
   /**
+   * Start periodic menu updates to keep uptime fresh
+   */
+  private startMenuUpdateInterval(): void {
+    // Update menu every 10 seconds when backend is running
+    this.menuUpdateInterval = setInterval(() => {
+      if (this.pythonManager?.isProcessRunning()) {
+        this.updateContextMenu();
+      }
+    }, 10000); // 10 seconds
+  }
+
+  /**
+   * Stop periodic menu updates
+   */
+  private stopMenuUpdateInterval(): void {
+    if (this.menuUpdateInterval) {
+      clearInterval(this.menuUpdateInterval);
+      this.menuUpdateInterval = null;
+    }
+  }
+
+  /**
    * Destroy the tray
    */
   public destroy(): void {
+    this.stopMenuUpdateInterval();
     if (this.tray) {
       this.tray.destroy();
       this.tray = null;

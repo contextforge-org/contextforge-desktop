@@ -131,10 +131,32 @@ const createWindow = () => {
   // Setup IPC handlers
   setupIpcHandlers(trayManager, mainWindow);
 
-  // Start the Python backend and setup internal profile
-  startBackendAndSetupProfile(pythonManager).catch(error => {
-    console.error('Failed to start backend and setup profile:', error);
-  });
+  // Check backend preferences and conditionally start the Python backend
+  (async () => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      const shouldAutoStart = backendPreferences.getAutoStartEmbedded();
+      
+      if (shouldAutoStart) {
+        console.log('Auto-start enabled, starting Python backend...');
+        await startBackendAndSetupProfile(pythonManager);
+      } else {
+        console.log('Auto-start disabled, skipping Python backend startup');
+        console.log('You can start the backend manually from the tray menu or use an external backend via profiles');
+      }
+      
+      // Update tray menu to reflect backend status
+      if (trayManager) {
+        trayManager.updateContextMenu();
+      }
+    } catch (error) {
+      console.error('Failed to start backend and setup profile:', error);
+      // Update tray menu even on error to show correct status
+      if (trayManager) {
+        trayManager.updateContextMenu();
+      }
+    }
+  })();
 
   // Handle window close event (minimize to tray)
   mainWindow.on('close', (event) => {

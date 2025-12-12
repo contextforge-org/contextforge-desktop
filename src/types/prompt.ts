@@ -18,7 +18,7 @@ export interface PromptMetrics {
 }
 
 export interface Prompt {
-  id: number;
+  id: string | number; // Backend returns UUID strings, but type system expects numbers
   name: string;
   description: string | null;
   template: string;

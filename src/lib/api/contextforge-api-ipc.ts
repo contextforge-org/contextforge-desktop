@@ -24,6 +24,8 @@ import {
   type ResourceCreate,
   type ResourceUpdate
 } from '../contextforge-client-ts';
+import { mapPromptReadToPrompt } from './prompt-mapper';
+import { Prompt } from '../../types/prompt';
 
 // Check if we're in Electron environment
 const isElectron = typeof window !== 'undefined' && window.electronAPI;
@@ -292,7 +294,7 @@ export async function toggleResourceStatus(resourceId: string, activate?: boolea
 }
 
 // Prompt operations
-export async function listPrompts(includeInactive = true): Promise<PromptRead[]> {
+export async function listPrompts(includeInactive = true): Promise<Prompt[]> {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
@@ -303,7 +305,8 @@ export async function listPrompts(includeInactive = true): Promise<PromptRead[]>
     throw new Error('Failed to list prompts: ' + response.error);
   }
   
-  return response.data || [];
+  const prompts = response.data || [];
+  return prompts.map(mapPromptReadToPrompt);
 }
 
 export async function createPrompt(promptData: PromptCreate) {
@@ -348,12 +351,12 @@ export async function deletePrompt(promptId: string) {
   return response.data;
 }
 
-export async function togglePromptStatus(promptId: string, activate?: boolean) {
+export async function togglePromptStatus(promptId: string | number, activate?: boolean) {
   if (!isElectron) {
     throw new Error('This API wrapper requires Electron environment');
   }
 
-  const response = await window.electronAPI.api.togglePromptStatus(promptId, activate);
+  const response = await window.electronAPI.api.togglePromptStatus(promptId.toString(), activate);
   
   if (!response.success) {
     throw new Error('Failed to toggle prompt status: ' + response.error);

@@ -75,5 +75,3 @@ for path in sys.path:
         break
 
 print("\n" + "=" * 60)
-
-# Made with Bob
