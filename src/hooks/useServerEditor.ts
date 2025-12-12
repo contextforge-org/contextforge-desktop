@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { MCPServer, OAuthConfig } from '../types/server';
+import { MCPServer, OAuthConfig, AuthHeader } from '../types/server';
 
 export function useServerEditor() {
   const [editedName, setEditedName] = useState('');
@@ -15,6 +15,12 @@ export function useServerEditor() {
   const [isTransportDropdownOpen, setIsTransportDropdownOpen] = useState(false);
   const [isAuthDropdownOpen, setIsAuthDropdownOpen] = useState(false);
   const [editedOAuthConfig, setEditedOAuthConfig] = useState<OAuthConfig | null>(null);
+  
+  // Authentication credentials state
+  const [editedAuthToken, setEditedAuthToken] = useState('');
+  const [editedAuthUsername, setEditedAuthUsername] = useState('');
+  const [editedAuthPassword, setEditedAuthPassword] = useState('');
+  const [editedAuthHeaders, setEditedAuthHeaders] = useState<AuthHeader[]>([]);
   
   // Associated items state
   const [editedTools, setEditedTools] = useState<string[]>([]);
@@ -37,6 +43,10 @@ export function useServerEditor() {
     setEditedAuthenticationType(server.authenticationType);
     setEditedPassthroughHeaders([...server.passthroughHeaders]);
     setEditedActive(server.active);
+    setEditedAuthToken(server.authToken || '');
+    setEditedAuthUsername(server.authUsername || '');
+    setEditedAuthPassword(server.authPassword || '');
+    setEditedAuthHeaders(server.authHeaders || []);
     setEditedTools((server as any).associatedTools || []);
     setEditedResources((server as any).associatedResources || []);
     setEditedPrompts((server as any).associatedPrompts || []);
@@ -54,6 +64,10 @@ export function useServerEditor() {
     setEditedAuthenticationType('None');
     setEditedPassthroughHeaders([]);
     setEditedActive(true);
+    setEditedAuthToken('');
+    setEditedAuthUsername('');
+    setEditedAuthPassword('');
+    setEditedAuthHeaders([]);
     setEditedTools([]);
     setEditedResources([]);
     setEditedPrompts([]);
@@ -74,6 +88,10 @@ export function useServerEditor() {
     authenticationType: editedAuthenticationType,
     passthroughHeaders: editedPassthroughHeaders,
     active: editedActive,
+    authToken: editedAuthToken,
+    authUsername: editedAuthUsername,
+    authPassword: editedAuthPassword,
+    authHeaders: editedAuthHeaders,
     associatedTools: editedTools,
     associatedResources: editedResources,
     associatedPrompts: editedPrompts,
@@ -89,6 +107,10 @@ export function useServerEditor() {
     editedAuthenticationType,
     editedPassthroughHeaders,
     editedActive,
+    editedAuthToken,
+    editedAuthUsername,
+    editedAuthPassword,
+    editedAuthHeaders,
     editedTools,
     editedResources,
     editedPrompts,
@@ -138,6 +160,10 @@ export function useServerEditor() {
     editedActive,
     isTransportDropdownOpen,
     isAuthDropdownOpen,
+    editedAuthToken,
+    editedAuthUsername,
+    editedAuthPassword,
+    editedAuthHeaders,
     editedTools,
     editedResources,
     editedPrompts,
@@ -157,6 +183,10 @@ export function useServerEditor() {
     setEditedActive,
     setIsTransportDropdownOpen,
     setIsAuthDropdownOpen,
+    setEditedAuthToken,
+    setEditedAuthUsername,
+    setEditedAuthPassword,
+    setEditedAuthHeaders,
     setEditedTools,
     setEditedResources,
     setEditedPrompts,

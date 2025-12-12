@@ -1,4 +1,4 @@
-import { MoreVertical, Power, Pencil, Copy, Trash2, Download, ChevronRight } from 'lucide-react';
+import { MoreVertical, Power, Pencil, Copy, Trash2, Download, ChevronRight, Wrench } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ interface ServerActionsDropdownProps {
   onDuplicate: (serverId: string) => void;
   onDelete: (serverId: string) => void;
   onDownloadConfig?: (serverId: string, configType: ConfigType) => void;
+  onFetchTools?: (serverId: string) => void;
 }
 
 export function ServerActionsDropdown({
@@ -30,6 +31,7 @@ export function ServerActionsDropdown({
   onDuplicate,
   onDelete,
   onDownloadConfig,
+  onFetchTools,
 }: ServerActionsDropdownProps) {
   return (
     <DropdownMenu>
@@ -69,6 +71,20 @@ export function ServerActionsDropdown({
           <Copy size={14} className="mr-2" />
           Duplicate
         </DropdownMenuItem>
+        
+        {/* Fetch Tools option */}
+        {onFetchTools && (
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              onFetchTools(server.id);
+            }}
+            className={`cursor-pointer ${theme === 'dark' ? 'text-white hover:bg-zinc-800' : 'text-gray-900 hover:bg-gray-100'}`}
+          >
+            <Wrench size={14} className="mr-2" />
+            Fetch Tools
+          </DropdownMenuItem>
+        )}
         
         {/* Download Config submenu */}
         {onDownloadConfig && (

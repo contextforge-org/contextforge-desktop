@@ -13,6 +13,7 @@ import { ServerFilterDropdown } from './ServerFilterDropdown';
 import { PageHeader, DataTableToolbar } from './common';
 import { Server } from 'lucide-react';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import { mapServerReadToMCPServer } from '../lib/api/server-mapper';
 import { toast } from '../lib/toastWithTray';
 import { ConfigType } from '../lib/serverUtils';
@@ -51,32 +52,12 @@ export function VirtualServersPage() {
         setError(null);
         
         // Try to fetch servers
-        try {
-          const servers = await api.listServers();
-          const mappedServers = servers.map(mapServerReadToMCPServer);
-          setServersData(mappedServers);
-        } catch (fetchError) {
-          // If fetch fails due to auth, try to login
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              // Retry fetching servers
-              const servers = await api.listServers();
-              const mappedServers = servers.map(mapServerReadToMCPServer);
-              setServersData(mappedServers);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        const servers = await withAuth(
+          () => api.listServers(),
+          'Failed to load virtual servers'
+        );
+        const mappedServers = servers.map(mapServerReadToMCPServer);
+        setServersData(mappedServers);
       } catch (err) {
         console.log(err)
         const errorMessage = (err as Error).message;
@@ -97,7 +78,10 @@ export function VirtualServersPage() {
       try {
         // Fetch tools with auth retry
         try {
-          const tools = await api.listTools();
+          const tools = await withAuth(
+            () => api.listTools(),
+            'Failed to load tools'
+          );
           console.log('Fetched tools:', tools);
           if (Array.isArray(tools) && tools.length > 0) {
             const toolObjects = tools.map((t: any) => ({
@@ -111,30 +95,8 @@ export function VirtualServersPage() {
             setAvailableTools([]);
           }
         } catch (fetchError) {
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated for tools, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              const tools = await api.listTools();
-              if (Array.isArray(tools) && tools.length > 0) {
-                const toolObjects = tools.map((t: any) => ({
-                  id: t.id || t.name || String(t),
-                  name: t.name || t.display_name || t.displayName || t.id || String(t)
-                }));
-                setAvailableTools(toolObjects);
-              }
-            } catch (loginError) {
-              console.error('Failed to authenticate for tools:', loginError);
-              setAvailableTools([]);
-            }
-          } else {
-            console.error('Failed to fetch tools:', fetchError);
-            setAvailableTools([]);
-          }
+          console.error('Failed to fetch tools:', fetchError);
+          setAvailableTools([]);
         }
 
         // Fetch resources with auth retry
@@ -143,8 +105,8 @@ export function VirtualServersPage() {
           console.log('Fetched resources:', resources);
           if (Array.isArray(resources) && resources.length > 0) {
             const resourceObjects = resources.map((r: any) => ({
-              id: r.id || r.name || String(r),
-              name: r.name || r.display_name || r.displayName || r.id || String(r)
+              id: String(r.id ?? r.name ?? r),
+              name: r.name || r.display_name || r.displayName || String(r.id) || String(r)
             }));
             setAvailableResources(resourceObjects);
           } else {
@@ -158,8 +120,11 @@ export function VirtualServersPage() {
               // Already logged in from tools fetch, just retry
               const resources = await api.listResources();
               if (Array.isArray(resources) && resources.length > 0) {
-                const resourceNames = resources.map((r: any) => r.name || r.display_name || r.displayName || r.id || String(r));
-                setAvailableResources(resourceNames);
+                const resourceObjects = resources.map((r: any) => ({
+                  id: String(r.id ?? r.name ?? r),
+                  name: r.name || r.display_name || r.displayName || String(r.id) || String(r)
+                }));
+                setAvailableResources(resourceObjects);
               }
             } catch (err) {
               console.error('Failed to fetch resources after auth:', err);
@@ -177,8 +142,8 @@ export function VirtualServersPage() {
           console.log('Fetched prompts:', prompts);
           if (Array.isArray(prompts) && prompts.length > 0) {
             const promptObjects = prompts.map((p: any) => ({
-              id: p.id || p.name || String(p),
-              name: p.name || p.display_name || p.displayName || p.id || String(p)
+              id: String(p.id ?? p.name ?? p),
+              name: p.name || p.display_name || p.displayName || String(p.id) || String(p)
             }));
             setAvailablePrompts(promptObjects);
           } else {
@@ -192,8 +157,11 @@ export function VirtualServersPage() {
               // Already logged in from tools fetch, just retry
               const prompts = await api.listPrompts();
               if (Array.isArray(prompts) && prompts.length > 0) {
-                const promptNames = prompts.map((p: any) => p.name || p.display_name || p.displayName || p.id || String(p));
-                setAvailablePrompts(promptNames);
+                const promptObjects = prompts.map((p: any) => ({
+                  id: String(p.id ?? p.name ?? p),
+                  name: p.name || p.display_name || p.displayName || String(p.id) || String(p)
+                }));
+                setAvailablePrompts(promptObjects);
               }
             } catch (err) {
               console.error('Failed to fetch prompts after auth:', err);
@@ -212,6 +180,17 @@ export function VirtualServersPage() {
     fetchAvailableItems();
   }, []);
 
+  // Refresh function to fetch fresh server data from backend
+  const refreshServers = useCallback(async () => {
+    try {
+      const servers = await api.listServers();
+      const mappedServers = servers.map(mapServerReadToMCPServer);
+      setServersData(mappedServers);
+    } catch (err) {
+      console.error('Failed to refresh servers:', err);
+    }
+  }, []);
+
   // Use custom hooks for filters, editor, and actions
   const filterHook = useServerFilters(filteredServers);
   const editorHook = useServerEditor();
@@ -221,16 +200,59 @@ export function VirtualServersPage() {
     selectedServer,
     setSelectedServer,
     editorHook.setEditedActive,
-    'server'
+    'server',
+    refreshServers  // Pass refresh callback to get real IDs after creation
   );
+
+  // Helper to convert tool names to IDs (backend returns names but expects IDs when saving)
+  const mapToolNamesToIds = useCallback((toolNames: string[]): string[] => {
+    return toolNames.map(nameOrId => {
+      // First check if it's already an ID
+      const foundById = availableTools.find(t => t.id === nameOrId);
+      if (foundById) return nameOrId;
+      // Otherwise, look up by name
+      const foundByName = availableTools.find(t => t.name === nameOrId);
+      return foundByName ? foundByName.id : nameOrId;
+    });
+  }, [availableTools]);
+
+  // Helper to convert resource names to IDs
+  const mapResourceNamesToIds = useCallback((resourceNames: string[]): string[] => {
+    return resourceNames.map(nameOrId => {
+      const foundById = availableResources.find(r => r.id === nameOrId);
+      if (foundById) return nameOrId;
+      const foundByName = availableResources.find(r => r.name === nameOrId);
+      return foundByName ? foundByName.id : nameOrId;
+    });
+  }, [availableResources]);
+
+  // Helper to convert prompt names to IDs
+  const mapPromptNamesToIds = useCallback((promptNames: string[]): string[] => {
+    return promptNames.map(nameOrId => {
+      const foundById = availablePrompts.find(p => p.id === nameOrId);
+      if (foundById) return nameOrId;
+      const foundByName = availablePrompts.find(p => p.name === nameOrId);
+      return foundByName ? foundByName.id : nameOrId;
+    });
+  }, [availablePrompts]);
 
   // Memoized handlers
   const handleServerClick = useCallback((server: MCPServer) => {
     setSelectedServer(server);
     setPanelMode('view');
-    editorHook.loadServerForEditing(server);
+    
+    // Convert tool/resource/prompt names to IDs before loading for editing
+    // The backend returns names but expects IDs when saving
+    const serverWithMappedIds = {
+      ...server,
+      associatedTools: mapToolNamesToIds((server as any).associatedTools || []),
+      associatedResources: mapResourceNamesToIds((server as any).associatedResources || []),
+      associatedPrompts: mapPromptNamesToIds((server as any).associatedPrompts || []),
+    };
+    
+    editorHook.loadServerForEditing(serverWithMappedIds);
     setShowSidePanel(true);
-  }, [editorHook]);
+  }, [editorHook, mapToolNamesToIds, mapResourceNamesToIds, mapPromptNamesToIds]);
 
   const handleActiveToggleInPanel = useCallback(async (active: boolean) => {
     if (!selectedServer) return;
@@ -462,12 +484,7 @@ export function VirtualServersPage() {
           editedDescription={editorHook.editedDescription}
           editedTags={editorHook.editedTags}
           editedVisibility={editorHook.editedVisibility}
-          editedTransportType={editorHook.editedTransportType}
-          editedAuthenticationType={editorHook.editedAuthenticationType}
-          editedPassthroughHeaders={editorHook.editedPassthroughHeaders}
           editedActive={editorHook.editedActive}
-          isTransportDropdownOpen={editorHook.isTransportDropdownOpen}
-          isAuthDropdownOpen={editorHook.isAuthDropdownOpen}
           editedTools={editorHook.editedTools}
           editedResources={editorHook.editedResources}
           editedPrompts={editorHook.editedPrompts}
@@ -485,12 +502,7 @@ export function VirtualServersPage() {
           onDescriptionChange={editorHook.setEditedDescription}
           onTagsChange={editorHook.setEditedTags}
           onVisibilityChange={editorHook.setEditedVisibility}
-          onTransportTypeChange={editorHook.setEditedTransportType}
-          onAuthenticationTypeChange={editorHook.setEditedAuthenticationType}
-          onPassthroughHeadersChange={editorHook.setEditedPassthroughHeaders}
           onActiveChange={handleActiveToggleInPanel}
-          onTransportDropdownToggle={editorHook.setIsTransportDropdownOpen}
-          onAuthDropdownToggle={editorHook.setIsAuthDropdownOpen}
           onToggleTool={editorHook.toggleTool}
           onRemoveTool={editorHook.removeTool}
           onToggleResource={editorHook.toggleResource}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useTeam } from '../context/TeamContext';
 import { MCPServer } from '../types/server';
@@ -9,9 +9,10 @@ import { ServerTableView } from './ServerTableView';
 import { ServerGridView } from './ServerGridView';
 import { ServerDetailsPanel } from './ServerDetailsPanel';
 import { ServerFilterDropdown } from './ServerFilterDropdown';
-import { OAuthConfigWizard } from './OAuthConfigWizard';
+import { OAuthFlowWizard, type OAuthConfig } from './OAuthFlowWizard';
 import { PageHeader, DataTableToolbar, MCPIcon } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import { mapGatewayReadToMCPServer } from '../lib/api/server-mapper';
 import { toast } from '../lib/toastWithTray';
 
@@ -24,6 +25,11 @@ export function MCPServersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showOAuthWizard, setShowOAuthWizard] = useState(false);
+  
+  // OAuth authorization state for details panel
+  const [isOAuthAuthorized, setIsOAuthAuthorized] = useState(false);
+  const [isAuthorizingOAuth, setIsAuthorizingOAuth] = useState(false);
+  const oauthPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { theme } = useTheme();
   const { selectedTeamId } = useTeam();
@@ -36,40 +42,24 @@ export function MCPServersPage() {
     return serversData.filter(server => server.teamId === selectedTeamId);
   }, [serversData, selectedTeamId]);
 
+  // Reusable function to fetch/refresh gateways
+  const refreshGateways = useCallback(async () => {
+    const gateways = await withAuth(
+      () => api.listGateways(),
+      'Failed to load gateways'
+    );
+    const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
+    setServersData(mappedGateways);
+    toast.success('Connected to ContextForge backend');
+  }, []);
+
   // Fetch servers on mount and when team changes
   useEffect(() => {
     async function fetchServers() {
       try {
         setIsLoading(true);
         setError(null);
-        
-        // Try to fetch gateways
-        try {
-          const gateways = await api.listGateways();
-          const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
-          setServersData(mappedGateways);
-        } catch (fetchError) {
-          // If fetch fails due to auth, try to login
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              // Retry fetching gateways
-              const gateways = await api.listGateways();
-              const mappedGateways = gateways.map(mapGatewayReadToMCPServer);
-              setServersData(mappedGateways);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        await refreshGateways();
       } catch (err) {
         console.log(err)
         const errorMessage = (err as Error).message;
@@ -82,7 +72,7 @@ export function MCPServersPage() {
     }
 
     fetchServers();
-  }, []);
+  }, [refreshGateways]);
 
   // Use custom hooks for filters, editor, and actions
   const filterHook = useServerFilters(filteredServers);
@@ -93,8 +83,43 @@ export function MCPServersPage() {
     selectedServer,
     setSelectedServer,
     editorHook.setEditedActive,
-    'gateway'
+    'gateway',
+    refreshGateways
   );
+
+  // Check OAuth status when viewing a server with Authorization Code OAuth
+  useEffect(() => {
+    async function checkOAuthStatus() {
+      if (
+        panelMode === 'view' &&
+        selectedServer?.id &&
+        editorHook.editedAuthenticationType === 'OAuth 2.0' &&
+        editorHook.editedOAuthConfig?.grant_type === 'authorization_code'
+      ) {
+        try {
+          const status = await api.getOAuthStatus(selectedServer.id);
+          // Only check is_authorized, NOT oauth_enabled
+          // oauth_enabled means OAuth is configured, not that the user has authorized
+          setIsOAuthAuthorized(status.is_authorized === true);
+        } catch (err) {
+          console.warn('Failed to check OAuth status:', err);
+          setIsOAuthAuthorized(false);
+        }
+      } else {
+        setIsOAuthAuthorized(false);
+      }
+    }
+    
+    checkOAuthStatus();
+    
+    // Cleanup polling on unmount or when server changes
+    return () => {
+      if (oauthPollingRef.current) {
+        clearInterval(oauthPollingRef.current);
+        oauthPollingRef.current = null;
+      }
+    };
+  }, [panelMode, selectedServer?.id, editorHook.editedAuthenticationType, editorHook.editedOAuthConfig?.grant_type]);
 
   // Memoized handlers
   const handleServerClick = useCallback((server: MCPServer) => {
@@ -112,7 +137,8 @@ export function MCPServersPage() {
   }, [editorHook]);
 
   const handleSaveGateway = useCallback(async () => {
-    const success = await actionsHook.saveServer(panelMode, editorHook.getEditedServer());
+    const editedServer = editorHook.getEditedServer();
+    const success = await actionsHook.saveServer(panelMode, editedServer);
     if (success) {
       setShowSidePanel(false);
     }
@@ -122,7 +148,7 @@ export function MCPServersPage() {
     setShowSidePanel(false);
   }, []);
 
-  const handleOAuthComplete = useCallback((config: any) => {
+  const handleOAuthComplete = useCallback((config: OAuthConfig) => {
     editorHook.setEditedOAuthConfig(config);
     setShowOAuthWizard(false);
     toast.success('OAuth configuration saved');
@@ -130,6 +156,65 @@ export function MCPServersPage() {
 
   const handleOpenOAuthWizard = useCallback(() => {
     setShowOAuthWizard(true);
+  }, []);
+
+  // Handle OAuth authorization for existing servers with Authorization Code flow
+  const handleAuthorizeOAuth = useCallback(async () => {
+    if (!selectedServer?.id) {
+      toast.error('No server selected');
+      return;
+    }
+
+    try {
+      setIsAuthorizingOAuth(true);
+      
+      // Open the backend OAuth flow in the user's browser
+      await api.openBackendOAuthFlow(selectedServer.id);
+      
+      // Start polling for OAuth status
+      oauthPollingRef.current = setInterval(async () => {
+        try {
+          const status = await api.getOAuthStatus(selectedServer.id);
+          
+          if (status.is_authorized || status.oauth_enabled) {
+            // OAuth complete!
+            if (oauthPollingRef.current) {
+              clearInterval(oauthPollingRef.current);
+              oauthPollingRef.current = null;
+            }
+            setIsAuthorizingOAuth(false);
+            setIsOAuthAuthorized(true);
+            
+            // Try to fetch tools now that OAuth is complete
+            try {
+              const toolsResult = await api.fetchToolsAfterOAuth(selectedServer.id);
+              toast.success(`OAuth complete! ${toolsResult.message || 'Tools fetched successfully.'}`);
+            } catch (toolsErr) {
+              toast.success('OAuth authorization successful!');
+            }
+          }
+        } catch (err) {
+          console.error('Error polling OAuth status:', err);
+        }
+      }, 2000); // Poll every 2 seconds
+      
+    } catch (err) {
+      console.error('Failed to start OAuth flow:', err);
+      setIsAuthorizingOAuth(false);
+      toast.error('Failed to start OAuth flow: ' + (err as Error).message);
+    }
+  }, [selectedServer?.id]);
+
+  // Handle fetch tools for a gateway
+  const handleFetchTools = useCallback(async (serverId: string) => {
+    try {
+      toast.info('Fetching tools from gateway...');
+      const result = await api.fetchToolsAfterOAuth(serverId);
+      toast.success(result.message || 'Tools fetched successfully!');
+    } catch (err) {
+      console.error('Failed to fetch tools:', err);
+      toast.error('Failed to fetch tools: ' + (err as Error).message);
+    }
   }, []);
 
   return (
@@ -247,6 +332,7 @@ export function MCPServersPage() {
                 onToggleActive={actionsHook.toggleServerActive}
                 onDuplicate={actionsHook.duplicateServer}
                 onDelete={actionsHook.deleteServer}
+                onFetchTools={handleFetchTools}
               />
             ) : (
               <ServerGridView
@@ -256,6 +342,7 @@ export function MCPServersPage() {
                 onToggleActive={actionsHook.toggleServerActive}
                 onDuplicate={actionsHook.duplicateServer}
                 onDelete={actionsHook.deleteServer}
+                onFetchTools={handleFetchTools}
               />
             )}
             </div>
@@ -281,6 +368,10 @@ export function MCPServersPage() {
           isTransportDropdownOpen={editorHook.isTransportDropdownOpen}
           isAuthDropdownOpen={editorHook.isAuthDropdownOpen}
           editedOAuthConfig={editorHook.editedOAuthConfig}
+          editedAuthToken={editorHook.editedAuthToken}
+          editedAuthUsername={editorHook.editedAuthUsername}
+          editedAuthPassword={editorHook.editedAuthPassword}
+          editedAuthHeaders={editorHook.editedAuthHeaders}
           onClose={handleClosePanel}
           onSave={handleSaveGateway}
           onNameChange={editorHook.setEditedName}
@@ -294,18 +385,35 @@ export function MCPServersPage() {
           onActiveChange={editorHook.setEditedActive}
           onTransportDropdownToggle={editorHook.setIsTransportDropdownOpen}
           onAuthDropdownToggle={editorHook.setIsAuthDropdownOpen}
+          onAuthTokenChange={editorHook.setEditedAuthToken}
+          onAuthUsernameChange={editorHook.setEditedAuthUsername}
+          onAuthPasswordChange={editorHook.setEditedAuthPassword}
+          onAuthHeadersChange={editorHook.setEditedAuthHeaders}
           onOpenOAuthWizard={handleOpenOAuthWizard}
+          onAuthorizeOAuth={handleAuthorizeOAuth}
+          isOAuthAuthorized={isOAuthAuthorized}
+          isAuthorizingOAuth={isAuthorizingOAuth}
         />
       )}
 
       {/* OAuth Configuration Wizard */}
       {showOAuthWizard && (
-        <OAuthConfigWizard
+        <OAuthFlowWizard
           isOpen={showOAuthWizard}
           onClose={() => setShowOAuthWizard(false)}
           onComplete={handleOAuthComplete}
           theme={theme as 'light' | 'dark'}
-          initialConfig={editorHook.editedOAuthConfig || undefined}
+          entityType="gateway"
+          entityId={selectedServer?.id}
+          entityName={editorHook.editedName || 'Gateway'}
+          initialConfig={editorHook.editedOAuthConfig ? {
+            grant_type: editorHook.editedOAuthConfig.grant_type || 'client_credentials',
+            client_id: editorHook.editedOAuthConfig.client_id || '',
+            client_secret: editorHook.editedOAuthConfig.client_secret || '',
+            token_url: editorHook.editedOAuthConfig.token_url || '',
+            auth_url: editorHook.editedOAuthConfig.auth_url,
+            scopes: editorHook.editedOAuthConfig.scopes,
+          } : undefined}
         />
       )}
     </div>

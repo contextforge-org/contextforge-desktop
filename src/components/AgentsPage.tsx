@@ -11,6 +11,7 @@ import { AgentFilterDropdown } from './AgentFilterDropdown';
 import { PageHeader, DataTableToolbar } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
 import { mapA2aAgentReadToA2AAgent } from '../lib/api/agent-mapper';
+import { withAuth } from '../lib/api/auth-helper';
 import { toast } from '../lib/toastWithTray';
 import { Users } from 'lucide-react';
 
@@ -54,30 +55,14 @@ export function AgentsPage() {
         setIsLoading(true);
         setError(null);
         
-        try {
-          const agents = await api.listA2AAgents();
-          const mappedAgents = agents.map(mapA2aAgentReadToA2AAgent);
-          setAgentsData(mappedAgents);
-        } catch (fetchError) {
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              const agents = await api.listA2AAgents();
-              const mappedAgents = agents.map(mapA2aAgentReadToA2AAgent);
-              setAgentsData(mappedAgents);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        const agents = await withAuth(
+          () => api.listA2AAgents(),
+          'Failed to load agents'
+        );
+        
+        const mappedAgents = agents.map(mapA2aAgentReadToA2AAgent);
+        setAgentsData(mappedAgents);
+        toast.success('Connected to ContextForge backend');
       } catch (err) {
         console.log(err)
         const errorMessage = (err as Error).message;

@@ -532,6 +532,23 @@ export async function toggleA2AAgentStatus(agentId: string, activate?: boolean) 
   return response.data;
 }
 
+/**
+ * Test A2A agent connection and authentication
+ */
+export async function testA2AAgent(agentId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.testA2AAgent(agentId);
+  
+  if (!response.success) {
+    throw new Error('Failed to test A2A agent: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // OAuth Testing operations - Gateway-based OAuth flow
 export async function initiateOAuthFlow(gatewayId: string): Promise<any> {
   if (!isElectron) {
@@ -573,6 +590,27 @@ export async function fetchToolsAfterOAuth(gatewayId: string): Promise<any> {
   }
   
   return response.data;
+}
+
+/**
+ * Open the backend's OAuth authorization flow in the user's default browser
+ * This uses the backend-managed OAuth flow where the backend handles the callback
+ * and stores tokens per-user in its database
+ * 
+ * Use this for existing gateways where the backend needs to manage user tokens
+ */
+export async function openBackendOAuthFlow(gatewayId: string): Promise<{ url: string }> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.openBackendOAuthFlow(gatewayId);
+  
+  if (!response.success) {
+    throw new Error('Failed to open backend OAuth flow: ' + response.error);
+  }
+  
+  return response.data!;
 }
 
 export async function listRegisteredOAuthClients(): Promise<any> {
@@ -627,6 +665,29 @@ export async function getClientCredentialsToken(oauthConfig: any): Promise<any> 
   
   if (!response.success) {
     throw new Error('Failed to get client credentials token: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Perform native OAuth Authorization Code flow
+ * Opens browser to authorization URL and handles the callback with a local server.
+ * This is useful for OAuth flows that don't have backend gateway support (e.g., agents).
+ * 
+ * @param oauthConfig OAuth configuration with grant_type, client_id, client_secret, auth_url, token_url, scopes
+ * @param timeoutMs Timeout in milliseconds (default 5 minutes)
+ * @returns Promise with OAuth result including access_token, refresh_token, etc.
+ */
+export async function performNativeOAuthFlow(oauthConfig: any, timeoutMs?: number): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.performNativeOAuthFlow(oauthConfig, timeoutMs);
+  
+  if (!response.success) {
+    throw new Error('OAuth flow failed: ' + response.error);
   }
   
   return response.data;

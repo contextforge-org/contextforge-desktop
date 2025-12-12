@@ -18,6 +18,7 @@ import { RightSidePanel } from './RightSidePanel';
 import { toast } from '../lib/toastWithTray';
 import { PageHeader, DataTableToolbar } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import {
   parseInputSchema,
   processInputParameters,
@@ -200,6 +201,7 @@ const sampleTools: Tool[] = [
 export function ToolsPage() {
   const { theme } = useTheme();
   const [toolsData, setToolsData] = useState<Tool[]>([]);
+  const [gatewaysData, setGatewaysData] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSidePanel, setShowSidePanel] = useState(false);
@@ -250,15 +252,6 @@ export function ToolsPage() {
   const allMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
   const allVisibilityOptions = ['Public', 'Team', 'Private'];
 
-  // MCP Servers for Gateway Name dropdown
-  const mcpServers = [
-    { id: 1, name: 'Azure' },
-    { id: 2, name: 'Box' },
-    { id: 3, name: 'GitHub' },
-    { id: 4, name: 'Postman' },
-    { id: 5, name: 'Terraform' },
-  ];
-
   const [isGatewayDropdownOpen, setIsGatewayDropdownOpen] = useState(false);
   const [isIntegrationTypeDropdownOpen, setIsIntegrationTypeDropdownOpen] = useState(false);
   const [isRequestMethodDropdownOpen, setIsRequestMethodDropdownOpen] = useState(false);
@@ -282,77 +275,36 @@ export function ToolsPage() {
         setError(null);
         
         // Try to fetch tools
-        try {
-          const tools = await api.listTools();
-          // Map API response to Tool interface
-          const mappedTools = tools.map((tool: any) => ({
-            id: tool.id,
-            gatewayName: tool.gateway_name || tool.gatewayName || 'Unknown Gateway',
-            name: tool.name,
-            displayName: tool.display_name || tool.displayName || tool.name,
-            url: tool.url,
-            type: tool.integration_type || tool.type || 'REST',
-            requestMethod: tool.request_type || tool.requestMethod || 'GET',
-            description: tool.description || '',
-            annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
-            tags: Array.isArray(tool.tags) ? tool.tags : [],
-            owner: tool.owner || 'Unknown',
-            team: tool.team || 'Default Team',
-            teamId: tool.team_id || tool.teamId || null,
-            visibility: tool.visibility || 'public',
-            integrationType: tool.integration_type || tool.integrationType || 'REST',
-            headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
-            inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
-            outputSchema: tool.output_schema || tool.outputSchema || '',
-            jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
-            authenticationType: tool.auth_type || tool.authenticationType || 'None',
-            active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
-          }));
-          setToolsData(mappedTools);
-        } catch (fetchError) {
-          // If fetch fails due to auth, try to login
-          const errorMsg = (fetchError as Error).message;
-          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
-            console.log('Not authenticated, attempting login...');
-            try {
-              await api.login(
-                import.meta.env['VITE_API_EMAIL'],
-                import.meta.env['VITE_API_PASSWORD']
-              );
-              // Retry fetching tools
-              const tools = await api.listTools();
-              const mappedTools = tools.map((tool: any) => ({
-                id: tool.id,
-                gatewayName: tool.gateway_name || tool.gatewayName || 'Unknown Gateway',
-                teamId: tool.team_id || tool.teamId || null,
-                name: tool.name,
-                displayName: tool.display_name || tool.displayName || tool.name,
-                url: tool.url,
-                type: tool.integration_type || tool.type || 'REST',
-                requestMethod: tool.request_type || tool.requestMethod || 'GET',
-                description: tool.description || '',
-                annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
-                tags: Array.isArray(tool.tags) ? tool.tags : [],
-                owner: tool.owner || 'Unknown',
-                team: tool.team || 'Default Team',
-                visibility: tool.visibility || 'public',
-                integrationType: tool.integration_type || tool.integrationType || 'REST',
-                headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
-                inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
-                outputSchema: tool.output_schema || tool.outputSchema || '',
-                jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
-                authenticationType: tool.auth_type || tool.authenticationType || 'None',
-                active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
-              }));
-              setToolsData(mappedTools);
-              toast.success('Connected to ContextForge backend');
-            } catch (loginError) {
-              throw new Error('Failed to authenticate: ' + (loginError as Error).message);
-            }
-          } else {
-            throw fetchError;
-          }
-        }
+        const tools = await withAuth(
+          () => api.listTools(),
+          'Failed to load tools'
+        );
+        // Map API response to Tool interface
+        const mappedTools = tools.map((tool: any) => ({
+          id: tool.id,
+          gatewayId: tool.gateway_id || tool.gatewayId || null,
+          gatewayName: tool.gateway_name || tool.gatewayName || tool.gateway_slug || tool.gatewaySlug || (tool.gatewayId ? `Gateway ${tool.gatewayId.slice(0, 8)}` : 'Local Tool'),
+          name: tool.name,
+          displayName: tool.display_name || tool.displayName || tool.name,
+          url: tool.url,
+          type: tool.integration_type || tool.type || 'REST',
+          requestMethod: tool.request_type || tool.requestMethod || 'GET',
+          description: tool.description || '',
+          annotations: Array.isArray(tool.annotations) ? tool.annotations : [],
+          tags: Array.isArray(tool.tags) ? tool.tags : [],
+          owner: tool.owner || 'Unknown',
+          team: tool.team || 'Default Team',
+          teamId: tool.team_id || tool.teamId || null,
+          visibility: tool.visibility || 'public',
+          integrationType: tool.integration_type || tool.integrationType || 'REST',
+          headers: typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers || '',
+          inputSchema: typeof tool.input_schema === 'object' ? JSON.stringify(tool.input_schema, null, 2) : tool.inputSchema || '',
+          outputSchema: typeof tool.output_schema === 'object' ? JSON.stringify(tool.output_schema, null, 2) : (typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : (tool.output_schema || tool.outputSchema || '')),
+          jsonPathFilter: tool.jsonpath_filter || tool.jsonPathFilter || '',
+          authenticationType: tool.auth_type || tool.authenticationType || 'None',
+          active: tool.enabled !== undefined ? tool.enabled : (tool.active !== undefined ? tool.active : true),
+        }));
+        setToolsData(mappedTools);
       } catch (err) {
         console.log(err);
         const errorMessage = (err as Error).message;
@@ -367,6 +319,24 @@ export function ToolsPage() {
     fetchTools();
   }, []);
 
+  // Fetch gateways for the dropdown
+  useEffect(() => {
+    async function fetchGateways() {
+      try {
+        const gateways = await api.listGateways();
+        const mappedGateways = gateways.map((gateway: any) => ({
+          id: gateway.id,
+          name: gateway.name,
+        }));
+        setGatewaysData(mappedGateways);
+      } catch (err) {
+        console.error('Failed to fetch gateways:', err);
+        // Don't show error toast for gateways - it's not critical
+      }
+    }
+    fetchGateways();
+  }, []);
+
   const handleToolClick = (tool: Tool) => {
     setSelectedTool(tool);
     setEditedGatewayName(tool.gatewayName);
@@ -376,9 +346,10 @@ export function ToolsPage() {
     setEditedDescription(tool.description);
     setEditedRequestMethod(tool.requestMethod);
     setEditedIntegrationType(tool.integrationType);
-    setEditedHeaders(tool.headers);
-    setEditedInputSchema(tool.inputSchema);
-    setEditedOutputSchema(tool.outputSchema);
+    // Ensure JSON fields are strings, not objects
+    setEditedHeaders(typeof tool.headers === 'object' ? JSON.stringify(tool.headers, null, 2) : tool.headers);
+    setEditedInputSchema(typeof tool.inputSchema === 'object' ? JSON.stringify(tool.inputSchema, null, 2) : tool.inputSchema);
+    setEditedOutputSchema(typeof tool.outputSchema === 'object' ? JSON.stringify(tool.outputSchema, null, 2) : tool.outputSchema);
     setEditedJsonPathFilter(tool.jsonPathFilter);
     setEditedAuthenticationType(tool.authenticationType);
     setEditedAnnotations(tool.annotations);
@@ -1300,22 +1271,28 @@ export function ToolsPage() {
                       theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'
                     }`}
                   >
-                    {mcpServers.map((server) => (
-                      <DropdownMenuItem
-                        key={server.id}
-                        onClick={() => {
-                          setEditedGatewayName(server.name);
-                          setIsGatewayDropdownOpen(false);
-                        }}
-                        className={`cursor-pointer ${
-                          theme === 'dark' 
-                            ? 'text-white hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white' 
-                            : 'text-gray-900 hover:bg-gray-100 focus:bg-gray-100'
-                        } ${editedGatewayName === server.name ? (theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100') : ''}`}
-                      >
-                        {server.name}
+                    {gatewaysData.length === 0 ? (
+                      <DropdownMenuItem disabled className={theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'}>
+                        No gateways available
                       </DropdownMenuItem>
-                    ))}
+                    ) : (
+                      gatewaysData.map((gateway) => (
+                        <DropdownMenuItem
+                          key={gateway.id}
+                          onClick={() => {
+                            setEditedGatewayName(gateway.name);
+                            setIsGatewayDropdownOpen(false);
+                          }}
+                          className={`cursor-pointer ${
+                            theme === 'dark' 
+                              ? 'text-white hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white' 
+                              : 'text-gray-900 hover:bg-gray-100 focus:bg-gray-100'
+                          } ${editedGatewayName === gateway.name ? (theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100') : ''}`}
+                        >
+                          {gateway.name}
+                        </DropdownMenuItem>
+                      ))
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

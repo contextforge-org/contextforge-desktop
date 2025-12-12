@@ -4,7 +4,6 @@ import { MCPServer } from '../types/server';
 import {
   findServerById,
   generateNextId,
-  createNewServer,
   duplicateServer as duplicateServerUtil,
   updateServerProperties,
   showUndoToast,
@@ -29,7 +28,8 @@ export function useServerActions(
   selectedServer: MCPServer | null,
   setSelectedServer: React.Dispatch<React.SetStateAction<MCPServer | null>>,
   setEditedActive: (active: boolean) => void,
-  apiType: ApiType = 'server'
+  apiType: ApiType = 'server',
+  onRefresh?: () => Promise<void>
 ) {
   const toggleStatus = apiType === 'gateway' ? api.toggleGatewayStatus : api.toggleServerStatus;
   const createEntity = apiType === 'gateway' ? api.createGateway : api.createServer;
@@ -125,7 +125,7 @@ export function useServerActions(
       if (serverToDuplicate) {
         // Create a new entity via API
         const entityCreate = mapToCreate(serverToDuplicate);
-        const createdServer = await createEntity({
+        await createEntity({
           ...entityCreate,
           name: `${serverToDuplicate.name} (Copy)`,
         } as any);
@@ -193,28 +193,48 @@ export function useServerActions(
     try {
       if (panelMode === 'add') {
         // Add new entity via API
-        const entityCreate = mapToCreate({
+        const serverData = {
           id: editedServer.url || undefined, // For servers, url field is used as custom UUID
           name: editedServer.name,
           url: editedServer.url,
           description: editedServer.description,
           tags: editedServer.tags,
           visibility: editedServer.visibility,
-          logoUrl: editedServer.iconUrl || '',
+          logoUrl: editedServer.logoUrl || editedServer.iconUrl || '',
           active: editedServer.active,
+          transportType: editedServer.transportType,
+          authenticationType: editedServer.authenticationType,
+          passthroughHeaders: editedServer.passthroughHeaders,
+          oauthConfig: editedServer.oauthConfig,
+          authToken: editedServer.authToken,
+          authUsername: editedServer.authUsername,
+          authPassword: editedServer.authPassword,
+          authHeaders: editedServer.authHeaders,
           associatedTools: editedServer.associatedTools,
           associatedResources: editedServer.associatedResources,
           associatedPrompts: editedServer.associatedPrompts,
-        } as Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[] });
+        } as Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[] };
         
-        const createdServer = await createEntity(entityCreate as any);
+        const entityCreate = mapToCreate(serverData);
         
-        // Use the server data returned from API (has real ID and all fields)
-        // Map it to MCPServer format if needed
+        // Debug logging
+        console.log('[saveServer] Creating entity with data:', JSON.stringify(entityCreate, null, 2));
+        
+        await createEntity(entityCreate as any);
+        
+        // Always refresh from server to get the real ID assigned by the backend
+        // This prevents showing a temporary/placeholder ID in the UI
+        if (onRefresh) {
+          await onRefresh();
+          toast.success(TOAST_CONFIG.MESSAGES.CREATED(editedServer.name));
+          return true;
+        }
+        
+        // Fallback if no refresh callback - use local data (may show temp ID)
         const newServer: MCPServer = {
-          id: createdServer.id || createdServer.uuid || generateNextId(serversData),
+          id: generateNextId(serversData),
           name: editedServer.name,
-          logoUrl: editedServer.iconUrl || '',
+          logoUrl: editedServer.logoUrl || editedServer.iconUrl || '',
           url: editedServer.url || '',
           description: editedServer.description,
           tags: editedServer.tags,

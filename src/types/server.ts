@@ -4,10 +4,16 @@ export interface OAuthConfig {
   client_secret: string;
   token_url: string;
   auth_url?: string;
+  redirect_uri?: string;
   scopes: string[];
   access_token?: string;
   refresh_token?: string;
   token_expires_at?: string;
+}
+
+export interface AuthHeader {
+  key: string;
+  value: string;
 }
 
 export type MCPServer = {
@@ -25,6 +31,11 @@ export type MCPServer = {
   transportType: string;
   authenticationType: string;
   passthroughHeaders: string[];
+  // Authentication fields
+  authToken?: string;
+  authUsername?: string;
+  authPassword?: string;
+  authHeaders?: AuthHeader[];
   oauthConfig?: OAuthConfig | null;
   associatedTools?: string[];
   associatedResources?: string[];

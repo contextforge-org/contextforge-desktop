@@ -50,10 +50,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateA2AAgent: (agentId: string, agentData: any) => ipcRenderer.invoke('api:update-a2a-agent', agentId, agentData),
     deleteA2AAgent: (agentId: string) => ipcRenderer.invoke('api:delete-a2a-agent', agentId),
     toggleA2AAgentStatus: (agentId: string, activate?: boolean) => ipcRenderer.invoke('api:toggle-a2a-agent-status', agentId, activate),
+    testA2AAgent: (agentId: string) => ipcRenderer.invoke('api:test-a2a-agent', agentId),
     // OAuth Gateway-based operations
     initiateOAuthFlow: (gatewayId: string) => ipcRenderer.invoke('api:initiate-oauth-flow', gatewayId),
     getOAuthStatus: (gatewayId: string) => ipcRenderer.invoke('api:get-oauth-status', gatewayId),
     fetchToolsAfterOAuth: (gatewayId: string) => ipcRenderer.invoke('api:fetch-tools-after-oauth', gatewayId),
+    openBackendOAuthFlow: (gatewayId: string) => ipcRenderer.invoke('api:open-backend-oauth-flow', gatewayId),
     listRegisteredOAuthClients: () => ipcRenderer.invoke('api:list-registered-oauth-clients'),
     getRegisteredClientForGateway: (gatewayId: string) => ipcRenderer.invoke('api:get-registered-client-for-gateway', gatewayId),
     deleteRegisteredOAuthClient: (clientId: string) => ipcRenderer.invoke('api:delete-registered-oauth-client', clientId),
@@ -61,6 +63,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     testAgentConnection: (agentEndpoint: string, accessToken: string) => ipcRenderer.invoke('api:test-agent-connection', agentEndpoint, accessToken),
     refreshOAuthToken: (refreshToken: string, oauthConfig: any) => ipcRenderer.invoke('api:refresh-oauth-token', refreshToken, oauthConfig),
     getClientCredentialsToken: (oauthConfig: any) => ipcRenderer.invoke('api:get-client-credentials-token', oauthConfig),
+    // Native OAuth flow - performs complete authorization code flow with local callback server
+    performNativeOAuthFlow: (oauthConfig: any, timeoutMs?: number) => ipcRenderer.invoke('api:perform-native-oauth-flow', oauthConfig, timeoutMs),
     listTools: () => ipcRenderer.invoke('api:list-tools'),
     createTool: (toolData: any) => ipcRenderer.invoke('api:create-tool', toolData),
     updateTool: (toolId: string, toolData: any) => ipcRenderer.invoke('api:update-tool', toolId, toolData),
@@ -100,6 +104,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) =>
       ipcRenderer.invoke('api:execute-tool-rpc', toolName, params, passthroughHeaders, timeout),
     getAggregatedMetrics: () => ipcRenderer.invoke('api:getAggregatedMetrics'),
+    
+    // Profile management methods
+    initializeProfiles: () => ipcRenderer.invoke('profiles:initialize'),
+    getAllProfiles: () => ipcRenderer.invoke('profiles:get-all'),
+    getProfile: (profileId: string) => ipcRenderer.invoke('profiles:get', profileId),
+    createProfile: (request: any) => ipcRenderer.invoke('profiles:create', request),
+    updateProfile: (profileId: string, updates: any) => ipcRenderer.invoke('profiles:update', profileId, updates),
+    deleteProfile: (profileId: string) => ipcRenderer.invoke('profiles:delete', profileId),
+    switchProfile: (profileId: string) => ipcRenderer.invoke('profiles:switch', profileId),
+    loginWithProfile: (profileId: string) => ipcRenderer.invoke('profiles:login', profileId),
+    logoutProfile: () => ipcRenderer.invoke('profiles:logout'),
+    getCurrentProfile: () => ipcRenderer.invoke('profiles:get-current'),
+    testProfileCredentials: (email: string, password: string, apiUrl: string) => ipcRenderer.invoke('profiles:test-credentials', email, password, apiUrl),
   },
 });
 
@@ -134,10 +151,12 @@ declare global {
         updateA2AAgent: (agentId: string, agentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteA2AAgent: (agentId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         toggleA2AAgentStatus: (agentId: string, activate?: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
+        testA2AAgent: (agentId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         // OAuth Gateway-based operations
         initiateOAuthFlow: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         getOAuthStatus: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         fetchToolsAfterOAuth: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        openBackendOAuthFlow: (gatewayId: string) => Promise<{ success: boolean; data?: { url: string }; error?: string }>;
         listRegisteredOAuthClients: () => Promise<{ success: boolean; data?: any; error?: string }>;
         getRegisteredClientForGateway: (gatewayId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteRegisteredOAuthClient: (clientId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
@@ -145,6 +164,8 @@ declare global {
         testAgentConnection: (agentEndpoint: string, accessToken: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         refreshOAuthToken: (refreshToken: string, oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         getClientCredentialsToken: (oauthConfig: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        // Native OAuth flow - performs complete authorization code flow with local callback server
+        performNativeOAuthFlow: (oauthConfig: any, timeoutMs?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
         listTools: () => Promise<{ success: boolean; data?: any; error?: string }>;
         createTool: (toolData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         updateTool: (toolId: string, toolData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
@@ -183,6 +204,19 @@ declare global {
         getAvailablePermissions: () => Promise<{ success: boolean; data?: any; error?: string }>;
         executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) => Promise<{ success: boolean; data?: any; error?: string }>;
         getAggregatedMetrics: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        
+        // Profile management methods
+        initializeProfiles: () => Promise<{ success: boolean; error?: string }>;
+        getAllProfiles: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getProfile: (profileId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        createProfile: (request: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        updateProfile: (profileId: string, updates: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deleteProfile: (profileId: string) => Promise<{ success: boolean; error?: string }>;
+        switchProfile: (profileId: string) => Promise<{ success: boolean; profile?: any; token?: string; error?: string }>;
+        loginWithProfile: (profileId: string) => Promise<{ success: boolean; profile?: any; token?: string; error?: string }>;
+        logoutProfile: () => Promise<{ success: boolean; error?: string }>;
+        getCurrentProfile: () => Promise<{ success: boolean; data?: { profile: any; token: string; isAuthenticated: boolean }; error?: string }>;
+        testProfileCredentials: (email: string, password: string, apiUrl: string) => Promise<{ success: boolean; error?: string }>;
       };
     };
   }

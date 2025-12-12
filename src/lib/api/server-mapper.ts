@@ -87,6 +87,25 @@ function formatLastSeen(updatedAt: string): string {
  * Maps a GatewayRead from the API to the MCPServer type used in the UI
  */
 export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
+  // Transform backend oauth_config (authorization_url) to UI format (auth_url)
+  let oauthConfig = null;
+  const backendOAuthConfig = (gateway as any).oauthConfig;
+  if (backendOAuthConfig) {
+    oauthConfig = {
+      grant_type: backendOAuthConfig.grant_type,
+      client_id: backendOAuthConfig.client_id,
+      client_secret: backendOAuthConfig.client_secret,
+      token_url: backendOAuthConfig.token_url,
+      // Backend uses 'authorization_url', UI uses 'auth_url'
+      auth_url: backendOAuthConfig.authorization_url || backendOAuthConfig.auth_url,
+      redirect_uri: backendOAuthConfig.redirect_uri,
+      scopes: backendOAuthConfig.scopes || [],
+      access_token: backendOAuthConfig.access_token,
+      refresh_token: backendOAuthConfig.refresh_token,
+      token_expires_at: backendOAuthConfig.token_expires_at,
+    };
+  }
+
   return {
     id: gateway.id || '',
     name: gateway.name,
@@ -99,11 +118,31 @@ export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
     team: gateway.team || 'Unknown',
     teamId: gateway.teamId || null,
     visibility: (gateway.visibility as 'public' | 'team' | 'private') || 'private',
-    transportType: gateway.transport || 'SSE',
-    authenticationType: gateway.authType || 'None',
+    transportType: mapTransportTypeToUI(gateway.transport),
+    authenticationType: mapAPIAuthTypeToUI(gateway.authType) || 'None',
     passthroughHeaders: gateway.passthroughHeaders || [],
-    oauthConfig: (gateway as any).oauthConfig || null,
+    oauthConfig: oauthConfig,
+    authToken: (gateway as any).authToken || '',
+    authUsername: (gateway as any).authUsername || '',
+    authPassword: (gateway as any).authPassword || '',
+    authHeaders: (gateway as any).authHeaders || [],
   };
+}
+
+/**
+ * Maps API auth_type to UI authentication type
+ */
+function mapAPIAuthTypeToUI(authType: string | null | undefined): string {
+  if (!authType) return 'None';
+  
+  const mapping: Record<string, string> = {
+    'basic': 'Basic',
+    'bearer': 'Bearer Token',
+    'headers': 'Custom Headers',
+    'oauth': 'OAuth 2.0',
+  };
+  
+  return mapping[authType.toLowerCase()] || authType;
 }
 
 /**
@@ -124,6 +163,26 @@ function mapAuthTypeToAPI(authType: string | undefined): string | null {
 }
 
 /**
+ * Maps UI transport type to API transport type
+ */
+function mapTransportTypeToAPI(transportType: string | undefined): string {
+  if (!transportType) return 'SSE';
+  // UI uses "Streamable HTTP" but API expects "STREAMABLEHTTP"
+  if (transportType === 'Streamable HTTP') return 'STREAMABLEHTTP';
+  return transportType;
+}
+
+/**
+ * Maps API transport type to UI transport type
+ */
+function mapTransportTypeToUI(transportType: string | undefined): string {
+  if (!transportType) return 'SSE';
+  // API uses "STREAMABLEHTTP" but UI expects "Streamable HTTP"
+  if (transportType === 'STREAMABLEHTTP') return 'Streamable HTTP';
+  return transportType;
+}
+
+/**
  * Maps an MCPServer to GatewayCreate for API calls
  */
 export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
@@ -133,7 +192,7 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
     description: server.description || null,
     tags: server.tags || [],
     visibility: server.visibility || 'private',
-    transport: server.transportType || 'SSE',
+    transport: mapTransportTypeToAPI(server.transportType),
     passthrough_headers: server.passthroughHeaders || [],
   };
   
@@ -143,19 +202,48 @@ export function mapMCPServerToGatewayCreate(server: Partial<MCPServer>) {
     payload.auth_type = authType;
   }
   
+  // Include auth credentials based on authentication type
+  if (server.authenticationType === 'Bearer Token' && server.authToken) {
+    payload.auth_token = server.authToken;
+  }
+  
+  if (server.authenticationType === 'Basic' && (server.authUsername || server.authPassword)) {
+    payload.auth_username = server.authUsername || '';
+    payload.auth_password = server.authPassword || '';
+  }
+  
+  if (server.authenticationType === 'Custom Headers' && server.authHeaders && server.authHeaders.length > 0) {
+    // Filter out empty headers and convert to API format (array of single key-value objects)
+    const validHeaders = server.authHeaders.filter(h => h.key && h.key.trim());
+    if (validHeaders.length > 0) {
+      payload.auth_headers = validHeaders.map(h => ({ [h.key]: h.value }));
+    }
+  }
+  
   // Include OAuth config if authentication type is OAuth 2.0 and config exists
   if (server.authenticationType === 'OAuth 2.0' && server.oauthConfig) {
+    const isAuthCodeFlow = server.oauthConfig.grant_type === 'authorization_code';
+    
     payload.oauth_config = {
       grant_type: server.oauthConfig.grant_type,
       client_id: server.oauthConfig.client_id,
       client_secret: server.oauthConfig.client_secret,
       token_url: server.oauthConfig.token_url,
-      auth_url: server.oauthConfig.auth_url,
+      // Backend expects 'authorization_url', not 'auth_url'
+      authorization_url: server.oauthConfig.auth_url,
+      redirect_uri: server.oauthConfig.redirect_uri,
       scopes: server.oauthConfig.scopes,
-      access_token: server.oauthConfig.access_token,
-      refresh_token: server.oauthConfig.refresh_token,
-      token_expires_at: server.oauthConfig.token_expires_at,
     };
+    
+    // For client_credentials flow: include tokens (backend uses them from oauth_config)
+    // For authorization_code flow: DON'T include tokens (backend uses per-user oauth_tokens table)
+    if (!isAuthCodeFlow) {
+      payload.oauth_config.access_token = server.oauthConfig.access_token;
+      payload.oauth_config.refresh_token = server.oauthConfig.refresh_token;
+      payload.oauth_config.token_expires_at = server.oauthConfig.token_expires_at;
+    }
+  } else if (server.authenticationType === 'OAuth 2.0') {
+    console.warn('[mapMCPServerToGatewayCreate] OAuth 2.0 selected but no oauthConfig provided');
   }
   
   return payload;
@@ -171,7 +259,7 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
     description: server.description || null,
     tags: server.tags,
     visibility: server.visibility,
-    transport: server.transportType,
+    transport: mapTransportTypeToAPI(server.transportType),
     passthrough_headers: server.passthroughHeaders,
     enabled: server.active,
   };
@@ -182,19 +270,47 @@ export function mapMCPServerToGatewayUpdate(server: Partial<MCPServer>) {
     payload.auth_type = authType;
   }
   
+  // Include auth credentials based on authentication type
+  if (server.authenticationType === 'Bearer Token') {
+    payload.auth_token = server.authToken || '';
+  }
+  
+  if (server.authenticationType === 'Basic') {
+    payload.auth_username = server.authUsername || '';
+    payload.auth_password = server.authPassword || '';
+  }
+  
+  if (server.authenticationType === 'Custom Headers') {
+    // Filter out empty headers and convert to API format (array of single key-value objects)
+    const validHeaders = (server.authHeaders || []).filter(h => h.key && h.key.trim());
+    payload.auth_headers = validHeaders.length > 0 
+      ? validHeaders.map(h => ({ [h.key]: h.value }))
+      : [];
+  }
+  
   // Include OAuth config if authentication type is OAuth 2.0 and config exists
   if (server.authenticationType === 'OAuth 2.0' && server.oauthConfig) {
+    const isAuthCodeFlow = server.oauthConfig.grant_type === 'authorization_code';
+    
     payload.oauth_config = {
       grant_type: server.oauthConfig.grant_type,
       client_id: server.oauthConfig.client_id,
       client_secret: server.oauthConfig.client_secret,
       token_url: server.oauthConfig.token_url,
-      auth_url: server.oauthConfig.auth_url,
+      // Backend expects 'authorization_url', not 'auth_url'
+      authorization_url: server.oauthConfig.auth_url,
+      redirect_uri: server.oauthConfig.redirect_uri,
       scopes: server.oauthConfig.scopes,
-      access_token: server.oauthConfig.access_token,
-      refresh_token: server.oauthConfig.refresh_token,
-      token_expires_at: server.oauthConfig.token_expires_at,
     };
+    
+    // For client_credentials flow: include tokens (backend uses them from oauth_config)
+    // For authorization_code flow: DON'T include tokens (backend uses per-user oauth_tokens table)
+    if (!isAuthCodeFlow) {
+      payload.oauth_config.access_token = server.oauthConfig.access_token;
+      payload.oauth_config.refresh_token = server.oauthConfig.refresh_token;
+      payload.oauth_config.token_expires_at = server.oauthConfig.token_expires_at;
+      payload.oauth_config.is_authorized = !!server.oauthConfig.access_token;
+    }
   }
   
   return payload;

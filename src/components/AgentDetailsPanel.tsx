@@ -1,10 +1,12 @@
-import { ChevronDown, X, Plus, TestTube, Wand2, CheckCircle } from 'lucide-react';
+import { ChevronDown, X, Plus, Wand2, CheckCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { Switch } from "./ui/switch";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { RightSidePanel } from './RightSidePanel';
 import { A2AAgent, AuthHeader } from '../types/agent';
 import { useState } from 'react';
-import { OAuthConfigWizard } from './OAuthConfigWizard';
+import { OAuthFlowWizard, type OAuthConfig } from './OAuthFlowWizard';
+import * as api from '../lib/api/contextforge-api-ipc';
+import { toast } from '../lib/toastWithTray';
 
 interface AgentDetailsPanelProps {
   agent: A2AAgent | null;
@@ -78,7 +80,7 @@ export function AgentDetailsPanel({
   editedConfigJson,
   editedEnabled,
   isAuthTypeDropdownOpen,
-  isGrantTypeDropdownOpen,
+  isGrantTypeDropdownOpen: _isGrantTypeDropdownOpen,
   onClose,
   onSave,
   onNameChange,
@@ -100,8 +102,8 @@ export function AgentDetailsPanel({
   onConfigJsonChange,
   onEnabledChange,
   onAuthTypeDropdownToggle,
-  onGrantTypeDropdownToggle,
-  onTestOAuth,
+  onGrantTypeDropdownToggle: _onGrantTypeDropdownToggle,
+  onTestOAuth: _onTestOAuth,
 }: AgentDetailsPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showOAuthWizard, setShowOAuthWizard] = useState(false);
@@ -130,7 +132,7 @@ export function AgentDetailsPanel({
     onAuthHeadersChange(editedAuthHeaders.filter((_, i) => i !== index));
   };
 
-  const handleOAuthWizardComplete = (config: any) => {
+  const handleOAuthWizardComplete = (config: OAuthConfig) => {
     // Update all OAuth fields from the wizard
     onOAuthGrantTypeChange(config.grant_type);
     onOAuthClientIdChange(config.client_id);
@@ -141,6 +143,30 @@ export function AgentDetailsPanel({
     }
     onOAuthScopesChange(config.scopes || []);
     setShowOAuthWizard(false);
+  };
+
+  // Test OAuth for existing agent
+  const [testingOAuth, setTestingOAuth] = useState(false);
+  
+  const handleTestAgent = async () => {
+    if (!agent?.id) {
+      toast.error('Save the agent first before testing');
+      return;
+    }
+    
+    setTestingOAuth(true);
+    try {
+      const result = await api.testA2AAgent(agent.id);
+      if (result.success) {
+        toast.success('Agent connection test successful!');
+      } else {
+        toast.error('Agent connection test failed: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      toast.error('Test failed: ' + (err as Error).message);
+    } finally {
+      setTestingOAuth(false);
+    }
   };
 
   const footer = (
@@ -436,7 +462,7 @@ export function AgentDetailsPanel({
             {editedOAuthClientId && editedOAuthTokenUrl ? (
               <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-green-50 border-green-200'}`}>
                 <div className="flex items-start gap-3">
-                  <CheckCircle size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
+                  <CheckCircle size={20} className="text-green-500 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <h4 className="font-semibold text-sm mb-1">OAuth Configured</h4>
                     <div className={`text-xs space-y-1 ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
@@ -457,80 +483,60 @@ export function AgentDetailsPanel({
               </div>
             )}
 
-            {/* Wizard Button */}
-            <button
-              onClick={() => setShowOAuthWizard(true)}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md transition-colors border-2 ${
-                editedOAuthClientId && editedOAuthTokenUrl
-                  ? theme === 'dark' ? 'bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
-                  : 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600'
-              }`}
-            >
-              <Wand2 size={18} />
-              {editedOAuthClientId && editedOAuthTokenUrl ? 'Reconfigure OAuth' : 'Configure OAuth with Wizard'}
-            </button>
+            {/* Wizard and Test Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowOAuthWizard(true)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md transition-colors border-2 ${
+                  editedOAuthClientId && editedOAuthTokenUrl
+                    ? theme === 'dark' ? 'bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700' : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
+                    : 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600'
+                }`}
+              >
+                <Wand2 size={18} />
+                {editedOAuthClientId && editedOAuthTokenUrl ? 'Reconfigure' : 'Configure OAuth'}
+              </button>
+              
+              {/* Test button - only show for existing agents with OAuth configured */}
+              {agent?.id && editedOAuthClientId && editedOAuthTokenUrl && (
+                <button
+                  onClick={handleTestAgent}
+                  disabled={testingOAuth}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md transition-colors border-2 ${
+                    theme === 'dark' 
+                      ? 'bg-cyan-600 text-white border-cyan-600 hover:bg-cyan-700 disabled:bg-zinc-700 disabled:border-zinc-700' 
+                      : 'bg-cyan-500 text-white border-cyan-500 hover:bg-cyan-600 disabled:bg-gray-300 disabled:border-gray-300'
+                  }`}
+                >
+                  {testingOAuth ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <ExternalLink size={18} />
+                  )}
+                  Test
+                </button>
+              )}
+            </div>
+            
+            {/* Info about testing for new agents */}
+            {panelMode === 'add' && editedOAuthClientId && editedOAuthTokenUrl && (
+              <p className={`text-xs ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                Save the agent first to test the OAuth connection.
+              </p>
+            )}
           </div>
-        )}
-
-        {/* Advanced Section */}
-        <div>
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center gap-2 text-sm ${theme === 'dark' ? 'text-zinc-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-          >
-            <ChevronDown 
-              size={16} 
-              className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-            />
-            Advanced Configuration
-          </button>
-        </div>
-
-        {showAdvanced && (
-          <>
-            {/* Capabilities JSON */}
-            <div>
-              <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                Capabilities (JSON)
-              </label>
-              <textarea
-                value={editedCapabilitiesJson}
-                onChange={(e) => onCapabilitiesJsonChange(e.target.value)}
-                rows={6}
-                placeholder='{"tools": [], "prompts": [], "resources": []}'
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
-              />
-              <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                Optional: Define agent capabilities in JSON format
-              </p>
-            </div>
-
-            {/* Config JSON */}
-            <div>
-              <label className={`block mb-2 text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
-                Configuration (JSON)
-              </label>
-              <textarea
-                value={editedConfigJson}
-                onChange={(e) => onConfigJsonChange(e.target.value)}
-                rows={6}
-                placeholder='{"timeout": 30, "retries": 3}'
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
-              />
-              <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
-                Optional: Additional configuration in JSON format
-              </p>
-            </div>
-          </>
         )}
       </div>
 
       {/* OAuth Configuration Wizard */}
-      <OAuthConfigWizard
+      <OAuthFlowWizard
         isOpen={showOAuthWizard}
         onClose={() => setShowOAuthWizard(false)}
         onComplete={handleOAuthWizardComplete}
         theme={theme as 'light' | 'dark'}
+        entityType="agent"
+        entityId={agent?.id}
+        entityName={editedName || agent?.name}
         initialConfig={{
           grant_type: editedOAuthGrantType as 'authorization_code' | 'client_credentials',
           client_id: editedOAuthClientId,

@@ -1,5 +1,5 @@
 import { toast } from './toastWithTray';
-import { MCPServer } from '../types/server';
+import { MCPServer, OAuthConfig, AuthHeader } from '../types/server';
 
 /**
  * Type for edited server data (excludes auto-generated fields)
@@ -8,6 +8,7 @@ export type EditedServerData = {
   name: string;
   url: string;
   iconUrl?: string;
+  logoUrl?: string; // Alias for iconUrl, used by getEditedServer
   description: string;
   tags: string[];
   visibility: 'public' | 'team' | 'private';
@@ -15,6 +16,13 @@ export type EditedServerData = {
   authenticationType: string;
   passthroughHeaders: string[];
   active: boolean;
+  // Authentication credentials
+  oauthConfig?: OAuthConfig | null;
+  authToken?: string;
+  authUsername?: string;
+  authPassword?: string;
+  authHeaders?: AuthHeader[];
+  // Associated items
   associatedTools?: string[];
   associatedResources?: string[];
   associatedPrompts?: string[];
@@ -121,7 +129,10 @@ export function updateServerProperties(
     transportType: editedServer.transportType,
     authenticationType: editedServer.authenticationType,
     passthroughHeaders: editedServer.passthroughHeaders,
-    active: editedServer.active
+    active: editedServer.active,
+    associatedTools: editedServer.associatedTools,
+    associatedResources: editedServer.associatedResources,
+    associatedPrompts: editedServer.associatedPrompts,
   };
 }
 
@@ -158,7 +169,8 @@ export type ConfigType = 'stdio' | 'sse' | 'http';
  * @returns Generated configuration object
  */
 export function generateConfig(server: MCPServer, configType: ConfigType): object {
-  // Use the API URL from environment variable, fallback to localhost:4444
+  // Get the API URL from the current profile's API configuration
+  // Falls back to environment variable or localhost if no profile is active
   const apiUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:4444';
   const baseUrl = apiUrl.replace(/\/$/, ''); // Remove trailing slash if present
 

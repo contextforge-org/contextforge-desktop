@@ -46,6 +46,7 @@ import {
   togglePromptStatusPromptsPromptIdTogglePost,
   getPromptPromptsPromptIdPost,
   listGatewaysGatewaysGet,
+  adminListGatewaysAdminGatewaysGet,
   registerGatewayGatewaysPost,
   updateGatewayGatewaysGatewayIdPut,
   // OAuth operations
@@ -64,6 +65,7 @@ import {
   updateA2aAgentA2aAgentIdPut,
   deleteA2aAgentA2aAgentIdDelete,
   toggleA2aAgentStatusA2aAgentIdTogglePost,
+  adminTestA2aAgentAdminA2aAgentIdTestPost,
   listTeamsTeamsGet,
   createTeamTeamsPost,
   updateTeamTeamsTeamIdPut,
@@ -102,14 +104,39 @@ import { client } from '../contextforge-client-ts/client.gen';
 import { createElectronFetchAdapter } from './electron-fetch-adapter';
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:4444';
+// API_BASE_URL is set dynamically by the profile system via setApiBaseUrl()
+// Default fallback is used only if no profile is loaded
+let API_BASE_URL = process.env['VITE_API_URL'] || 'http://localhost:4444';
 let authToken: string | null = null;
+
+/**
+ * Update the API base URL (called when switching profiles)
+ */
+export function setApiBaseUrl(url: string) {
+  API_BASE_URL = url;
+  client.setConfig({
+    baseUrl: API_BASE_URL,
+    fetch: electronFetch as any,
+    auth: () => {
+      return authToken || undefined;
+    }
+  });
+  console.log('API base URL updated to:', API_BASE_URL);
+}
+
+/**
+ * Get the current API base URL
+ */
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
 
 // Create and configure the Electron fetch adapter
 const electronFetch = createElectronFetchAdapter();
 
 // Initialize client on module load with auth callback
 // The callback will return undefined until login sets authToken
+// The baseUrl will be updated by setApiBaseUrl() when a profile is loaded
 client.setConfig({
   baseUrl: API_BASE_URL,
   fetch: electronFetch as any,
@@ -129,6 +156,13 @@ client.interceptors.request.use((request) => {
  */
 export function setAuthToken(token: string | null) {
   authToken = token;
+}
+
+/**
+ * Get the current authentication token
+ */
+export function getAuthToken(): string | null {
+  return authToken;
 }
 
 // ============================================================================
@@ -459,7 +493,8 @@ export async function executePrompt(promptId: string, args: Record<string, any>)
 // ============================================================================
 
 export async function listGateways(includeInactive = true): Promise<GatewayRead[]> {
-  const response = await listGatewaysGatewaysGet({
+  // Use admin endpoint to get full gateway details including OAuth config
+  const response = await adminListGatewaysAdminGatewaysGet({
     query: { include_inactive: includeInactive }
   });
   
@@ -598,6 +633,22 @@ export async function toggleA2AAgentStatus(agentId: string, activate?: boolean) 
   return response.data;
 }
 
+/**
+ * Test A2A agent connection
+ * This endpoint tests the agent's connectivity and authentication
+ */
+export async function testA2AAgent(agentId: string): Promise<any> {
+  const response = await adminTestA2aAgentAdminA2aAgentIdTestPost({
+    path: { agent_id: agentId }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to test A2A agent: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data;
+}
+
 // ============================================================================
 // OAuth Operations (using backend endpoints)
 // ============================================================================
@@ -663,6 +714,15 @@ export async function fetchToolsAfterOAuth(gatewayId: string): Promise<any> {
   }
   
   return response.data;
+}
+
+/**
+ * Get the backend's OAuth authorize URL for a gateway
+ * This URL should be opened in a browser for the user to complete authorization
+ * The backend handles the OAuth callback and stores tokens per-user
+ */
+export function getBackendOAuthAuthorizeUrl(gatewayId: string): string {
+  return `${API_BASE_URL}/oauth/authorize/${gatewayId}`;
 }
 
 /**

@@ -28,6 +28,7 @@ import { PermissionsCheckboxGroup } from './PermissionsCheckboxGroup';
 import { ServerSelector } from './ServerSelector';
 import * as api from '../lib/api/contextforge-api-ipc';
 import type { PermissionListResponse } from '../lib/contextforge-client-ts';
+import { toast } from '../lib/toastWithTray';
 
 export function SettingsPage() {
   const { theme } = useTheme();
@@ -144,6 +145,10 @@ export function SettingsPage() {
     ipRestrictions: '',
     permissions: [] as string[]
   });
+  
+  // State for showing created token value (only shown once after creation)
+  const [createdTokenValue, setCreatedTokenValue] = useState<string | null>(null);
+  const [createdTokenName, setCreatedTokenName] = useState<string>('');
 
   // New state for permissions and servers
   const [availablePermissions, setAvailablePermissions] = useState<PermissionListResponse | null>(null);
@@ -274,13 +279,20 @@ export function SettingsPage() {
         // Format expiration date as YYYY-MM-DD
         const expiresDate = expirationDate.toISOString().split('T')[0] || '';
 
-        await createToken({
+        const result = await createToken({
           tokenName: newTokenData.tokenName,
           expires: expiresDate,
           description: newTokenData.description,
           serverId: serverId || '',
           permissions: newTokenData.permissions
         });
+        
+        // Show the created token value (only available at creation time)
+        if (result?.access_token) {
+          setCreatedTokenValue(result.access_token);
+          setCreatedTokenName(newTokenData.tokenName);
+        }
+        
         setNewTokenData({ tokenName: '', expiresInDays: 365, description: '', serverId: '__none__', ipRestrictions: '', permissions: [] });
         setShowAddTokenForm(false);
       } catch (error) {
@@ -293,7 +305,11 @@ export function SettingsPage() {
     setNewTokenData({ tokenName: '', expiresInDays: 365, description: '', serverId: '__none__', ipRestrictions: '', permissions: [] });
     setShowAddTokenForm(false);
   };
-
+  
+  const handleDismissTokenValue = () => {
+    setCreatedTokenValue(null);
+    setCreatedTokenName('');
+  };
   // Show authentication message if not logged in
   if (authError || (!authLoading && !currentUser)) {
     return (
@@ -1065,6 +1081,47 @@ export function SettingsPage() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-6 pb-6">
+                {/* Created Token Display - shows only once after token creation */}
+                {createdTokenValue && (
+                  <div className={`mb-4 p-4 rounded-lg border ${theme === 'dark' ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <h4 className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-green-400' : 'text-green-700'}`}>
+                          ✓ Token "{createdTokenName}" Created Successfully
+                        </h4>
+                        <p className={`text-xs mb-3 ${theme === 'dark' ? 'text-green-300/80' : 'text-green-600'}`}>
+                          Copy this token now. You won't be able to see it again!
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <code className={`flex-1 px-3 py-2 rounded text-sm font-mono break-all ${theme === 'dark' ? 'bg-zinc-900 text-green-400' : 'bg-white text-green-700 border border-green-200'}`}>
+                            {createdTokenValue}
+                          </code>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(createdTokenValue);
+                              toast.success('Token copied to clipboard');
+                            }}
+                            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                              theme === 'dark'
+                                ? 'bg-green-600 hover:bg-green-500 text-white'
+                                : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleDismissTokenValue}
+                        className={`p-1 rounded hover:bg-opacity-20 ${theme === 'dark' ? 'text-green-400 hover:bg-green-400' : 'text-green-600 hover:bg-green-600'}`}
+                        title="Dismiss"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <div className={`rounded-lg border overflow-hidden ${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
                   <table className="w-full">
                     <thead className={`border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
@@ -1164,6 +1221,7 @@ export function SettingsPage() {
                                 <BarChart3 size={16} />
                               </button>
                               <button 
+                                onClick={() => revokeToken(token.id)}
                                 className={`p-1.5 rounded transition-colors ${
                                   theme === 'dark' 
                                     ? 'hover:bg-red-900/30 text-zinc-400 hover:text-red-400' 

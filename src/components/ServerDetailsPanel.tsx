@@ -1,8 +1,9 @@
-import { ChevronDown, X, Settings } from 'lucide-react';
+import { ChevronDown, X, Settings, Plus, Trash2, Eye, EyeOff, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
 import { Switch } from "./ui/switch";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { RightSidePanel } from './RightSidePanel';
-import { MCPServer, OAuthConfig } from '../types/server';
+import { MCPServer, OAuthConfig, AuthHeader } from '../types/server';
 
 interface ServerDetailsPanelProps {
   server: MCPServer | null;
@@ -20,6 +21,14 @@ interface ServerDetailsPanelProps {
   isTransportDropdownOpen: boolean;
   isAuthDropdownOpen: boolean;
   editedOAuthConfig: OAuthConfig | null;
+  // Authentication credentials
+  editedAuthToken: string;
+  editedAuthUsername: string;
+  editedAuthPassword: string;
+  editedAuthHeaders: AuthHeader[];
+  // OAuth authorization state
+  isOAuthAuthorized?: boolean;
+  isAuthorizingOAuth?: boolean;
   onClose: () => void;
   onSave: () => void;
   onNameChange: (value: string) => void;
@@ -34,6 +43,12 @@ interface ServerDetailsPanelProps {
   onTransportDropdownToggle: (open: boolean) => void;
   onAuthDropdownToggle: (open: boolean) => void;
   onOpenOAuthWizard: () => void;
+  onAuthorizeOAuth?: () => void;
+  // Authentication credential handlers
+  onAuthTokenChange: (value: string) => void;
+  onAuthUsernameChange: (value: string) => void;
+  onAuthPasswordChange: (value: string) => void;
+  onAuthHeadersChange: (headers: AuthHeader[]) => void;
 }
 
 export function ServerDetailsPanel({
@@ -52,6 +67,12 @@ export function ServerDetailsPanel({
   isTransportDropdownOpen,
   isAuthDropdownOpen,
   editedOAuthConfig,
+  editedAuthToken,
+  editedAuthUsername,
+  editedAuthPassword,
+  editedAuthHeaders,
+  isOAuthAuthorized,
+  isAuthorizingOAuth,
   onClose,
   onSave,
   onNameChange,
@@ -66,9 +87,33 @@ export function ServerDetailsPanel({
   onTransportDropdownToggle,
   onAuthDropdownToggle,
   onOpenOAuthWizard,
+  onAuthorizeOAuth,
+  onAuthTokenChange,
+  onAuthUsernameChange,
+  onAuthPasswordChange,
+  onAuthHeadersChange,
 }: ServerDetailsPanelProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+
   const removeTag = (index: number) => {
     onTagsChange(editedTags.filter((_, i) => i !== index));
+  };
+
+  const addAuthHeader = () => {
+    onAuthHeadersChange([...editedAuthHeaders, { key: '', value: '' }]);
+  };
+
+  const updateAuthHeader = (index: number, field: 'key' | 'value', value: string) => {
+    const newHeaders = [...editedAuthHeaders];
+    if (newHeaders[index]) {
+      newHeaders[index] = { key: newHeaders[index].key, value: newHeaders[index].value, [field]: value };
+    }
+    onAuthHeadersChange(newHeaders);
+  };
+
+  const removeAuthHeader = (index: number) => {
+    onAuthHeadersChange(editedAuthHeaders.filter((_, i) => i !== index));
   };
 
   const footer = (
@@ -345,6 +390,139 @@ export function ServerDetailsPanel({
             </div>
           </div>
 
+          {/* Bearer Token Configuration */}
+          {editedAuthenticationType === 'Bearer Token' && (
+            <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
+              <h4 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Bearer Token Authentication
+              </h4>
+              <div className="relative">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={editedAuthToken}
+                  onChange={(e) => onAuthTokenChange(e.target.value)}
+                  placeholder="Enter your bearer token"
+                  className={`w-full px-3 py-2 pr-10 border rounded-md text-sm transition-colors ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-opacity-10 ${theme === 'dark' ? 'text-zinc-400 hover:bg-white' : 'text-gray-500 hover:bg-gray-900'}`}
+                >
+                  {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                The token will be sent as "Authorization: Bearer &lt;token&gt;"
+              </p>
+            </div>
+          )}
+
+          {/* Basic Authentication Configuration */}
+          {editedAuthenticationType === 'Basic' && (
+            <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
+              <h4 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Basic Authentication
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <label className={`block mb-1 text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={editedAuthUsername}
+                    onChange={(e) => onAuthUsernameChange(e.target.value)}
+                    placeholder="Enter username"
+                    className={`w-full px-3 py-2 border rounded-md text-sm transition-colors ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block mb-1 text-xs ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={editedAuthPassword}
+                      onChange={(e) => onAuthPasswordChange(e.target.value)}
+                      placeholder="Enter password"
+                      className={`w-full px-3 py-2 pr-10 border rounded-md text-sm transition-colors ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-opacity-10 ${theme === 'dark' ? 'text-zinc-400 hover:bg-white' : 'text-gray-500 hover:bg-gray-900'}`}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                Credentials will be Base64 encoded and sent as "Authorization: Basic &lt;encoded&gt;"
+              </p>
+            </div>
+          )}
+
+          {/* Custom Headers Configuration */}
+          {editedAuthenticationType === 'Custom Headers' && (
+            <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Custom Headers
+                </h4>
+                <button
+                  onClick={addAuthHeader}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                    theme === 'dark'
+                      ? 'bg-zinc-700 hover:bg-zinc-600 text-white'
+                      : 'bg-white hover:bg-gray-100 text-gray-900 border border-gray-300'
+                  }`}
+                >
+                  <Plus size={12} />
+                  Add Header
+                </button>
+              </div>
+              
+              {editedAuthHeaders.length === 0 ? (
+                <p className={`text-sm text-center py-4 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  No custom headers configured. Click "Add Header" to add one.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {editedAuthHeaders.map((header, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={header.key}
+                        onChange={(e) => updateAuthHeader(index, 'key', e.target.value)}
+                        placeholder="Header name"
+                        className={`flex-1 px-3 py-2 border rounded-md text-sm ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
+                      />
+                      <input
+                        type="text"
+                        value={header.value}
+                        onChange={(e) => updateAuthHeader(index, 'value', e.target.value)}
+                        placeholder="Header value"
+                        className={`flex-1 px-3 py-2 border rounded-md text-sm ${theme === 'dark' ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400'}`}
+                      />
+                      <button
+                        onClick={() => removeAuthHeader(index)}
+                        className={`p-2 rounded transition-colors ${theme === 'dark' ? 'text-red-400 hover:bg-red-900/20' : 'text-red-500 hover:bg-red-50'}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'}`}>
+                These headers will be sent with every request to the gateway.
+              </p>
+            </div>
+          )}
+
           {/* OAuth Configuration Section */}
           {editedAuthenticationType === 'OAuth 2.0' && (
             <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-blue-50 border-blue-200'}`}>
@@ -354,17 +532,36 @@ export function ServerDetailsPanel({
                     <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                       OAuth 2.0 Configuration
                     </h4>
-                    <button
-                      onClick={onOpenOAuthWizard}
-                      className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-zinc-700 hover:bg-zinc-600 text-white'
-                          : 'bg-white hover:bg-gray-100 text-gray-900 border border-gray-300'
-                      }`}
-                    >
-                      <Settings size={12} />
-                      Edit Config
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Authorize button - show for authorization_code flow when server is saved */}
+                      {editedOAuthConfig.grant_type === 'authorization_code' && panelMode === 'view' && server?.id && !isOAuthAuthorized && (
+                        isAuthorizingOAuth ? (
+                          <div className="flex items-center gap-1.5 px-2 py-1 text-xs">
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-blue-500 border-t-transparent"></div>
+                            <span className={theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}>Authorizing...</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={onAuthorizeOAuth}
+                            className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors bg-blue-500 hover:bg-blue-600 text-white"
+                          >
+                            <ExternalLink size={12} />
+                            Authorize
+                          </button>
+                        )
+                      )}
+                      <button
+                        onClick={onOpenOAuthWizard}
+                        className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-zinc-700 hover:bg-zinc-600 text-white'
+                            : 'bg-white hover:bg-gray-100 text-gray-900 border border-gray-300'
+                        }`}
+                      >
+                        <Settings size={12} />
+                        Edit Config
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2 text-sm">
@@ -388,16 +585,27 @@ export function ServerDetailsPanel({
                         </span>
                       </div>
                     )}
-                    {editedOAuthConfig.access_token && (
-                      <div className={`mt-2 pt-2 border-t ${theme === 'dark' ? 'border-zinc-700' : 'border-blue-200'}`}>
+                    
+                    {/* Authorization Status Section */}
+                    <div className={`mt-2 pt-2 border-t ${theme === 'dark' ? 'border-zinc-700' : 'border-blue-200'}`}>
+                      {/* For client_credentials with a token, or if isOAuthAuthorized is true */}
+                      {(editedOAuthConfig.grant_type === 'client_credentials' && editedOAuthConfig.access_token) || isOAuthAuthorized ? (
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-green-500"></div>
                           <span className={`text-xs ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>
-                            Token Active
+                            {editedOAuthConfig.grant_type === 'authorization_code' ? 'User Authorized' : 'Token Active'}
                           </span>
                         </div>
-                      </div>
-                    )}
+                      ) : editedOAuthConfig.grant_type === 'authorization_code' && panelMode === 'view' && server?.id ? (
+                        // Authorization Code flow in view mode - show status only (button is in header)
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                          <span className={`text-xs ${theme === 'dark' ? 'text-amber-400' : 'text-amber-600'}`}>
+                            Authorization Required
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               ) : (

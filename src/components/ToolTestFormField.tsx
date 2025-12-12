@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import type { ParsedField } from '../lib/toolTestUtils';
@@ -86,6 +85,95 @@ export function ToolTestFormField({
       );
 
     case 'array':
+      // For arrays of objects, use a JSON textarea approach
+      if (field.itemType === 'object') {
+        // Get property names from itemSchema for hint
+        const propertyHint = field.itemSchema?.properties 
+          ? Object.keys(field.itemSchema.properties).join(', ')
+          : 'key1, key2';
+        
+        return (
+          <div>
+            <label className={labelClassName}>
+              {field.name}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {field.description && (
+              <p className={descriptionClassName}>{field.description}</p>
+            )}
+            <div className="space-y-2">
+              {(arrayValues || ['{}']).map((item, index) => (
+                <div key={index} className={`rounded-md border ${
+                  theme === 'dark' ? 'border-zinc-700 bg-zinc-800/50' : 'border-gray-200 bg-gray-50'
+                }`}>
+                  <div className={`flex items-center justify-between px-3 py-2 border-b ${
+                    theme === 'dark' ? 'border-zinc-700' : 'border-gray-200'
+                  }`}>
+                    <span className={`text-xs font-medium ${
+                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
+                    }`}>
+                      Item {index + 1}
+                    </span>
+                    {(arrayValues || ['{}']).length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newValues = (arrayValues || ['{}']).filter((_, i) => i !== index);
+                          onArrayChange?.(newValues);
+                        }}
+                        className={`p-1 rounded transition-colors ${
+                          theme === 'dark'
+                            ? 'hover:bg-zinc-700 text-zinc-400 hover:text-red-400'
+                            : 'hover:bg-gray-200 text-gray-500 hover:text-red-500'
+                        }`}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    value={item}
+                    onChange={(e) => {
+                      const newValues = [...(arrayValues || ['{}'])];
+                      newValues[index] = e.target.value;
+                      onArrayChange?.(newValues);
+                    }}
+                    placeholder={`{"${propertyHint.split(', ')[0] || 'key'}": "value"}`}
+                    rows={3}
+                    className={`w-full px-3 py-2 font-mono text-sm border-0 focus:outline-none focus:ring-0 ${
+                      theme === 'dark'
+                        ? 'bg-transparent text-white placeholder-zinc-600'
+                        : 'bg-transparent text-gray-900 placeholder-gray-400'
+                    }`}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const newValues = [...(arrayValues || ['{}']), '{}'];
+                  onArrayChange?.(newValues);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  theme === 'dark'
+                    ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                <Plus size={16} />
+                Add Object
+              </button>
+              {field.itemSchema?.properties && (
+                <p className={`text-xs ${theme === 'dark' ? 'text-zinc-600' : 'text-gray-500'}`}>
+                  Expected properties: {propertyHint}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // For simple arrays (strings, numbers, etc.)
       return (
         <div>
           <label className={labelClassName}>

@@ -1,6 +1,8 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { TrayManager } from './tray-manager';
 import * as mainApi from './lib/api/contextforge-api-main';
+import { profileManager } from './services/ProfileManager';
+import type { ProfileCreateRequest, ProfileUpdateRequest } from './types/profile';
 
 /**
  * Setup IPC handlers for tray and window management
@@ -373,6 +375,15 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  ipcMain.handle('api:test-a2a-agent', async (_event, agentId: string) => {
+    try {
+      const response = await mainApi.testA2AAgent(agentId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // OAuth Gateway-based handlers
   ipcMain.handle('api:initiate-oauth-flow', async (_event, gatewayId: string) => {
     try {
@@ -397,6 +408,75 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
       const response = await mainApi.fetchToolsAfterOAuth(gatewayId);
       return { success: true, data: response };
     } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get the backend OAuth authorize URL and open it in external browser
+  // We call the API endpoint with auth, then extract and open the redirect URL
+  ipcMain.handle('api:open-backend-oauth-flow', async (_event, gatewayId: string) => {
+    try {
+      const { shell } = require('electron');
+      
+      const authToken = mainApi.getAuthToken();
+      if (!authToken) {
+        console.error('[IPC] No auth token available for OAuth flow');
+        return { success: false, error: 'Not authenticated. Please log in first.' };
+      }
+      
+      // Call the OAuth authorize endpoint - it returns a redirect to the OAuth provider
+      // We need to intercept the redirect URL instead of following it
+      const authorizeEndpoint = mainApi.getBackendOAuthAuthorizeUrl(gatewayId);
+      console.log('[IPC] Calling OAuth authorize endpoint:', authorizeEndpoint);
+      
+      // Make a fetch request that doesn't follow redirects
+      const response = await fetch(authorizeEndpoint, {
+        method: 'GET',
+        redirect: 'manual', // Don't follow redirects
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Accept': 'application/json',
+        },
+      });
+      
+      console.log('[IPC] OAuth authorize response status:', response.status);
+      console.log('[IPC] OAuth authorize response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // The endpoint returns a 307 redirect - get the Location header
+      if (response.status === 307 || response.status === 302 || response.status === 303) {
+        const redirectUrl = response.headers.get('Location') || response.headers.get('location');
+        if (redirectUrl) {
+          console.log('[IPC] Opening OAuth provider URL:', redirectUrl);
+          await shell.openExternal(redirectUrl);
+          return { success: true, data: { url: redirectUrl } };
+        } else {
+          console.error('[IPC] Redirect response but no Location header');
+          return { success: false, error: 'OAuth redirect missing Location header' };
+        }
+      }
+      
+      // Check if it's an opaque redirect response (status 0 with type 'opaqueredirect')
+      // Node fetch with redirect: 'manual' may return this
+      if (response.type === 'opaqueredirect') {
+        // We can't read the Location header from opaque redirect
+        // Fall back to opening the authorize URL directly and let the browser handle auth
+        console.log('[IPC] Got opaque redirect, opening authorize URL directly');
+        await shell.openExternal(authorizeEndpoint);
+        return { success: true, data: { url: authorizeEndpoint } };
+      }
+      
+      // If we didn't get a redirect, something went wrong
+      const errorText = await response.text();
+      console.error('[IPC] OAuth authorize did not redirect:', response.status, errorText.substring(0, 500));
+      
+      // Check if it returned HTML (auth page)
+      if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+        return { success: false, error: 'Authentication required. The backend returned a login page instead of redirecting.' };
+      }
+      
+      return { success: false, error: `OAuth authorize failed: ${response.status}` };
+    } catch (error) {
+      console.error('[IPC] OAuth flow error:', error);
       return { success: false, error: (error as Error).message };
     }
   });
@@ -451,6 +531,23 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     try {
       const response = await mainApi.getClientCredentialsToken(oauthConfig);
       return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Native OAuth flow handler - performs complete OAuth authorization code flow with local callback server
+  ipcMain.handle('api:perform-native-oauth-flow', async (_event, oauthConfig: any, timeoutMs?: number) => {
+    try {
+      // Import the performNativeOAuthFlow function
+      const { performNativeOAuthFlow } = await import('./oauth-handler');
+      const result = await performNativeOAuthFlow(oauthConfig, timeoutMs);
+      
+      if (result.success) {
+        return { success: true, data: result };
+      } else {
+        return { success: false, error: result.error };
+      }
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
@@ -641,6 +738,113 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // Profile Management handlers
+  ipcMain.handle('profiles:initialize', async () => {
+    try {
+      await profileManager.initialize();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:get-all', async () => {
+    try {
+      const result = await profileManager.getAllProfiles();
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:get', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.getProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:create', async (_event, request: ProfileCreateRequest) => {
+    try {
+      const result = await profileManager.createProfile(request);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:update', async (_event, profileId: string, updates: ProfileUpdateRequest) => {
+    try {
+      const result = await profileManager.updateProfile(profileId, updates);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:delete', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.deleteProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:switch', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.switchProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:login', async (_event, profileId: string) => {
+    try {
+      const result = await profileManager.loginWithProfile(profileId);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:logout', async () => {
+    try {
+      await profileManager.logout();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:get-current', async () => {
+    try {
+      const profile = profileManager.getCurrentProfile();
+      const token = profileManager.getCurrentToken();
+      return {
+        success: true,
+        data: {
+          profile,
+          token,
+          isAuthenticated: !!profile && !!token
+        }
+      };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('profiles:test-credentials', async (_event, email: string, password: string, apiUrl: string) => {
+    try {
+      const result = await profileManager.testCredentials(email, password, apiUrl);
+      return result;
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
 
   // RPC handlers (Tool Execution)
   ipcMain.handle('api:execute-tool-rpc', async (
@@ -711,4 +915,17 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('api:revoke-role-from-user');
   ipcMain.removeHandler('api:execute-tool-rpc');
   ipcMain.removeHandler('api:getAggregatedMetrics');
+  
+  // Profile management handlers cleanup
+  ipcMain.removeHandler('profiles:initialize');
+  ipcMain.removeHandler('profiles:get-all');
+  ipcMain.removeHandler('profiles:get');
+  ipcMain.removeHandler('profiles:create');
+  ipcMain.removeHandler('profiles:update');
+  ipcMain.removeHandler('profiles:delete');
+  ipcMain.removeHandler('profiles:switch');
+  ipcMain.removeHandler('profiles:login');
+  ipcMain.removeHandler('profiles:logout');
+  ipcMain.removeHandler('profiles:get-current');
+  ipcMain.removeHandler('profiles:test-credentials');
 }
