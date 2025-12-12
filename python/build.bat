@@ -11,6 +11,9 @@ set GATEWAY_REPO_HTTPS=git+https://github.com/IBM/mcp-context-forge.git
 set CLI_REPO_SSH=git+ssh://git@github.com/contextforge-org/contextforge-cli.git
 set CLI_REPO_HTTPS=git+https://github.com/contextforge-org/contextforge-cli.git
 set OUTPUT_NAME=backend
+if not defined DEFAULT_HOME_DIR (
+    set "DEFAULT_HOME_DIR="
+)
 
 echo ========================================
 echo Context Forge Backend Build Script
@@ -23,10 +26,10 @@ where uv >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
     echo [!] UV not found. Installing UV...
     powershell -Command "irm https://astral.sh/uv/install.ps1 | iex"
-    
+
     REM Refresh PATH
     call refreshenv >nul 2>nul
-    
+
     where uv >nul 2>nul
     if !ERRORLEVEL! NEQ 0 (
         echo [X] Failed to install UV. Please install manually: https://github.com/astral-sh/uv
@@ -122,36 +125,28 @@ if not defined CFORGE_PATH (
     exit /b 1
 )
 
-if not defined CFORGE_PATH (
-    echo [!] No cforge.py found, creating wrapper for 'cforge serve' command...
-    
-    REM Create wrapper script for 'cforge serve'
-    set CFORGE_PATH=cforge_wrapper.py
-    (
-        echo #!/usr/bin/env python3
-        echo """
-        echo Wrapper script for cforge serve
-        echo This allows PyInstaller to bundle the cforge package
-        echo Entry point: cforge serve ^(CLI command^)
-        echo """
-        echo import sys
-        echo.
-        echo if __name__ == '__main__':
-        echo     # Set sys.argv to run 'cforge serve' command
-        echo     sys.argv = ['cforge', 'serve']
-        echo.
-        echo     from cforge.main import main
-        echo     sys.exit^(main^(^)^)
-    ) > !CFORGE_PATH!
-    
-    echo [+] Created wrapper script at: !CFORGE_PATH!
-) else (
-    if not exist "%CFORGE_PATH%" (
-        echo [X] cforge.py not found at: %CFORGE_PATH%
-        exit /b 1
-    )
-    echo [+] Found cforge.py at: %CFORGE_PATH%
-)
+REM Create wrapper script for 'cforge serve'
+set CFORGE_PATH=cforge_wrapper.py
+(
+    echo #!/usr/bin/env python3
+    echo """
+    echo Wrapper script for cforge to default home to app data
+    echo """
+    echo import os
+    echo.
+    echo HOME_ENV = "CONTEXTFORGE_HOME"
+    echo.
+    echo if __name__ == '__main__':
+    echo     # Set the default env var for the home directory
+    echo     if home_dir := os.getenv^(HOME_ENV, "%DEFAULT_HOME_DIR%"^):
+    echo         os.environ[HOME_ENV] = home_dir
+    echo.
+    echo     # Import the main entrypoint and run it
+    echo     from cforge.main import main
+    echo     sys.exit^(main^(^)^)
+) > !CFORGE_PATH!
+
+echo [+] Created wrapper script at: !CFORGE_PATH!
 
 REM Clean previous build artifacts
 echo [*] Cleaning previous build artifacts...
@@ -183,7 +178,7 @@ if exist "dist\%OUTPUT_NAME%.exe" (
     echo   %CD%\dist\%OUTPUT_NAME%.exe
     echo ========================================
     echo.
-    
+
     REM Test the executable
     echo [*] Testing executable...
     "dist\%OUTPUT_NAME%.exe" --version >nul 2>nul
@@ -197,7 +192,7 @@ if exist "dist\%OUTPUT_NAME%.exe" (
             echo [!] Executable created but may have issues. Test it manually.
         )
     )
-    
+
     echo.
     echo [*] Next steps:
     echo   1. Test the executable: dist\%OUTPUT_NAME%.exe
@@ -210,5 +205,3 @@ if exist "dist\%OUTPUT_NAME%.exe" (
 )
 
 endlocal
-
-@REM Made with Bob

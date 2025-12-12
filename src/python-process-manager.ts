@@ -26,16 +26,16 @@ export class PythonProcessManager {
 
     // PyInstaller creates platform-specific executables
     if (platform === 'win32') {
-      execName = 'backend.exe';
+      execName = 'cforge.exe';
     } else if (platform === 'darwin') {
-      execName = 'backend';  // macOS
+      execName = 'cforge';  // macOS
     } else {
-      execName = 'backend';  // Linux
+      execName = 'cforge';  // Linux
     }
 
     if (app.isPackaged) {
       // Production: executable in resources folder
-      return path.join(process.resourcesPath, 'python', execName);
+      return path.join(process.resourcesPath, execName);
     } else {
       // Development: executable in project directory
       return path.join(__dirname, '..', '..', 'python', 'dist', execName);
@@ -103,7 +103,7 @@ export class PythonProcessManager {
       HOST: '127.0.0.1',
       PORT: '4444',
       // Authentication - enable for internal backend
-      AUTH_REQUIRED: 'true',
+      AUTH_REQUIRED: 'false',
       BASIC_AUTH_USER: 'admin@example.com',
       BASIC_AUTH_PASSWORD: 'changeme',
       // Database

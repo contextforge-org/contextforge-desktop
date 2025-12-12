@@ -240,6 +240,7 @@ export function PromptsPage() {
           onTagsChange={editorHook.setEditedTags}
           onVisibilityChange={editorHook.setEditedVisibility}
           onActiveChange={editorHook.setEditedActive}
+          onToggleActive={actionsHook.togglePromptActive}
           onExecute={handleExecutePrompt}
         />
       )}
