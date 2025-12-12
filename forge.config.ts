@@ -20,12 +20,14 @@ const config: ForgeConfig = {
         // Get the user data location for the default home
         const appName = JSON.parse(fs.readFileSync('package.json', 'utf-8')).name;
         let userData: string | undefined;
+        let buildScript: string = 'build.sh';
         if (platform === 'darwin') {
           userData = join(os.homedir(), 'Library', 'Application Support');
         } else if (platform === 'linux') {
           userData = process.env.XDG_CONFIG_HOME || join(os.homedir(), '.config');
         } else if (platform === 'win32') {
           userData = process.env.APPDATA;
+          buildScript = 'build.bat';
         }
         if (userData === undefined) {
           throw new Error(`Unable to determine user data directory on ${platform}-${arch}`);
@@ -33,10 +35,10 @@ const config: ForgeConfig = {
         const appUserData: string = join(userData, appName);
 
         // Run the build script
-        const buildScript = join(process.cwd(), 'python', 'build.sh');
+        const buildScriptPath = join(process.cwd(), 'python', buildScript);
         const envCopy = { ...process.env };
         envCopy.DEFAULT_HOME_DIR = join(appUserData, '.contextforge');
-        execSync(buildScript, {stdio: 'inherit', env: envCopy});
+        execSync(buildScriptPath, {stdio: 'inherit', env: envCopy});
 
         console.log('[PrePackage Hook] Backend binary generated successfully.');
 
