@@ -844,6 +844,51 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
+  // Backend preferences handlers
+  ipcMain.handle('backend:get-preferences', async () => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      const preferences = backendPreferences.getPreferences();
+      return { success: true, data: preferences };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('backend:set-auto-start', async (_event, value: boolean) => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      backendPreferences.setAutoStartEmbedded(value);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  });
+
+  // Backend health check handler
+  ipcMain.handle('backend:check-health', async () => {
+    try {
+      // Use the main API to check health (it already has proper auth configured)
+      const response = await fetch('http://127.0.0.1:4444/health', {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000)
+      });
+      
+      return {
+        success: true,
+        isHealthy: response.ok,
+        status: response.status
+      };
+    } catch (error) {
+      // Backend not ready yet or connection failed
+      return {
+        success: true,
+        isHealthy: false,
+        error: (error as Error).message
+      };
+    }
   });
 
   // RPC handlers (Tool Execution)

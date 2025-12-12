@@ -154,6 +154,48 @@ export function SettingsPage() {
   const [availablePermissions, setAvailablePermissions] = useState<PermissionListResponse | null>(null);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
   const [virtualServers, setVirtualServers] = useState<Array<{ id: string; name: string; status?: string }>>([]);
+
+  // Backend preferences state
+  const [autoStartEmbedded, setAutoStartEmbedded] = useState(true);
+  const [backendPrefsLoading, setBackendPrefsLoading] = useState(true);
+
+  // Load backend preferences
+  useEffect(() => {
+    const loadBackendPreferences = async () => {
+      try {
+        const result = await window.electronAPI.api.getBackendPreferences();
+        if (result.success && result.data) {
+          setAutoStartEmbedded(result.data.autoStartEmbedded);
+        }
+      } catch (error) {
+        console.error('Failed to load backend preferences:', error);
+      } finally {
+        setBackendPrefsLoading(false);
+      }
+    };
+    
+    loadBackendPreferences();
+  }, []);
+
+  // Handle auto-start toggle
+  const handleAutoStartToggle = async (value: boolean) => {
+    try {
+      const result = await window.electronAPI.api.setAutoStartEmbedded(value);
+      if (result.success) {
+        setAutoStartEmbedded(value);
+        toast.success(
+          value 
+            ? 'Embedded server will auto-start on next launch' 
+            : 'Embedded server auto-start disabled'
+        );
+      } else {
+        toast.error(`Failed to update preference: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to update auto-start preference:', error);
+      toast.error('Failed to update preference');
+    }
+  };
   const [serversLoading, setServersLoading] = useState(false);
 
   const handleAddUser = async () => {
@@ -346,6 +388,71 @@ export function SettingsPage() {
 
         {/* Settings Accordion */}
         <div className={`rounded-lg border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
+            {/* Backend Server */}
+            <AccordionItem value="backend" className={`${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
+              <AccordionTrigger className={`px-6 hover:no-underline ${theme === 'dark' ? 'hover:bg-zinc-800/50' : 'hover:bg-gray-50'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20' : 'bg-gradient-to-br from-purple-100 to-pink-100'}`}>
+                    <Globe className={`size-5 ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Backend Server</h3>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                      Configure embedded server and backend connections
+                    </p>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-6">
+                <div className="space-y-6">
+                  {/* Auto-start Toggle */}
+                  <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          Auto-start Embedded Server
+                        </h4>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
+                          Automatically start the Python backend server when the app launches. 
+                          Disable this if you want to use an external backend server.
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer ml-4">
+                        <input
+                          type="checkbox"
+                          checked={autoStartEmbedded}
+                          onChange={(e) => handleAutoStartToggle(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className={`w-11 h-6 rounded-full peer peer-focus:ring-4 ${
+                          theme === 'dark' 
+                            ? 'bg-zinc-700 peer-focus:ring-cyan-800 peer-checked:bg-cyan-600' 
+                            : 'bg-gray-200 peer-focus:ring-cyan-300 peer-checked:bg-cyan-500'
+                        } peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Info about profiles */}
+                  <div className={`p-4 rounded-lg border ${theme === 'dark' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
+                    <div className="flex gap-3">
+                      <Globe className={`size-5 flex-shrink-0 mt-0.5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
+                      <div>
+                        <h4 className={`font-medium mb-1 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-900'}`}>
+                          Using External Backends
+                        </h4>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-blue-300/80' : 'text-blue-800'}`}>
+                          To connect to an external backend server, create a new profile with the external server's URL. 
+                          You can manage profiles and switch between different backends (local, staging, production) 
+                          using the profile selector in the top navigation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
           <Accordion type="single" collapsible className="w-full">
             {/* Users */}
             <AccordionItem value="users" className={`${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>

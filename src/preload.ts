@@ -117,6 +117,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     logoutProfile: () => ipcRenderer.invoke('profiles:logout'),
     getCurrentProfile: () => ipcRenderer.invoke('profiles:get-current'),
     testProfileCredentials: (email: string, password: string, apiUrl: string) => ipcRenderer.invoke('profiles:test-credentials', email, password, apiUrl),
+    
+    // Backend health check
+    // Backend preferences
+    getBackendPreferences: () => ipcRenderer.invoke('backend:get-preferences'),
+    setAutoStartEmbedded: (value: boolean) => ipcRenderer.invoke('backend:set-auto-start', value),
+    checkBackendHealth: () => ipcRenderer.invoke('backend:check-health'),
   },
 });
 
@@ -217,6 +223,13 @@ declare global {
         logoutProfile: () => Promise<{ success: boolean; error?: string }>;
         getCurrentProfile: () => Promise<{ success: boolean; data?: { profile: any; token: string; isAuthenticated: boolean }; error?: string }>;
         testProfileCredentials: (email: string, password: string, apiUrl: string) => Promise<{ success: boolean; error?: string }>;
+        
+        // Backend health check
+        
+        // Backend preferences
+        getBackendPreferences: () => Promise<{ success: boolean; data?: { autoStartEmbedded: boolean }; error?: string }>;
+        setAutoStartEmbedded: (value: boolean) => Promise<{ success: boolean; error?: string }>;
+        checkBackendHealth: () => Promise<{ success: boolean; isHealthy: boolean; status?: number; error?: string }>;
       };
     };
   }

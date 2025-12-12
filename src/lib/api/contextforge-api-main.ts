@@ -102,6 +102,8 @@ import {
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
 import { createElectronFetchAdapter } from './electron-fetch-adapter';
+import { mapPromptReadToPrompt } from './prompt-mapper';
+import { Prompt } from '../../types/prompt';
 
 // API Configuration
 // API_BASE_URL is set dynamically by the profile system via setApiBaseUrl()
@@ -413,7 +415,7 @@ export async function toggleResourceStatus(resourceId: string, activate?: boolea
 // Prompt Operations
 // ============================================================================
 
-export async function listPrompts(includeInactive = true): Promise<PromptRead[]> {
+export async function listPrompts(includeInactive = true): Promise<Prompt[]> {
   const response = await listPromptsPromptsGet({
     query: { include_inactive: includeInactive }
   });
@@ -421,8 +423,9 @@ export async function listPrompts(includeInactive = true): Promise<PromptRead[]>
   if (response.error) {
     throw new Error('Failed to list prompts: ' + JSON.stringify(response.error));
   }
-  
-  return (response.data as PromptRead[]) || [];
+
+  const prompts = (response.data as any[]) || [];
+  return prompts.map(mapPromptReadToPrompt);
 }
 
 export async function createPrompt(promptData: PromptCreate) {
@@ -462,9 +465,9 @@ export async function deletePrompt(promptId: string) {
   return response.data;
 }
 
-export async function togglePromptStatus(promptId: string, activate?: boolean) {
+export async function togglePromptStatus(promptId: string | number, activate?: boolean) {
   const response = await togglePromptStatusPromptsPromptIdTogglePost({
-    path: { prompt_id: Number(promptId) },
+    path: { prompt_id: promptId as any }, // Backend accepts both UUID strings and numbers
     query: activate !== undefined ? { activate } : undefined
   });
   

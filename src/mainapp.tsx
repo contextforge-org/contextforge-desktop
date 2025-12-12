@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SideNav } from './components/SideNav';
 import { TopNav } from './components/TopNav';
 import { VirtualServersPage } from './components/VirtualServersPage';
@@ -14,6 +14,8 @@ import { TeamProvider } from './context/TeamContext';
 import { Toaster } from './components/ui/sonner';
 import { useTray } from './hooks/useTray';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OnboardingScreen } from './components/OnboardingScreen';
+import { useBackendStatus } from './hooks/useBackendStatus';
 
 function AppContent() {
   const { theme } = useTheme();
@@ -49,6 +51,30 @@ function AppContent() {
 }
 
 export default function App() {
+  const backendStatus = useBackendStatus();
+  const [showOnboarding, setShowOnboarding] = useState(true);
+
+  useEffect(() => {
+    if (backendStatus.isReady) {
+      // Small delay for smooth transition and success animation
+      const timer = setTimeout(() => {
+        setShowOnboarding(false);
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [backendStatus.isReady]);
+
+  if (showOnboarding) {
+    return (
+      <ErrorBoundary>
+        <ThemeProvider>
+          <OnboardingScreen status={backendStatus} mode="embedded" />
+        </ThemeProvider>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <ThemeProvider>

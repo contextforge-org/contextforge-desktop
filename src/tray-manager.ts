@@ -19,6 +19,7 @@ export class TrayManager {
   };
   private unreadCount = 0;
   private isQuitting = false;
+  private menuUpdateInterval: NodeJS.Timeout | null = null;
 
   constructor(mainWindow: BrowserWindow, pythonManager?: PythonProcessManager) {
     this.mainWindow = mainWindow;
@@ -34,18 +35,21 @@ export class TrayManager {
     }
 
     const iconPath = this.getTrayIconPath();
-    
+
     const icon = nativeImage.createFromPath(iconPath);
-    
+
     // Create tray with icon
     this.tray = new Tray(icon);
 
-    
+
     // Set tooltip
     this.tray.setToolTip('Context Forge');
 
     // Build and set context menu
     this.updateContextMenu();
+
+    // Start periodic menu updates (every 10 seconds) to keep uptime fresh
+    this.startMenuUpdateInterval();
 
     // Handle tray icon click
     this.tray.on('click', () => {
@@ -96,7 +100,7 @@ export class TrayManager {
   /**
    * Build and update the context menu
    */
-  private updateContextMenu(): void {
+  public updateContextMenu(): void {
     if (!this.tray) return;
 
     const isVisible = this.mainWindow?.isVisible() ?? false;
@@ -173,17 +177,6 @@ export class TrayManager {
               }
             },
           },
-          ...(pythonStatus?.executablePath ? [
-            { type: 'separator' as const },
-            {
-              label: 'Executable Path',
-              enabled: false,
-            },
-            {
-              label: pythonStatus.executablePath,
-              enabled: false,
-            },
-          ] : []),
         ],
       }, { type: 'separator' as const }] : []),
       {
@@ -414,11 +407,11 @@ export class TrayManager {
     if (this.isQuitting) {
       return true;
     }
-    
+
     if (this.config.minimizeToTray && this.mainWindow) {
       event.preventDefault();
       this.hideWindow();
-      
+
       // Show notification on first minimize
       if (this.unreadCount === 0) {
         this.showNotification(
@@ -427,7 +420,7 @@ export class TrayManager {
           { silent: true }
         );
       }
-      
+
       return false; // Prevent default close
     }
     return true; // Allow close
@@ -439,7 +432,7 @@ export class TrayManager {
   private forceQuit(): void {
     // Set flag to allow window to close
     this.isQuitting = true;
-    
+
     // Quit the app
     app.quit();
   }
@@ -467,9 +460,32 @@ export class TrayManager {
   }
 
   /**
+   * Start periodic menu updates to keep uptime fresh
+   */
+  private startMenuUpdateInterval(): void {
+    // Update menu every 10 seconds when backend is running
+    this.menuUpdateInterval = setInterval(() => {
+      if (this.pythonManager?.isProcessRunning()) {
+        this.updateContextMenu();
+      }
+    }, 10000); // 10 seconds
+  }
+
+  /**
+   * Stop periodic menu updates
+   */
+  private stopMenuUpdateInterval(): void {
+    if (this.menuUpdateInterval) {
+      clearInterval(this.menuUpdateInterval);
+      this.menuUpdateInterval = null;
+    }
+  }
+
+  /**
    * Destroy the tray
    */
   public destroy(): void {
+    this.stopMenuUpdateInterval();
     if (this.tray) {
       this.tray.destroy();
       this.tray = null;

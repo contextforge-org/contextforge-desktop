@@ -9,7 +9,7 @@ export function usePromptEditor() {
   const [editedTags, setEditedTags] = useState<string[]>([]);
   const [editedVisibility, setEditedVisibility] = useState<'public' | 'team' | 'private'>('public');
   const [editedTeamId, setEditedTeamId] = useState<string | null>(null);
-  const [editedActive, setEditedActive] = useState(true);
+  const [editedActive, setEditedActive] = useState<boolean>(true);
 
   const loadPromptForEditing = useCallback((prompt: Prompt) => {
     setEditedName(prompt.name);
@@ -19,7 +19,7 @@ export function usePromptEditor() {
     setEditedTags([...(prompt.tags || [])]);
     setEditedVisibility((prompt.visibility as 'public' | 'team' | 'private') || 'public');
     setEditedTeamId(prompt.teamId || null);
-    setEditedActive(prompt.isActive);
+    setEditedActive(prompt.isActive ?? true);
   }, []);
 
   const resetForNewPrompt = useCallback(() => {
