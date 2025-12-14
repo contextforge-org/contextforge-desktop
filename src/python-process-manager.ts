@@ -120,6 +120,8 @@ export class PythonProcessManager {
       MCPGATEWAY_ADMIN_API_ENABLED: 'true',
       // Development mode for easier setup
       DEV_MODE: 'true',
+      // Enable plugins
+      ENABLE_PLUGINS: 'true',
     };
 
     return {

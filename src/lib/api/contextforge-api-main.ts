@@ -76,6 +76,10 @@ import {
   getAvailablePermissionsRbacPermissionsAvailableGet,
   revokeTokenTokensTokenIdDelete,
   handleRpcRpcPost,
+  // Plugin operations
+  listPluginsAdminPluginsGet,
+  getPluginStatsAdminPluginsStatsGet,
+  getPluginDetailsAdminPluginsNameGet,
   type ServerRead,
   type ServerCreate,
   type ServerUpdate,
@@ -99,6 +103,9 @@ import {
   type ResourceRead,
   type ResourceCreate,
   type ResourceUpdate,
+  type PluginListResponse,
+  type PluginStatsResponse,
+  type PluginDetail,
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
 import { createElectronFetchAdapter } from './electron-fetch-adapter';
@@ -1104,6 +1111,44 @@ export async function getAvailablePermissions(): Promise<PermissionListResponse>
   }
   
   return response.data as PermissionListResponse;
+}
+
+// ============================================================================
+// Plugin Operations
+// ============================================================================
+
+export async function listPlugins(filters?: { status?: string; mode?: string; hook?: string; tag?: string }): Promise<PluginListResponse> {
+  const response = await listPluginsAdminPluginsGet({
+    query: filters
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to list plugins: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as PluginListResponse;
+}
+
+export async function getPluginStats(): Promise<PluginStatsResponse> {
+  const response = await getPluginStatsAdminPluginsStatsGet();
+  
+  if (response.error) {
+    throw new Error('Failed to get plugin stats: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as PluginStatsResponse;
+}
+
+export async function getPluginDetails(name: string): Promise<PluginDetail> {
+  const response = await getPluginDetailsAdminPluginsNameGet({
+    path: { name }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to get plugin details: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as PluginDetail;
 }
 
 // ============================================================================

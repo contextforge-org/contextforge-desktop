@@ -104,6 +104,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) =>
       ipcRenderer.invoke('api:execute-tool-rpc', toolName, params, passthroughHeaders, timeout),
     getAggregatedMetrics: () => ipcRenderer.invoke('api:getAggregatedMetrics'),
+    listPlugins: (filters?: any) => ipcRenderer.invoke('api:list-plugins', filters),
+    getPluginStats: () => ipcRenderer.invoke('api:get-plugin-stats'),
+    getPluginDetails: (name: string) => ipcRenderer.invoke('api:get-plugin-details', name),
     
     // Profile management methods
     initializeProfiles: () => ipcRenderer.invoke('profiles:initialize'),
@@ -210,6 +213,9 @@ declare global {
         getAvailablePermissions: () => Promise<{ success: boolean; data?: any; error?: string }>;
         executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) => Promise<{ success: boolean; data?: any; error?: string }>;
         getAggregatedMetrics: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        listPlugins: (filters?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getPluginStats: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getPluginDetails: (name: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         
         // Profile management methods
         initializeProfiles: () => Promise<{ success: boolean; error?: string }>;

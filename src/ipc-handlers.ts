@@ -738,6 +738,34 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // Plugin handlers
+  ipcMain.handle('api:list-plugins', async (_event, filters?: any) => {
+    try {
+      const response = await mainApi.listPlugins(filters);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-plugin-stats', async () => {
+    try {
+      const response = await mainApi.getPluginStats();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-plugin-details', async (_event, name: string) => {
+    try {
+      const response = await mainApi.getPluginDetails(name);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Profile Management handlers
   ipcMain.handle('profiles:initialize', async () => {
     try {

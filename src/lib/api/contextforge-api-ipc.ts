@@ -1005,6 +1005,49 @@ export async function getAvailablePermissions(): Promise<PermissionListResponse>
   return response.data;
 }
 
+// Plugin operations
+export async function listPlugins(filters?: { status?: string; mode?: string; hook?: string; tag?: string }) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listPlugins(filters);
+  
+  if (!response.success) {
+    throw new Error('Failed to list plugins: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function getPluginStats() {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getPluginStats();
+  
+  if (!response.success) {
+    throw new Error('Failed to get plugin stats: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function getPluginDetails(name: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getPluginDetails(name);
+  
+  if (!response.success) {
+    throw new Error('Failed to get plugin details: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // RPC operations (Tool Execution)
 export async function executeToolRpc(
   toolName: string,
