@@ -108,6 +108,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPluginStats: () => ipcRenderer.invoke('api:get-plugin-stats'),
     getPluginDetails: (name: string) => ipcRenderer.invoke('api:get-plugin-details', name),
     
+    // Observability and tracing methods
+    getObservabilityStats: (params?: any) => ipcRenderer.invoke('api:get-observability-stats', params),
+    getTraces: (filters?: any) => ipcRenderer.invoke('api:get-traces', filters),
+    getTraceDetail: (traceId: string) => ipcRenderer.invoke('api:get-trace-detail', traceId),
+    getTimeSeriesMetrics: (params?: any) => ipcRenderer.invoke('api:get-timeseries-metrics', params),
+    getTopSlowEndpoints: (params?: any) => ipcRenderer.invoke('api:get-top-slow-endpoints', params),
+    getTopVolumeEndpoints: (params?: any) => ipcRenderer.invoke('api:get-top-volume-endpoints', params),
+    getTopErrorEndpoints: (params?: any) => ipcRenderer.invoke('api:get-top-error-endpoints', params),
+    getToolUsage: (params?: any) => ipcRenderer.invoke('api:get-tool-usage', params),
+    getToolPerformance: (params?: any) => ipcRenderer.invoke('api:get-tool-performance', params),
+    getToolErrors: (params?: any) => ipcRenderer.invoke('api:get-tool-errors', params),
+    getToolChains: (params?: any) => ipcRenderer.invoke('api:get-tool-chains', params),
+    listSavedQueries: () => ipcRenderer.invoke('api:list-saved-queries'),
+    saveQuery: (data: any) => ipcRenderer.invoke('api:save-query', data),
+    deleteQuery: (queryId: string) => ipcRenderer.invoke('api:delete-query', queryId),
+    useQuery: (queryId: string) => ipcRenderer.invoke('api:use-query', queryId),
+    
     // Profile management methods
     initializeProfiles: () => ipcRenderer.invoke('profiles:initialize'),
     getAllProfiles: () => ipcRenderer.invoke('profiles:get-all'),
@@ -216,6 +233,23 @@ declare global {
         listPlugins: (filters?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         getPluginStats: () => Promise<{ success: boolean; data?: any; error?: string }>;
         getPluginDetails: (name: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        
+        // Observability and tracing methods
+        getObservabilityStats: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTraces: (filters?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTraceDetail: (traceId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTimeSeriesMetrics: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTopSlowEndpoints: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTopVolumeEndpoints: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTopErrorEndpoints: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolUsage: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolPerformance: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolErrors: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolChains: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        listSavedQueries: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        saveQuery: (data: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deleteQuery: (queryId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        useQuery: (queryId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         
         // Profile management methods
         initializeProfiles: () => Promise<{ success: boolean; error?: string }>;

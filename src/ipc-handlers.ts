@@ -765,6 +765,142 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
       return { success: false, error: (error as Error).message };
     }
   });
+  // Observability and Tracing handlers
+  ipcMain.handle('api:get-observability-stats', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getObservabilityStats(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-traces', async (_event, filters?: any) => {
+    try {
+      const response = await mainApi.getTraces(filters);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-trace-detail', async (_event, traceId: string) => {
+    try {
+      const response = await mainApi.getTraceDetail(traceId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-timeseries-metrics', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTimeSeriesMetrics(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-top-slow-endpoints', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTopSlowEndpoints(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-top-volume-endpoints', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTopVolumeEndpoints(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-top-error-endpoints', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTopErrorEndpoints(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-usage', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolUsage(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-performance', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolPerformance(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-errors', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolErrors(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-chains', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolChains(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:list-saved-queries', async () => {
+    try {
+      const response = await mainApi.listSavedQueries();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:save-query', async (_event, data: any) => {
+    try {
+      const response = await mainApi.saveQuery(data);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-query', async (_event, queryId: string) => {
+    try {
+      const response = await mainApi.deleteQuery(queryId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:use-query', async (_event, queryId: string) => {
+    try {
+      const response = await mainApi.useQuery(queryId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
 
   // Profile Management handlers
   ipcMain.handle('profiles:initialize', async () => {

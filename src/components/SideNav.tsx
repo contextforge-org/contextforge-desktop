@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import svgPaths from "../imports/svg-00ihbob3cz";
-import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings } from 'lucide-react';
+import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings, Activity } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useTeam } from '../context/TeamContext';
 import { MCPIcon } from './common';
@@ -194,7 +194,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'settings') => void }) {
+export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'settings') => void }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useTheme();
 
@@ -276,13 +276,24 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           isCollapsed={isCollapsed}
           theme={theme}
         />
-        <NavItem 
-          icon={<LineChart size={18} strokeWidth={1.5} />} 
-          label="Metrics" 
+        <NavItem
+          icon={<LineChart size={18} strokeWidth={1.5} />}
+          label="Metrics"
           active={currentPage === 'metrics'}
           onClick={(e) => {
             e?.stopPropagation();
             onNavigate('metrics');
+          }}
+          isCollapsed={isCollapsed}
+          theme={theme}
+        />
+        <NavItem
+          icon={<Activity size={18} strokeWidth={1.5} />}
+          label="Observability"
+          active={currentPage === 'tracing'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('tracing');
           }}
           isCollapsed={isCollapsed}
           theme={theme}

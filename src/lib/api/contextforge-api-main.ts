@@ -48,6 +48,21 @@ import {
   listGatewaysGatewaysGet,
   adminListGatewaysAdminGatewaysGet,
   registerGatewayGatewaysPost,
+  getObservabilityStatsAdminObservabilityStatsGet,
+  getObservabilityTracesAdminObservabilityTracesGet,
+  getObservabilityTraceDetailAdminObservabilityTraceTraceIdGet,
+  getTimeseriesMetricsAdminObservabilityMetricsTimeseriesGet,
+  getTopSlowEndpointsAdminObservabilityMetricsTopSlowGet,
+  getTopVolumeEndpointsAdminObservabilityMetricsTopVolumeGet,
+  getTopErrorEndpointsAdminObservabilityMetricsTopErrorsGet,
+  getToolUsageAdminObservabilityToolsUsageGet,
+  getToolPerformanceAdminObservabilityToolsPerformanceGet,
+  getToolErrorsAdminObservabilityToolsErrorsGet,
+  getToolChainsAdminObservabilityToolsChainsGet,
+  listObservabilityQueriesAdminObservabilityQueriesGet,
+  saveObservabilityQueryAdminObservabilityQueriesPost,
+  deleteObservabilityQueryAdminObservabilityQueriesQueryIdDelete,
+  trackQueryUsageAdminObservabilityQueriesQueryIdUsePost,
   updateGatewayGatewaysGatewayIdPut,
   // OAuth operations
   initiateOauthFlowOauthAuthorizeGatewayIdGet,
@@ -1266,6 +1281,233 @@ export async function executeToolRpc(
     }
     throw new Error('Unknown error during RPC execution');
   }
+}
+
+// ============================================================================
+// Observability and Tracing Operations
+// ============================================================================
+
+/**
+ * Get observability statistics
+ */
+export async function getObservabilityStats(params?: any) {
+  const response = await getObservabilityStatsAdminObservabilityStatsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get observability stats: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get list of traces with filters
+ */
+export async function getTraces(filters?: any) {
+  const response = await getObservabilityTracesAdminObservabilityTracesGet({
+    query: filters,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get traces: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get detailed trace information
+ */
+export async function getTraceDetail(traceId: string) {
+  const response = await getObservabilityTraceDetailAdminObservabilityTraceTraceIdGet({
+    path: { trace_id: traceId },
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get trace detail: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get time series metrics
+ */
+export async function getTimeSeriesMetrics(params?: any) {
+  const response = await getTimeseriesMetricsAdminObservabilityMetricsTimeseriesGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get time series metrics: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get top slow endpoints
+ */
+export async function getTopSlowEndpoints(params?: any) {
+  const response = await getTopSlowEndpointsAdminObservabilityMetricsTopSlowGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get top slow endpoints: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get top volume endpoints
+ */
+export async function getTopVolumeEndpoints(params?: any) {
+  const response = await getTopVolumeEndpointsAdminObservabilityMetricsTopVolumeGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get top volume endpoints: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get top error endpoints
+ */
+export async function getTopErrorEndpoints(params?: any) {
+  const response = await getTopErrorEndpointsAdminObservabilityMetricsTopErrorsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get top error endpoints: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool usage metrics
+ */
+export async function getToolUsage(params?: any) {
+  const response = await getToolUsageAdminObservabilityToolsUsageGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool usage: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool performance metrics
+ */
+export async function getToolPerformance(params?: any) {
+  const response = await getToolPerformanceAdminObservabilityToolsPerformanceGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool performance: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool error metrics
+ */
+export async function getToolErrors(params?: any) {
+  const response = await getToolErrorsAdminObservabilityToolsErrorsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool errors: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool chain analysis
+ */
+export async function getToolChains(params?: any) {
+  const response = await getToolChainsAdminObservabilityToolsChainsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool chains: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * List saved observability queries
+ */
+export async function listSavedQueries() {
+  const response = await listObservabilityQueriesAdminObservabilityQueriesGet();
+  
+  if (response.error) {
+    throw new Error(`Failed to list saved queries: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Save a new observability query
+ */
+export async function saveQuery(data: any) {
+  const response = await saveObservabilityQueryAdminObservabilityQueriesPost({
+    body: data,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to save query: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Delete a saved query
+ */
+export async function deleteQuery(queryId: string) {
+  const response = await deleteObservabilityQueryAdminObservabilityQueriesQueryIdDelete({
+    path: { query_id: parseInt(queryId) },
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to delete query: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Use a saved query (increments usage count)
+ */
+export async function useQuery(queryId: string) {
+  const response = await trackQueryUsageAdminObservabilityQueriesQueryIdUsePost({
+    path: { query_id: parseInt(queryId) },
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to use query: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
 }
 
 // ============================================================================

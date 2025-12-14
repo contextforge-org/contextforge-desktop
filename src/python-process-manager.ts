@@ -122,6 +122,10 @@ export class PythonProcessManager {
       DEV_MODE: 'true',
       // Enable plugins
       ENABLE_PLUGINS: 'true',
+      // Enable observability and tracing
+      ENABLE_OBSERVABILITY: 'true',
+      ENABLE_TRACING: 'true',
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318',
     };
 
     return {
