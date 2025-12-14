@@ -40,6 +40,7 @@ export type MCPServer = {
   associatedTools?: string[];
   associatedResources?: string[];
   associatedPrompts?: string[];
+  associatedA2aAgents?: string[]; // Added: support for A2A agents from ServerRead
 };
 
 

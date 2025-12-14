@@ -388,6 +388,7 @@ export function SettingsPage() {
 
         {/* Settings Accordion */}
         <div className={`rounded-lg border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
+          <Accordion type="single" collapsible className="w-full">
             {/* Backend Server */}
             <AccordionItem value="backend" className={`${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
               <AccordionTrigger className={`px-6 hover:no-underline ${theme === 'dark' ? 'hover:bg-zinc-800/50' : 'hover:bg-gray-50'}`}>
@@ -413,7 +414,7 @@ export function SettingsPage() {
                           Auto-start Embedded Server
                         </h4>
                         <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'}`}>
-                          Automatically start the Python backend server when the app launches. 
+                          Automatically start the Python backend server when the app launches.
                           Disable this if you want to use an external backend server.
                         </p>
                       </div>
@@ -425,8 +426,8 @@ export function SettingsPage() {
                           className="sr-only peer"
                         />
                         <div className={`w-11 h-6 rounded-full peer peer-focus:ring-4 ${
-                          theme === 'dark' 
-                            ? 'bg-zinc-700 peer-focus:ring-cyan-800 peer-checked:bg-cyan-600' 
+                          theme === 'dark'
+                            ? 'bg-zinc-700 peer-focus:ring-cyan-800 peer-checked:bg-cyan-600'
                             : 'bg-gray-200 peer-focus:ring-cyan-300 peer-checked:bg-cyan-500'
                         } peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                       </label>
@@ -442,8 +443,8 @@ export function SettingsPage() {
                           Using External Backends
                         </h4>
                         <p className={`text-sm ${theme === 'dark' ? 'text-blue-300/80' : 'text-blue-800'}`}>
-                          To connect to an external backend server, create a new profile with the external server's URL. 
-                          You can manage profiles and switch between different backends (local, staging, production) 
+                          To connect to an external backend server, create a new profile with the external server's URL.
+                          You can manage profiles and switch between different backends (local, staging, production)
                           using the profile selector in the top navigation.
                         </p>
                       </div>
@@ -453,7 +454,6 @@ export function SettingsPage() {
               </AccordionContent>
             </AccordionItem>
 
-          <Accordion type="single" collapsible className="w-full">
             {/* Users */}
             <AccordionItem value="users" className={`${theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'}`}>
               <AccordionTrigger className={`px-6 hover:no-underline ${theme === 'dark' ? 'hover:bg-zinc-800/50' : 'hover:bg-gray-50'}`}>

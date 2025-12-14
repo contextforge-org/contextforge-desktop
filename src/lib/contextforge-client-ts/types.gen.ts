@@ -335,7 +335,9 @@ export type A2aAgentRead = {
      *
      * Tags for categorizing the agent
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     metrics: A2aAgentMetrics;
     /**
      * Passthroughheaders
@@ -655,6 +657,62 @@ export type Annotations = {
      * Lastmodified
      */
     lastModified?: string | null;
+};
+
+/**
+ * AuditTrailResponse
+ *
+ * Audit trail response model.
+ */
+export type AuditTrailResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    /**
+     * Correlation Id
+     */
+    correlation_id?: string | null;
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Resource Type
+     */
+    resource_type: string;
+    /**
+     * Resource Id
+     */
+    resource_id: string | null;
+    /**
+     * Resource Name
+     */
+    resource_name?: string | null;
+    /**
+     * User Id
+     */
+    user_id: string;
+    /**
+     * User Email
+     */
+    user_email?: string | null;
+    /**
+     * Success
+     */
+    success: boolean;
+    /**
+     * Requires Review
+     */
+    requires_review: boolean;
+    /**
+     * Data Classification
+     */
+    data_classification: string | null;
 };
 
 /**
@@ -1462,97 +1520,49 @@ export type ChangePasswordRequest = {
 };
 
 /**
- * ChatInput
+ * CorrelationTraceResponse
  *
- * Request model for sending chat messages.
- *
- * Encapsulates user message data for processing by the chat service.
- *
- * Attributes:
- * user_id: Unique identifier for the active user session.
- * message: The chat message content to be processed.
- * streaming: Whether to stream the response. Defaults to False.
- *
- * Examples:
- * >>> chat = ChatInput(user_id='user123', message='Hello, AI!')
- * >>> len(chat.message) > 0
- * True
- *
- * >>> chat = ChatInput(user_id='user456', message='Tell me a story', streaming=True)
- * >>> chat.streaming
- * True
+ * Correlation trace response with all related logs.
  */
-export type ChatInput = {
+export type CorrelationTraceResponse = {
     /**
-     * User Id
+     * Correlation Id
      */
-    user_id: string;
+    correlation_id: string;
     /**
-     * Message
+     * Total Duration Ms
      */
-    message: string;
+    total_duration_ms: number | null;
     /**
-     * Streaming
+     * Log Count
      */
-    streaming?: boolean;
-};
-
-/**
- * ConnectInput
- *
- * Request model for establishing a new chat session.
- *
- * Contains all necessary parameters to initialize a user's chat session
- * including server connection details, LLM configuration, and streaming preferences.
- *
- * Attributes:
- * user_id: Unique identifier for the user session. Required for session management.
- * server: Optional MCP server configuration. Uses defaults if not provided.
- * llm: Optional LLM provider configuration. Uses environment defaults if not provided.
- * streaming: Whether to enable streaming responses. Defaults to False.
- *
- * Examples:
- * >>> connect = ConnectInput(user_id='user123')
- * >>> connect.streaming
- * False
- *
- * >>> connect = ConnectInput(user_id='user456', streaming=True)
- * >>> connect.user_id
- * 'user456'
- */
-export type ConnectInput = {
+    log_count: number;
     /**
-     * User Id
+     * Error Count
      */
-    user_id: string;
-    server?: ServerInput | null;
-    llm?: LlmInput | null;
+    error_count: number;
     /**
-     * Streaming
+     * Logs
      */
-    streaming?: boolean;
-};
-
-/**
- * DisconnectInput
- *
- * Request model for terminating a chat session.
- *
- * Simple model containing only the user identifier for session cleanup.
- *
- * Attributes:
- * user_id: Unique identifier of the session to disconnect.
- *
- * Examples:
- * >>> disconnect = DisconnectInput(user_id='user123')
- * >>> disconnect.user_id
- * 'user123'
- */
-export type DisconnectInput = {
+    logs: Array<LogEntry>;
     /**
-     * User Id
+     * Security Events
      */
-    user_id: string;
+    security_events: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Audit Trails
+     */
+    audit_trails: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Performance Metrics
+     */
+    performance_metrics: {
+        [key: string]: unknown;
+    } | null;
 };
 
 /**
@@ -1708,6 +1718,12 @@ export type EmailUserResponse = {
      * Whether email is verified
      */
     email_verified?: boolean;
+    /**
+     * Password Change Required
+     *
+     * Whether user must change password on next login
+     */
+    password_change_required?: boolean;
 };
 
 /**
@@ -2036,7 +2052,9 @@ export type GatewayRead = {
      *
      * Tags for categorizing the gateway
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Authpasswordunmasked
      *
@@ -2589,7 +2607,9 @@ export type GrpcServiceRead = {
      *
      * Service tags
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Created At
      *
@@ -2771,41 +2791,6 @@ export type JsonPathModifier = {
 };
 
 /**
- * LLMInput
- *
- * Input configuration for Language Learning Model providers.
- *
- * This model encapsulates the provider type and associated configuration
- * parameters for initializing LLM connections.
- *
- * Attributes:
- * provider: LLM provider identifier (e.g., 'azure_openai', 'openai', 'ollama').
- * config: Dictionary containing provider-specific configuration parameters
- * such as API keys, endpoints, models, and temperature settings.
- *
- * Examples:
- * >>> llm_input = LLMInput(provider='azure_openai', config={'api_key': 'test_key'})
- * >>> llm_input.provider
- * 'azure_openai'
- *
- * >>> llm_input = LLMInput(provider='ollama')
- * >>> llm_input.config
- * {}
- */
-export type LlmInput = {
-    /**
-     * Provider
-     */
-    provider: string;
-    /**
-     * Config
-     */
-    config?: {
-        [key: string]: unknown;
-    };
-};
-
-/**
  * ListResourceTemplatesResult
  *
  * The server's response to a resources/templates/list request from the client.
@@ -2840,6 +2825,186 @@ export type ListResourceTemplatesResult = {
 };
 
 /**
+ * LogEntry
+ *
+ * Log entry response model.
+ */
+export type LogEntry = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    /**
+     * Level
+     */
+    level: string;
+    /**
+     * Component
+     */
+    component: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Correlation Id
+     */
+    correlation_id?: string | null;
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * User Email
+     */
+    user_email?: string | null;
+    /**
+     * Duration Ms
+     */
+    duration_ms?: number | null;
+    /**
+     * Operation Type
+     */
+    operation_type?: string | null;
+    /**
+     * Request Path
+     */
+    request_path?: string | null;
+    /**
+     * Request Method
+     */
+    request_method?: string | null;
+    /**
+     * Is Security Event
+     */
+    is_security_event?: boolean;
+    /**
+     * Error Details
+     */
+    error_details?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * LogSearchRequest
+ *
+ * Log search request parameters.
+ */
+export type LogSearchRequest = {
+    /**
+     * Search Text
+     *
+     * Text search query
+     */
+    search_text?: string | null;
+    /**
+     * Level
+     *
+     * Log levels to filter
+     */
+    level?: Array<string> | null;
+    /**
+     * Component
+     *
+     * Components to filter
+     */
+    component?: Array<string> | null;
+    /**
+     * Category
+     *
+     * Categories to filter
+     */
+    category?: Array<string> | null;
+    /**
+     * Correlation Id
+     *
+     * Correlation ID to filter
+     */
+    correlation_id?: string | null;
+    /**
+     * User Id
+     *
+     * User ID to filter
+     */
+    user_id?: string | null;
+    /**
+     * Start Time
+     *
+     * Start timestamp
+     */
+    start_time?: string | null;
+    /**
+     * End Time
+     *
+     * End timestamp
+     */
+    end_time?: string | null;
+    /**
+     * Min Duration Ms
+     *
+     * Minimum duration
+     */
+    min_duration_ms?: number | null;
+    /**
+     * Max Duration Ms
+     *
+     * Maximum duration
+     */
+    max_duration_ms?: number | null;
+    /**
+     * Has Error
+     *
+     * Filter for errors
+     */
+    has_error?: boolean | null;
+    /**
+     * Limit
+     *
+     * Maximum results
+     */
+    limit?: number;
+    /**
+     * Offset
+     *
+     * Result offset
+     */
+    offset?: number;
+    /**
+     * Sort By
+     *
+     * Field to sort by
+     */
+    sort_by?: string;
+    /**
+     * Sort Order
+     *
+     * Sort order (asc/desc)
+     */
+    sort_order?: string;
+};
+
+/**
+ * LogSearchResponse
+ *
+ * Log search response.
+ */
+export type LogSearchResponse = {
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Results
+     */
+    results: Array<LogEntry>;
+};
+
+/**
  * LoginRequest
  *
  * Login request supporting both email and username formats.
@@ -2864,325 +3029,71 @@ export type LoginRequest = {
 };
 
 /**
- * ObservabilitySpanRead
+ * PerformanceMetricResponse
  *
- * Schema for reading an observability span.
+ * Performance metric response model.
  */
-export type ObservabilitySpanRead = {
+export type PerformanceMetricResponse = {
     /**
-     * Trace Id
-     *
-     * Parent trace ID
+     * Id
      */
-    trace_id: string;
+    id: string;
     /**
-     * Parent Span Id
-     *
-     * Parent span ID (for nested spans)
+     * Timestamp
      */
-    parent_span_id?: string | null;
+    timestamp: string;
     /**
-     * Name
-     *
-     * Span name (e.g., 'database_query', 'tool_invocation')
+     * Component
      */
-    name: string;
+    component: string;
     /**
-     * Kind
-     *
-     * Span kind (internal, server, client, producer, consumer)
+     * Operation Type
      */
-    kind?: string;
+    operation_type: string;
     /**
-     * Start Time
-     *
-     * Span start timestamp
+     * Window Start
      */
-    start_time: string;
+    window_start: string;
     /**
-     * End Time
-     *
-     * Span end timestamp
+     * Window End
      */
-    end_time?: string | null;
+    window_end: string;
     /**
-     * Duration Ms
-     *
-     * Span duration in milliseconds
+     * Request Count
      */
-    duration_ms?: number | null;
+    request_count: number;
     /**
-     * Status
-     *
-     * Span status (unset, ok, error)
+     * Error Count
      */
-    status?: string;
+    error_count: number;
     /**
-     * Status Message
-     *
-     * Status message
+     * Error Rate
      */
-    status_message?: string | null;
+    error_rate: number;
     /**
-     * Attributes
-     *
-     * Span attributes
+     * Avg Duration Ms
      */
-    attributes?: {
-        [key: string]: unknown;
-    } | null;
+    avg_duration_ms: number;
     /**
-     * Resource Name
-     *
-     * Resource name
+     * Min Duration Ms
      */
-    resource_name?: string | null;
+    min_duration_ms: number;
     /**
-     * Resource Type
-     *
-     * Resource type (tool, resource, prompt, gateway, a2a_agent)
+     * Max Duration Ms
      */
-    resource_type?: string | null;
+    max_duration_ms: number;
     /**
-     * Resource Id
-     *
-     * Resource ID
+     * P50 Duration Ms
      */
-    resource_id?: string | null;
+    p50_duration_ms: number;
     /**
-     * Span Id
-     *
-     * Span ID
+     * P95 Duration Ms
      */
-    span_id: string;
+    p95_duration_ms: number;
     /**
-     * Created At
-     *
-     * Creation timestamp
+     * P99 Duration Ms
      */
-    created_at: string;
-};
-
-/**
- * ObservabilityTraceRead
- *
- * Schema for reading an observability trace.
- */
-export type ObservabilityTraceRead = {
-    /**
-     * Name
-     *
-     * Trace name (e.g., 'POST /tools/invoke')
-     */
-    name: string;
-    /**
-     * Start Time
-     *
-     * Trace start timestamp
-     */
-    start_time: string;
-    /**
-     * End Time
-     *
-     * Trace end timestamp
-     */
-    end_time?: string | null;
-    /**
-     * Duration Ms
-     *
-     * Total duration in milliseconds
-     */
-    duration_ms?: number | null;
-    /**
-     * Status
-     *
-     * Trace status (unset, ok, error)
-     */
-    status?: string;
-    /**
-     * Status Message
-     *
-     * Status message or error description
-     */
-    status_message?: string | null;
-    /**
-     * Http Method
-     *
-     * HTTP method
-     */
-    http_method?: string | null;
-    /**
-     * Http Url
-     *
-     * HTTP URL
-     */
-    http_url?: string | null;
-    /**
-     * Http Status Code
-     *
-     * HTTP status code
-     */
-    http_status_code?: number | null;
-    /**
-     * User Email
-     *
-     * User email
-     */
-    user_email?: string | null;
-    /**
-     * User Agent
-     *
-     * User agent string
-     */
-    user_agent?: string | null;
-    /**
-     * Ip Address
-     *
-     * Client IP address
-     */
-    ip_address?: string | null;
-    /**
-     * Attributes
-     *
-     * Additional trace attributes
-     */
-    attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Resource Attributes
-     *
-     * Resource attributes
-     */
-    resource_attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Trace Id
-     *
-     * Trace ID
-     */
-    trace_id: string;
-    /**
-     * Created At
-     *
-     * Creation timestamp
-     */
-    created_at: string;
-};
-
-/**
- * ObservabilityTraceWithSpans
- *
- * Schema for reading a trace with its spans.
- */
-export type ObservabilityTraceWithSpans = {
-    /**
-     * Name
-     *
-     * Trace name (e.g., 'POST /tools/invoke')
-     */
-    name: string;
-    /**
-     * Start Time
-     *
-     * Trace start timestamp
-     */
-    start_time: string;
-    /**
-     * End Time
-     *
-     * Trace end timestamp
-     */
-    end_time?: string | null;
-    /**
-     * Duration Ms
-     *
-     * Total duration in milliseconds
-     */
-    duration_ms?: number | null;
-    /**
-     * Status
-     *
-     * Trace status (unset, ok, error)
-     */
-    status?: string;
-    /**
-     * Status Message
-     *
-     * Status message or error description
-     */
-    status_message?: string | null;
-    /**
-     * Http Method
-     *
-     * HTTP method
-     */
-    http_method?: string | null;
-    /**
-     * Http Url
-     *
-     * HTTP URL
-     */
-    http_url?: string | null;
-    /**
-     * Http Status Code
-     *
-     * HTTP status code
-     */
-    http_status_code?: number | null;
-    /**
-     * User Email
-     *
-     * User email
-     */
-    user_email?: string | null;
-    /**
-     * User Agent
-     *
-     * User agent string
-     */
-    user_agent?: string | null;
-    /**
-     * Ip Address
-     *
-     * Client IP address
-     */
-    ip_address?: string | null;
-    /**
-     * Attributes
-     *
-     * Additional trace attributes
-     */
-    attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Resource Attributes
-     *
-     * Resource attributes
-     */
-    resource_attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Trace Id
-     *
-     * Trace ID
-     */
-    trace_id: string;
-    /**
-     * Created At
-     *
-     * Creation timestamp
-     */
-    created_at: string;
-    /**
-     * Spans
-     *
-     * List of spans in this trace
-     */
-    spans?: Array<ObservabilitySpanRead>;
+    p99_duration_ms: number;
 };
 
 /**
@@ -3759,8 +3670,10 @@ export type PromptMetrics = {
 export type PromptRead = {
     /**
      * Id
+     *
+     * Unique ID of the prompt
      */
-    id: number;
+    id: string;
     /**
      * Name
      */
@@ -3786,15 +3699,17 @@ export type PromptRead = {
      */
     updatedAt: string;
     /**
-     * Isactive
+     * Enabled
      */
-    isActive: boolean;
+    enabled: boolean;
     /**
      * Tags
      *
      * Tags for categorizing the prompt
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     metrics: PromptMetrics;
     /**
      * Createdby
@@ -4000,11 +3915,11 @@ export type ResourceCreate = {
      */
     mimeType?: string | null;
     /**
-     * Template
+     * Uri Template
      *
      * URI template for parameterized resources
      */
-    template?: string | null;
+    uri_template?: string | null;
     /**
      * Content
      *
@@ -4118,8 +4033,10 @@ export type ResourceMetrics = {
 export type ResourceRead = {
     /**
      * Id
+     *
+     * Unique ID of the resource
      */
-    id: number;
+    id: string;
     /**
      * Uri
      */
@@ -4137,6 +4054,12 @@ export type ResourceRead = {
      */
     mimeType: string | null;
     /**
+     * Uritemplate
+     *
+     * URI template for parameterized resources
+     */
+    uriTemplate?: string | null;
+    /**
      * Size
      */
     size: number | null;
@@ -4149,16 +4072,18 @@ export type ResourceRead = {
      */
     updatedAt: string;
     /**
-     * Isactive
+     * Enabled
      */
-    isActive: boolean;
+    enabled: boolean;
     metrics: ResourceMetrics;
     /**
      * Tags
      *
      * Tags for categorizing the resource
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Createdby
      *
@@ -4275,6 +4200,7 @@ export type ResourceRead = {
  * A template for constructing resource URIs (MCP spec-compliant).
  *
  * Attributes:
+ * id (Optional[str]): Unique identifier for resource
  * uri_template (str): The URI template string.
  * name (str): The unique name of the template.
  * description (Optional[str]): A description of the template.
@@ -4285,6 +4211,10 @@ export type ResourceRead = {
  * Serialized as '_meta' in JSON.
  */
 export type ResourceTemplate = {
+    /**
+     * Id
+     */
+    id?: string | null;
     /**
      * Uritemplate
      */
@@ -4301,7 +4231,12 @@ export type ResourceTemplate = {
      * Mimetype
      */
     mimeType?: string | null;
-    annotations?: Annotations | null;
+    /**
+     * Annotations
+     */
+    annotations?: {
+        [key: string]: unknown;
+    } | null;
     /**
      * Meta
      */
@@ -4343,11 +4278,11 @@ export type ResourceUpdate = {
      */
     mimeType?: string | null;
     /**
-     * Template
+     * Uritemplate
      *
      * URI template for parameterized resources
      */
-    template?: string | null;
+    uriTemplate?: string | null;
     /**
      * Content
      *
@@ -4659,6 +4594,58 @@ export type Root = {
 };
 
 /**
+ * SecurityEventResponse
+ *
+ * Security event response model.
+ */
+export type SecurityEventResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    /**
+     * Event Type
+     */
+    event_type: string;
+    /**
+     * Severity
+     */
+    severity: string;
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * User Id
+     */
+    user_id: string | null;
+    /**
+     * Client Ip
+     */
+    client_ip: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Threat Score
+     */
+    threat_score: number;
+    /**
+     * Action Taken
+     */
+    action_taken: string | null;
+    /**
+     * Resolved
+     */
+    resolved: boolean;
+};
+
+/**
  * ServerCapabilities
  *
  * Capabilities that a server may support.
@@ -4802,44 +4789,6 @@ export type ServerCreate = {
 };
 
 /**
- * ServerInput
- *
- * Input configuration for MCP server connection.
- *
- * Defines the connection parameters required to establish communication
- * with an MCP (Model Context Protocol) server.
- *
- * Attributes:
- * url: Optional MCP server URL endpoint. Defaults to environment variable
- * or 'http://localhost:8000/mcp'.
- * transport: Communication transport protocol. Defaults to 'streamable_http'.
- * auth_token: Optional authentication token for secure server access.
- *
- * Examples:
- * >>> server = ServerInput(url='http://example.com/mcp')
- * >>> server.transport
- * 'streamable_http'
- *
- * >>> server = ServerInput()
- * >>> server.url is None
- * True
- */
-export type ServerInput = {
-    /**
-     * Url
-     */
-    url?: string | null;
-    /**
-     * Transport
-     */
-    transport?: string | null;
-    /**
-     * Auth Token
-     */
-    auth_token?: string | null;
-};
-
-/**
  * ServerMetrics
  *
  * Represents the performance and execution statistics for a server.
@@ -4943,9 +4892,9 @@ export type ServerRead = {
      */
     updatedAt: string;
     /**
-     * Isactive
+     * Enabled
      */
-    isActive: boolean;
+    enabled: boolean;
     /**
      * Associatedtools
      */
@@ -4953,11 +4902,11 @@ export type ServerRead = {
     /**
      * Associatedresources
      */
-    associatedResources?: Array<number>;
+    associatedResources?: Array<string>;
     /**
      * Associatedprompts
      */
-    associatedPrompts?: Array<number>;
+    associatedPrompts?: Array<string>;
     /**
      * Associateda2Aagents
      */
@@ -4968,7 +4917,9 @@ export type ServerRead = {
      *
      * Tags for categorizing the server
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Createdby
      *
@@ -6808,8 +6759,8 @@ export type ToolRead = {
     /**
      * Executioncount
      */
-    executionCount: number;
-    metrics: ToolMetrics;
+    executionCount?: number | null;
+    metrics?: ToolMetrics | null;
     /**
      * Name
      */
@@ -6837,7 +6788,9 @@ export type ToolRead = {
      *
      * Tags for categorizing the tool
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Createdby
      *
@@ -7938,7 +7891,7 @@ export type ToggleResourceStatusResourcesResourceIdTogglePostData = {
         /**
          * Resource Id
          */
-        resource_id: number;
+        resource_id: string;
     };
     query?: {
         /**
@@ -8211,28 +8164,23 @@ export type UpdateResourceResourcesResourceIdPutResponses = {
 
 export type UpdateResourceResourcesResourceIdPutResponse = UpdateResourceResourcesResourceIdPutResponses[keyof UpdateResourceResourcesResourceIdPutResponses];
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostData = {
+export type SubscribeResourceResourcesSubscribePostData = {
     body?: never;
-    path: {
-        /**
-         * Resource Id
-         */
-        resource_id: string;
-    };
+    path?: never;
     query?: never;
-    url: '/resources/subscribe/{resource_id}';
+    url: '/resources/subscribe';
 };
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostErrors = {
+export type SubscribeResourceResourcesSubscribePostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostError = SubscribeResourceResourcesSubscribeResourceIdPostErrors[keyof SubscribeResourceResourcesSubscribeResourceIdPostErrors];
+export type SubscribeResourceResourcesSubscribePostError = SubscribeResourceResourcesSubscribePostErrors[keyof SubscribeResourceResourcesSubscribePostErrors];
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostResponses = {
+export type SubscribeResourceResourcesSubscribePostResponses = {
     /**
      * Successful Response
      */
@@ -8245,7 +8193,7 @@ export type TogglePromptStatusPromptsPromptIdTogglePostData = {
         /**
          * Prompt Id
          */
-        prompt_id: number;
+        prompt_id: string;
     };
     query?: {
         /**
@@ -9436,6 +9384,10 @@ export type ServerGetToolsServersServerIdToolsGetData = {
          * Include Inactive
          */
         include_inactive?: boolean;
+        /**
+         * Include Metrics
+         */
+        include_metrics?: boolean;
     };
     url: '/servers/{server_id}/tools';
 };
@@ -9942,356 +9894,224 @@ export type CleanupImportStatusesImportCleanupPostResponses = {
 
 export type CleanupImportStatusesImportCleanupPostResponse = CleanupImportStatusesImportCleanupPostResponses[keyof CleanupImportStatusesImportCleanupPostResponses];
 
-export type ListTracesObservabilityTracesGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Start Time
-         *
-         * Filter traces after this time
-         */
-        start_time?: string | null;
-        /**
-         * End Time
-         *
-         * Filter traces before this time
-         */
-        end_time?: string | null;
-        /**
-         * Min Duration Ms
-         *
-         * Minimum duration in milliseconds
-         */
-        min_duration_ms?: number | null;
-        /**
-         * Max Duration Ms
-         *
-         * Maximum duration in milliseconds
-         */
-        max_duration_ms?: number | null;
-        /**
-         * Status
-         *
-         * Filter by status (ok, error)
-         */
-        status?: string | null;
-        /**
-         * Http Status Code
-         *
-         * Filter by HTTP status code
-         */
-        http_status_code?: number | null;
-        /**
-         * Http Method
-         *
-         * Filter by HTTP method (GET, POST, etc.)
-         */
-        http_method?: string | null;
-        /**
-         * User Email
-         *
-         * Filter by user email
-         */
-        user_email?: string | null;
-        /**
-         * Attribute Search
-         *
-         * Free-text search within trace attributes
-         */
-        attribute_search?: string | null;
-        /**
-         * Limit
-         *
-         * Maximum results
-         */
-        limit?: number;
-        /**
-         * Offset
-         *
-         * Result offset
-         */
-        offset?: number;
-    };
-    url: '/observability/traces';
-};
-
-export type ListTracesObservabilityTracesGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListTracesObservabilityTracesGetError = ListTracesObservabilityTracesGetErrors[keyof ListTracesObservabilityTracesGetErrors];
-
-export type ListTracesObservabilityTracesGetResponses = {
-    /**
-     * Response List Traces Observability Traces Get
-     *
-     * Successful Response
-     */
-    200: Array<ObservabilityTraceRead>;
-};
-
-export type ListTracesObservabilityTracesGetResponse = ListTracesObservabilityTracesGetResponses[keyof ListTracesObservabilityTracesGetResponses];
-
-export type QueryTracesAdvancedObservabilityTracesQueryPostData = {
-    /**
-     * Request Body
-     */
-    body: {
-        [key: string]: unknown;
-    };
+export type SearchLogsApiLogsSearchPostData = {
+    body: LogSearchRequest;
     path?: never;
     query?: never;
-    url: '/observability/traces/query';
+    url: '/api/logs/search';
 };
 
-export type QueryTracesAdvancedObservabilityTracesQueryPostErrors = {
+export type SearchLogsApiLogsSearchPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type QueryTracesAdvancedObservabilityTracesQueryPostError = QueryTracesAdvancedObservabilityTracesQueryPostErrors[keyof QueryTracesAdvancedObservabilityTracesQueryPostErrors];
+export type SearchLogsApiLogsSearchPostError = SearchLogsApiLogsSearchPostErrors[keyof SearchLogsApiLogsSearchPostErrors];
 
-export type QueryTracesAdvancedObservabilityTracesQueryPostResponses = {
+export type SearchLogsApiLogsSearchPostResponses = {
     /**
-     * Response Query Traces Advanced Observability Traces Query Post
-     *
      * Successful Response
      */
-    200: Array<ObservabilityTraceRead>;
+    200: LogSearchResponse;
 };
 
-export type QueryTracesAdvancedObservabilityTracesQueryPostResponse = QueryTracesAdvancedObservabilityTracesQueryPostResponses[keyof QueryTracesAdvancedObservabilityTracesQueryPostResponses];
+export type SearchLogsApiLogsSearchPostResponse = SearchLogsApiLogsSearchPostResponses[keyof SearchLogsApiLogsSearchPostResponses];
 
-export type GetTraceObservabilityTracesTraceIdGetData = {
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetData = {
     body?: never;
     path: {
         /**
-         * Trace Id
+         * Correlation Id
          */
-        trace_id: string;
+        correlation_id: string;
     };
     query?: never;
-    url: '/observability/traces/{trace_id}';
+    url: '/api/logs/trace/{correlation_id}';
 };
 
-export type GetTraceObservabilityTracesTraceIdGetErrors = {
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetTraceObservabilityTracesTraceIdGetError = GetTraceObservabilityTracesTraceIdGetErrors[keyof GetTraceObservabilityTracesTraceIdGetErrors];
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetError = TraceCorrelationIdApiLogsTraceCorrelationIdGetErrors[keyof TraceCorrelationIdApiLogsTraceCorrelationIdGetErrors];
 
-export type GetTraceObservabilityTracesTraceIdGetResponses = {
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetResponses = {
     /**
      * Successful Response
      */
-    200: ObservabilityTraceWithSpans;
+    200: CorrelationTraceResponse;
 };
 
-export type GetTraceObservabilityTracesTraceIdGetResponse = GetTraceObservabilityTracesTraceIdGetResponses[keyof GetTraceObservabilityTracesTraceIdGetResponses];
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetResponse = TraceCorrelationIdApiLogsTraceCorrelationIdGetResponses[keyof TraceCorrelationIdApiLogsTraceCorrelationIdGetResponses];
 
-export type ListSpansObservabilitySpansGetData = {
+export type GetSecurityEventsApiLogsSecurityEventsGetData = {
     body?: never;
     path?: never;
     query?: {
         /**
-         * Trace Id
-         *
-         * Filter by trace ID
+         * Severity
          */
-        trace_id?: string | null;
+        severity?: Array<string> | null;
         /**
-         * Resource Type
-         *
-         * Filter by resource type
+         * Event Type
          */
-        resource_type?: string | null;
+        event_type?: Array<string> | null;
         /**
-         * Resource Name
-         *
-         * Filter by resource name
+         * Resolved
          */
-        resource_name?: string | null;
+        resolved?: boolean | null;
         /**
          * Start Time
-         *
-         * Filter spans after this time
          */
         start_time?: string | null;
         /**
          * End Time
-         *
-         * Filter spans before this time
          */
         end_time?: string | null;
         /**
          * Limit
-         *
-         * Maximum results
          */
         limit?: number;
         /**
          * Offset
-         *
-         * Result offset
          */
         offset?: number;
     };
-    url: '/observability/spans';
+    url: '/api/logs/security-events';
 };
 
-export type ListSpansObservabilitySpansGetErrors = {
+export type GetSecurityEventsApiLogsSecurityEventsGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ListSpansObservabilitySpansGetError = ListSpansObservabilitySpansGetErrors[keyof ListSpansObservabilitySpansGetErrors];
+export type GetSecurityEventsApiLogsSecurityEventsGetError = GetSecurityEventsApiLogsSecurityEventsGetErrors[keyof GetSecurityEventsApiLogsSecurityEventsGetErrors];
 
-export type ListSpansObservabilitySpansGetResponses = {
+export type GetSecurityEventsApiLogsSecurityEventsGetResponses = {
     /**
-     * Response List Spans Observability Spans Get
+     * Response Get Security Events Api Logs Security Events Get
      *
      * Successful Response
      */
-    200: Array<ObservabilitySpanRead>;
+    200: Array<SecurityEventResponse>;
 };
 
-export type ListSpansObservabilitySpansGetResponse = ListSpansObservabilitySpansGetResponses[keyof ListSpansObservabilitySpansGetResponses];
+export type GetSecurityEventsApiLogsSecurityEventsGetResponse = GetSecurityEventsApiLogsSecurityEventsGetResponses[keyof GetSecurityEventsApiLogsSecurityEventsGetResponses];
 
-export type CleanupOldTracesObservabilityTracesCleanupDeleteData = {
+export type GetAuditTrailsApiLogsAuditTrailsGetData = {
     body?: never;
     path?: never;
     query?: {
         /**
-         * Days
-         *
-         * Delete traces older than this many days
+         * Action
          */
-        days?: number;
+        action?: Array<string> | null;
+        /**
+         * Resource Type
+         */
+        resource_type?: Array<string> | null;
+        /**
+         * User Id
+         */
+        user_id?: string | null;
+        /**
+         * Requires Review
+         */
+        requires_review?: boolean | null;
+        /**
+         * Start Time
+         */
+        start_time?: string | null;
+        /**
+         * End Time
+         */
+        end_time?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
     };
-    url: '/observability/traces/cleanup';
+    url: '/api/logs/audit-trails';
 };
 
-export type CleanupOldTracesObservabilityTracesCleanupDeleteErrors = {
+export type GetAuditTrailsApiLogsAuditTrailsGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type CleanupOldTracesObservabilityTracesCleanupDeleteError = CleanupOldTracesObservabilityTracesCleanupDeleteErrors[keyof CleanupOldTracesObservabilityTracesCleanupDeleteErrors];
+export type GetAuditTrailsApiLogsAuditTrailsGetError = GetAuditTrailsApiLogsAuditTrailsGetErrors[keyof GetAuditTrailsApiLogsAuditTrailsGetErrors];
 
-export type CleanupOldTracesObservabilityTracesCleanupDeleteResponses = {
+export type GetAuditTrailsApiLogsAuditTrailsGetResponses = {
     /**
+     * Response Get Audit Trails Api Logs Audit Trails Get
+     *
      * Successful Response
      */
-    200: unknown;
+    200: Array<AuditTrailResponse>;
 };
 
-export type GetStatsObservabilityStatsGetData = {
+export type GetAuditTrailsApiLogsAuditTrailsGetResponse = GetAuditTrailsApiLogsAuditTrailsGetResponses[keyof GetAuditTrailsApiLogsAuditTrailsGetResponses];
+
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Component
+         */
+        component?: string | null;
+        /**
+         * Operation
+         */
+        operation?: string | null;
         /**
          * Hours
          *
-         * Time window in hours
+         * Historical window to display
          */
         hours?: number;
-    };
-    url: '/observability/stats';
-};
-
-export type GetStatsObservabilityStatsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetStatsObservabilityStatsGetError = GetStatsObservabilityStatsGetErrors[keyof GetStatsObservabilityStatsGetErrors];
-
-export type GetStatsObservabilityStatsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type ExportTracesObservabilityTracesExportPostData = {
-    /**
-     * Request Body
-     */
-    body: {
-        [key: string]: unknown;
-    };
-    path?: never;
-    query?: {
         /**
-         * Format
+         * Aggregation
          *
-         * Export format (json, csv, ndjson)
+         * Aggregation level for metrics
          */
-        format?: string;
+        aggregation?: string;
     };
-    url: '/observability/traces/export';
+    url: '/api/logs/performance-metrics';
 };
 
-export type ExportTracesObservabilityTracesExportPostErrors = {
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ExportTracesObservabilityTracesExportPostError = ExportTracesObservabilityTracesExportPostErrors[keyof ExportTracesObservabilityTracesExportPostErrors];
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetError = GetPerformanceMetricsApiLogsPerformanceMetricsGetErrors[keyof GetPerformanceMetricsApiLogsPerformanceMetricsGetErrors];
 
-export type ExportTracesObservabilityTracesExportPostResponses = {
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses = {
     /**
+     * Response Get Performance Metrics Api Logs Performance Metrics Get
+     *
      * Successful Response
      */
-    200: unknown;
+    200: Array<PerformanceMetricResponse>;
 };
 
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Hours
-         *
-         * Time window in hours
-         */
-        hours?: number;
-    };
-    url: '/observability/analytics/query-performance';
-};
-
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetError = GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors[keyof GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors];
-
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponse = GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses[keyof GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses];
 
 export type ListA2aAgentsA2aGetData = {
     body?: never;
@@ -12800,131 +12620,6 @@ export type SseEndpointReverseProxySseSessionIdGetResponses = {
     200: unknown;
 };
 
-export type ConnectLlmchatConnectPostData = {
-    body: ConnectInput;
-    path?: never;
-    query?: never;
-    url: '/llmchat/connect';
-};
-
-export type ConnectLlmchatConnectPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ConnectLlmchatConnectPostError = ConnectLlmchatConnectPostErrors[keyof ConnectLlmchatConnectPostErrors];
-
-export type ConnectLlmchatConnectPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type ChatLlmchatChatPostData = {
-    body: ChatInput;
-    path?: never;
-    query?: never;
-    url: '/llmchat/chat';
-};
-
-export type ChatLlmchatChatPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ChatLlmchatChatPostError = ChatLlmchatChatPostErrors[keyof ChatLlmchatChatPostErrors];
-
-export type ChatLlmchatChatPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type DisconnectLlmchatDisconnectPostData = {
-    body: DisconnectInput;
-    path?: never;
-    query?: never;
-    url: '/llmchat/disconnect';
-};
-
-export type DisconnectLlmchatDisconnectPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DisconnectLlmchatDisconnectPostError = DisconnectLlmchatDisconnectPostErrors[keyof DisconnectLlmchatDisconnectPostErrors];
-
-export type DisconnectLlmchatDisconnectPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type StatusLlmchatStatusUserIdGetData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/llmchat/status/{user_id}';
-};
-
-export type StatusLlmchatStatusUserIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type StatusLlmchatStatusUserIdGetError = StatusLlmchatStatusUserIdGetErrors[keyof StatusLlmchatStatusUserIdGetErrors];
-
-export type StatusLlmchatStatusUserIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type GetConfigLlmchatConfigUserIdGetData = {
-    body?: never;
-    path: {
-        /**
-         * User Id
-         */
-        user_id: string;
-    };
-    query?: never;
-    url: '/llmchat/config/{user_id}';
-};
-
-export type GetConfigLlmchatConfigUserIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetConfigLlmchatConfigUserIdGetError = GetConfigLlmchatConfigUserIdGetErrors[keyof GetConfigLlmchatConfigUserIdGetErrors];
-
-export type GetConfigLlmchatConfigUserIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
 export type GetGlobalPassthroughHeadersAdminConfigPassthroughHeadersGetData = {
     body?: never;
     path?: never;
@@ -13472,6 +13167,36 @@ export type AdminLogoutAdminLogoutPostData = {
 };
 
 export type AdminLogoutAdminLogoutPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ChangePasswordRequiredPageAdminChangePasswordRequiredGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/change-password-required';
+};
+
+export type ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponse = ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponses[keyof ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponses];
+
+export type ChangePasswordRequiredHandlerAdminChangePasswordRequiredPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/change-password-required';
+};
+
+export type ChangePasswordRequiredHandlerAdminChangePasswordRequiredPostResponses = {
     /**
      * Successful Response
      */
@@ -14091,6 +13816,34 @@ export type AdminDeleteUserAdminUsersUserEmailDeleteResponses = {
     200: unknown;
 };
 
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostData = {
+    body?: never;
+    path: {
+        /**
+         * User Email
+         */
+        user_email: string;
+    };
+    query?: never;
+    url: '/admin/users/{user_email}/force-password-change';
+};
+
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostError = AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostErrors[keyof AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostErrors];
+
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type AdminListToolsAdminToolsGetData = {
     body?: never;
     path?: never;
@@ -14458,6 +14211,44 @@ export type AdminGetAllResourceIdsAdminResourcesIdsGetResponses = {
     200: unknown;
 };
 
+export type AdminSearchResourcesAdminResourcesSearchGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search query
+         */
+        q?: string;
+        /**
+         * Include Inactive
+         */
+        include_inactive?: boolean;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/admin/resources/search';
+};
+
+export type AdminSearchResourcesAdminResourcesSearchGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminSearchResourcesAdminResourcesSearchGetError = AdminSearchResourcesAdminResourcesSearchGetErrors[keyof AdminSearchResourcesAdminResourcesSearchGetErrors];
+
+export type AdminSearchResourcesAdminResourcesSearchGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type AdminSearchPromptsAdminPromptsSearchGetData = {
     body?: never;
     path?: never;
@@ -14747,13 +14538,47 @@ export type AdminDeleteGatewayAdminGatewaysGatewayIdDeletePostResponses = {
     200: unknown;
 };
 
+export type AdminTestResourceAdminResourcesTestResourceUriGetData = {
+    body?: never;
+    path: {
+        /**
+         * Resource Uri
+         */
+        resource_uri: string;
+    };
+    query?: never;
+    url: '/admin/resources/test/{resource_uri}';
+};
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetError = AdminTestResourceAdminResourcesTestResourceUriGetErrors[keyof AdminTestResourceAdminResourcesTestResourceUriGetErrors];
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetResponses = {
+    /**
+     * Response Admin Test Resource Admin Resources Test  Resource Uri  Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetResponse = AdminTestResourceAdminResourcesTestResourceUriGetResponses[keyof AdminTestResourceAdminResourcesTestResourceUriGetResponses];
+
 export type AdminGetResourceAdminResourcesResourceIdGetData = {
     body?: never;
     path: {
         /**
          * Resource Id
          */
-        resource_id: number;
+        resource_id: string;
     };
     query?: never;
     url: '/admin/resources/{resource_id}';
@@ -14843,7 +14668,7 @@ export type AdminToggleResourceAdminResourcesResourceIdTogglePostData = {
         /**
          * Resource Id
          */
-        resource_id: number;
+        resource_id: string;
     };
     query?: never;
     url: '/admin/resources/{resource_id}/toggle';
@@ -14871,7 +14696,7 @@ export type AdminGetPromptAdminPromptsPromptIdGetData = {
         /**
          * Prompt Id
          */
-        prompt_id: number;
+        prompt_id: string;
     };
     query?: never;
     url: '/admin/prompts/{prompt_id}';
@@ -14961,7 +14786,7 @@ export type AdminTogglePromptAdminPromptsPromptIdTogglePostData = {
         /**
          * Prompt Id
          */
-        prompt_id: number;
+        prompt_id: string;
     };
     query?: never;
     url: '/admin/prompts/{prompt_id}/toggle';
@@ -15063,6 +14888,50 @@ export type GetAggregatedMetricsAdminMetricsGetResponses = {
 
 export type GetAggregatedMetricsAdminMetricsGetResponse = GetAggregatedMetricsAdminMetricsGetResponses[keyof GetAggregatedMetricsAdminMetricsGetResponses];
 
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Entity Type
+         *
+         * Entity type: tools, resources, prompts, or servers
+         */
+        entity_type?: string;
+        /**
+         * Page
+         *
+         * Page number (1-indexed)
+         */
+        page?: number;
+        /**
+         * Per Page
+         *
+         * Items per page
+         */
+        per_page?: number;
+    };
+    url: '/admin/metrics/partial';
+};
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetError = AdminMetricsPartialHtmlAdminMetricsPartialGetErrors[keyof AdminMetricsPartialHtmlAdminMetricsPartialGetErrors];
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetResponse = AdminMetricsPartialHtmlAdminMetricsPartialGetResponses[keyof AdminMetricsPartialHtmlAdminMetricsPartialGetResponses];
+
 export type AdminResetMetricsAdminMetricsResetPostData = {
     body?: never;
     path?: never;
@@ -15121,6 +14990,29 @@ export type AdminTestGatewayAdminGatewaysTestPostResponses = {
 };
 
 export type AdminTestGatewayAdminGatewaysTestPostResponse = AdminTestGatewayAdminGatewaysTestPostResponses[keyof AdminTestGatewayAdminGatewaysTestPostResponses];
+
+export type AdminEventsAdminEventsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/events';
+};
+
+export type AdminEventsAdminEventsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminEventsAdminEventsGetError = AdminEventsAdminEventsGetErrors[keyof AdminEventsAdminEventsGetErrors];
+
+export type AdminEventsAdminEventsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type AdminListTagsAdminTagsGetData = {
     body?: never;
@@ -16078,6 +15970,10 @@ export type GetServersSectionAdminSectionsServersGetData = {
          * Team Id
          */
         team_id?: string | null;
+        /**
+         * Include Inactive
+         */
+        include_inactive?: boolean;
     };
     url: '/admin/sections/servers';
 };

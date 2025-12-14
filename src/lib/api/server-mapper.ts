@@ -5,6 +5,27 @@ import { MCPServer } from '../../types/server';
 /**
  * Maps a ServerRead from the API to the MCPServer type used in the UI
  */
+/**
+ * Normalize tags to always be an array of strings
+ */
+function normalizeTags(tags: any): string[] {
+  if (!tags) return [];
+  if (Array.isArray(tags)) {
+    return tags.map(tag => {
+      // If tag is an object with id/label, extract the label or id
+      if (typeof tag === 'object' && tag !== null) {
+        return tag.label || tag.id || String(tag);
+      }
+      // If tag is already a string, use it
+      return String(tag);
+    });
+  }
+  return [];
+}
+
+/**
+ * Maps a ServerRead from the API to the MCPServer type used in the UI
+ */
 export function mapServerReadToMCPServer(server: ServerRead): MCPServer {
   return {
     id: server.id,
@@ -12,24 +33,26 @@ export function mapServerReadToMCPServer(server: ServerRead): MCPServer {
     logoUrl: server.icon || '', // Use icon as logoUrl, default to empty string
     url: '', // ServerRead doesn't have endpoint_url, we'll need to handle this
     description: server.description || '',
-    tags: server.tags || [],
-    active: server.isActive,
+    tags: normalizeTags(server.tags),
+    active: server.enabled, // Fixed: was server.isActive, now server.enabled
     lastSeen: formatLastSeen(server.updatedAt),
     team: server.team || 'Unknown',
+    teamId: server.teamId || null, // Added: map teamId field
     visibility: (server.visibility as 'public' | 'team' | 'private') || 'private',
     transportType: 'SSE', // Default, would need to come from server config
     authenticationType: 'OAuth 2.0', // Default, would need to come from server config
     passthroughHeaders: [], // Would need to come from server config
-    associatedTools: (server as any).associatedTools || [],
-    associatedResources: (server as any).associatedResources || [],
-    associatedPrompts: (server as any).associatedPrompts || [],
+    associatedTools: server.associatedTools || [], // Fixed: removed unnecessary cast
+    associatedResources: server.associatedResources || [], // Fixed: removed unnecessary cast
+    associatedPrompts: server.associatedPrompts || [], // Fixed: removed unnecessary cast
+    associatedA2aAgents: server.associatedA2aAgents || [], // Added: new field from ServerRead
   } as any;
 }
 
 /**
  * Maps an MCPServer to ServerCreate for API calls
  */
-export function mapMCPServerToServerCreate(server: Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[] }) {
+export function mapMCPServerToServerCreate(server: Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[], associatedA2aAgents?: string[] }) {
   const payload: any = {
     name: server.name || '',
     description: server.description || null,
@@ -39,6 +62,7 @@ export function mapMCPServerToServerCreate(server: Partial<MCPServer> & { associ
     associated_tools: server.associatedTools || [],
     associated_resources: server.associatedResources || [],
     associated_prompts: server.associatedPrompts || [],
+    associated_a2a_agents: server.associatedA2aAgents || [], // Added: support for A2A agents
   };
   
   // Only include id if provided (custom UUID)
@@ -52,17 +76,18 @@ export function mapMCPServerToServerCreate(server: Partial<MCPServer> & { associ
 /**
  * Maps an MCPServer to ServerUpdate for API calls
  */
-export function mapMCPServerToServerUpdate(server: Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[] }) {
+export function mapMCPServerToServerUpdate(server: Partial<MCPServer> & { associatedTools?: string[], associatedResources?: string[], associatedPrompts?: string[], associatedA2aAgents?: string[] }) {
   return {
     name: server.name,
     description: server.description || null,
     icon: server.logoUrl || null,
     tags: server.tags,
     visibility: server.visibility,
-    isActive: server.active,
+    enabled: server.active, // Fixed: was isActive, now enabled to match ServerUpdate schema
     associated_tools: server.associatedTools,
     associated_resources: server.associatedResources,
     associated_prompts: server.associatedPrompts,
+    associated_a2a_agents: server.associatedA2aAgents, // Added: support for A2A agents
   };
 }
 
@@ -112,7 +137,7 @@ export function mapGatewayReadToMCPServer(gateway: GatewayRead): MCPServer {
     logoUrl: '', // GatewayRead doesn't have icon field
     url: gateway.url || '',
     description: gateway.description || '',
-    tags: gateway.tags || [],
+    tags: normalizeTags(gateway.tags),
     active: gateway.enabled || false,
     lastSeen: gateway.lastSeen ? formatLastSeen(gateway.lastSeen) : 'Never',
     team: gateway.team || 'Unknown',

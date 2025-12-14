@@ -29,6 +29,7 @@ export function VirtualServersPage() {
   const [availableTools, setAvailableTools] = useState<Array<{id: string, name: string}>>([]);
   const [availableResources, setAvailableResources] = useState<Array<{id: string, name: string}>>([]);
   const [availablePrompts, setAvailablePrompts] = useState<Array<{id: string, name: string}>>([]);
+  const [availableA2aAgents, setAvailableA2aAgents] = useState<Array<{id: string, name: string}>>([]);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configModalServer, setConfigModalServer] = useState<MCPServer | null>(null);
   const [configModalType, setConfigModalType] = useState<ConfigType | null>(null);
@@ -172,6 +173,43 @@ export function VirtualServersPage() {
             setAvailablePrompts([]);
           }
         }
+
+        // Fetch A2A agents with auth retry
+        try {
+          const agents = await api.listA2AAgents();
+          console.log('Fetched A2A agents:', agents);
+          if (Array.isArray(agents) && agents.length > 0) {
+            const agentObjects = agents.map((a: any) => ({
+              id: String(a.id ?? a.name ?? a),
+              name: a.name || a.display_name || a.displayName || String(a.id) || String(a)
+            }));
+            setAvailableA2aAgents(agentObjects);
+          } else {
+            console.warn('No A2A agents returned from API');
+            setAvailableA2aAgents([]);
+          }
+        } catch (fetchError) {
+          const errorMsg = (fetchError as Error).message;
+          if (errorMsg.includes('Authorization') || errorMsg.includes('authenticated') || errorMsg.includes('401')) {
+            try {
+              // Already logged in from tools fetch, just retry
+              const agents = await api.listA2AAgents();
+              if (Array.isArray(agents) && agents.length > 0) {
+                const agentObjects = agents.map((a: any) => ({
+                  id: String(a.id ?? a.name ?? a),
+                  name: a.name || a.display_name || a.displayName || String(a.id) || String(a)
+                }));
+                setAvailableA2aAgents(agentObjects);
+              }
+            } catch (err) {
+              console.error('Failed to fetch A2A agents after auth:', err);
+              setAvailableA2aAgents([]);
+            }
+          } else {
+            console.error('Failed to fetch A2A agents:', fetchError);
+            setAvailableA2aAgents([]);
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch available items:', err);
       }
@@ -236,18 +274,29 @@ export function VirtualServersPage() {
     });
   }, [availablePrompts]);
 
+  // Helper to convert A2A agent names to IDs
+  const mapA2aAgentNamesToIds = useCallback((agentNames: string[]): string[] => {
+    return agentNames.map(nameOrId => {
+      const foundById = availableA2aAgents.find(a => a.id === nameOrId);
+      if (foundById) return nameOrId;
+      const foundByName = availableA2aAgents.find(a => a.name === nameOrId);
+      return foundByName ? foundByName.id : nameOrId;
+    });
+  }, [availableA2aAgents]);
+
   // Memoized handlers
   const handleServerClick = useCallback((server: MCPServer) => {
     setSelectedServer(server);
     setPanelMode('view');
     
-    // Convert tool/resource/prompt names to IDs before loading for editing
+    // Convert tool/resource/prompt/agent names to IDs before loading for editing
     // The backend returns names but expects IDs when saving
     const serverWithMappedIds = {
       ...server,
-      associatedTools: mapToolNamesToIds((server as any).associatedTools || []),
-      associatedResources: mapResourceNamesToIds((server as any).associatedResources || []),
-      associatedPrompts: mapPromptNamesToIds((server as any).associatedPrompts || []),
+      associatedTools: mapToolNamesToIds(server.associatedTools || []),
+      associatedResources: mapResourceNamesToIds(server.associatedResources || []),
+      associatedPrompts: mapPromptNamesToIds(server.associatedPrompts || []),
+      associatedA2aAgents: mapA2aAgentNamesToIds(server.associatedA2aAgents || []),
     };
     
     editorHook.loadServerForEditing(serverWithMappedIds);
@@ -488,12 +537,15 @@ export function VirtualServersPage() {
           editedTools={editorHook.editedTools}
           editedResources={editorHook.editedResources}
           editedPrompts={editorHook.editedPrompts}
+          editedA2aAgents={editorHook.editedA2aAgents}
           availableTools={availableTools}
           availableResources={availableResources}
           availablePrompts={availablePrompts}
+          availableA2aAgents={availableA2aAgents}
           toolsSearch={editorHook.toolsSearch}
           resourcesSearch={editorHook.resourcesSearch}
           promptsSearch={editorHook.promptsSearch}
+          a2aAgentsSearch={editorHook.a2aAgentsSearch}
           onClose={handleClosePanel}
           onSave={handleSaveServer}
           onNameChange={editorHook.setEditedName}
@@ -509,9 +561,12 @@ export function VirtualServersPage() {
           onRemoveResource={editorHook.removeResource}
           onTogglePrompt={editorHook.togglePrompt}
           onRemovePrompt={editorHook.removePrompt}
+          onToggleA2aAgent={editorHook.toggleA2aAgent}
+          onRemoveA2aAgent={editorHook.removeA2aAgent}
           onToolsSearchChange={editorHook.setToolsSearch}
           onResourcesSearchChange={editorHook.setResourcesSearch}
           onPromptsSearchChange={editorHook.setPromptsSearch}
+          onA2aAgentsSearchChange={editorHook.setA2aAgentsSearch}
         />
       )}
 

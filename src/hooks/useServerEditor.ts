@@ -26,11 +26,13 @@ export function useServerEditor() {
   const [editedTools, setEditedTools] = useState<string[]>([]);
   const [editedResources, setEditedResources] = useState<string[]>([]);
   const [editedPrompts, setEditedPrompts] = useState<string[]>([]);
+  const [editedA2aAgents, setEditedA2aAgents] = useState<string[]>([]);
   
   // Search state for dropdowns
   const [toolsSearch, setToolsSearch] = useState('');
   const [resourcesSearch, setResourcesSearch] = useState('');
   const [promptsSearch, setPromptsSearch] = useState('');
+  const [a2aAgentsSearch, setA2aAgentsSearch] = useState('');
 
   const loadServerForEditing = useCallback((server: MCPServer) => {
     setEditedName(server.name);
@@ -47,9 +49,10 @@ export function useServerEditor() {
     setEditedAuthUsername(server.authUsername || '');
     setEditedAuthPassword(server.authPassword || '');
     setEditedAuthHeaders(server.authHeaders || []);
-    setEditedTools((server as any).associatedTools || []);
-    setEditedResources((server as any).associatedResources || []);
-    setEditedPrompts((server as any).associatedPrompts || []);
+    setEditedTools(server.associatedTools || []);
+    setEditedResources(server.associatedResources || []);
+    setEditedPrompts(server.associatedPrompts || []);
+    setEditedA2aAgents(server.associatedA2aAgents || []);
     setEditedOAuthConfig((server as any).oauthConfig || null);
   }, []);
 
@@ -71,9 +74,11 @@ export function useServerEditor() {
     setEditedTools([]);
     setEditedResources([]);
     setEditedPrompts([]);
+    setEditedA2aAgents([]);
     setToolsSearch('');
     setResourcesSearch('');
     setPromptsSearch('');
+    setA2aAgentsSearch('');
     setEditedOAuthConfig(null);
   }, []);
 
@@ -95,6 +100,7 @@ export function useServerEditor() {
     associatedTools: editedTools,
     associatedResources: editedResources,
     associatedPrompts: editedPrompts,
+    associatedA2aAgents: editedA2aAgents,
     oauthConfig: editedOAuthConfig,
   }), [
     editedName,
@@ -114,6 +120,7 @@ export function useServerEditor() {
     editedTools,
     editedResources,
     editedPrompts,
+    editedA2aAgents,
     editedOAuthConfig,
   ]);
 
@@ -147,6 +154,16 @@ export function useServerEditor() {
     setEditedPrompts(prev => prev.filter(p => p !== prompt));
   }, []);
 
+  const toggleA2aAgent = useCallback((agent: string) => {
+    setEditedA2aAgents(prev =>
+      prev.includes(agent) ? prev.filter(a => a !== agent) : [...prev, agent]
+    );
+  }, []);
+
+  const removeA2aAgent = useCallback((agent: string) => {
+    setEditedA2aAgents(prev => prev.filter(a => a !== agent));
+  }, []);
+
   return {
     editedName,
     editedUrl,
@@ -167,9 +184,11 @@ export function useServerEditor() {
     editedTools,
     editedResources,
     editedPrompts,
+    editedA2aAgents,
     toolsSearch,
     resourcesSearch,
     promptsSearch,
+    a2aAgentsSearch,
     editedOAuthConfig,
     setEditedName,
     setEditedUrl,
@@ -190,9 +209,11 @@ export function useServerEditor() {
     setEditedTools,
     setEditedResources,
     setEditedPrompts,
+    setEditedA2aAgents,
     setToolsSearch,
     setResourcesSearch,
     setPromptsSearch,
+    setA2aAgentsSearch,
     setEditedOAuthConfig,
     toggleTool,
     removeTool,
@@ -200,6 +221,8 @@ export function useServerEditor() {
     removeResource,
     togglePrompt,
     removePrompt,
+    toggleA2aAgent,
+    removeA2aAgent,
     loadServerForEditing,
     resetForNewServer,
     getEditedServer,
