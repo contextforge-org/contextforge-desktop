@@ -844,6 +844,8 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
+  });
+
   // Backend preferences handlers
   ipcMain.handle('backend:get-preferences', async () => {
     try {
@@ -863,8 +865,6 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
-  });
-
   });
 
   // Backend health check handler
@@ -973,4 +973,9 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('profiles:logout');
   ipcMain.removeHandler('profiles:get-current');
   ipcMain.removeHandler('profiles:test-credentials');
+  
+  // Backend preferences handlers cleanup
+  ipcMain.removeHandler('backend:get-preferences');
+  ipcMain.removeHandler('backend:set-auto-start');
+  ipcMain.removeHandler('backend:check-health');
 }
