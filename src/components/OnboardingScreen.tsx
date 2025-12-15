@@ -8,7 +8,6 @@ import { useTheme } from '../context/ThemeContext';
 import { Loader2, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/button';
 import type { BackendStatus } from '../hooks/useBackendStatus';
-import svgPaths from '../imports/svg-00ihbob3cz';
 
 interface OnboardingScreenProps {
   status: BackendStatus;
@@ -102,12 +101,12 @@ export function OnboardingScreen({ status, mode = 'embedded', defaultProfile }: 
       <div className="flex flex-col items-center justify-center max-w-md px-8 space-y-8">
         {/* Logo - matching TopNav */}
         <div className="flex items-center gap-3">
-          <div className="h-[32px] relative shrink-0 w-[51px]">
-            <div className="absolute inset-0" style={{ "--fill-0": theme === 'dark' ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)" } as React.CSSProperties}>
-              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 10">
-                <path clipRule="evenodd" d={svgPaths.p461f600} fill="var(--fill-0, white)" fillRule="evenodd" />
-              </svg>
-            </div>
+          <div className="h-[48px] relative shrink-0 w-[48px]">
+            <img
+              src={theme === 'dark' ? '/assets/icons/contextforge-icon_white_512.png' : '/assets/icons/contextforge-icon_black_512.png'}
+              alt="Context Forge"
+              className="block size-full object-contain"
+            />
           </div>
           <h1 className={`font-['Inter',sans-serif] font-semibold text-2xl ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
