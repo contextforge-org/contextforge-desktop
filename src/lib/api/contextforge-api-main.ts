@@ -8,6 +8,7 @@
  * process requires a custom adapter that wraps Electron's net module.
  */
 
+import { BrowserWindow } from 'electron';
 import {
   listServersServersGet,
   createServerServersPost,
@@ -28,6 +29,11 @@ import {
   assignRoleToUserRbacUsersUserEmailRolesPost,
   revokeUserRoleRbacUsersUserEmailRolesRoleIdDelete,
   listRolesRbacRolesGet,
+  connectLlmchatConnectPost,
+  chatLlmchatChatPost,
+  disconnectLlmchatDisconnectPost,
+  statusLlmchatStatusUserIdGet,
+  getConfigLlmchatConfigUserIdGet,
   listToolsToolsGet,
   createToolToolsPost,
   updateToolToolsToolIdPut,
@@ -48,6 +54,21 @@ import {
   listGatewaysGatewaysGet,
   adminListGatewaysAdminGatewaysGet,
   registerGatewayGatewaysPost,
+  getObservabilityStatsAdminObservabilityStatsGet,
+  getObservabilityTracesAdminObservabilityTracesGet,
+  getObservabilityTraceDetailAdminObservabilityTraceTraceIdGet,
+  getTimeseriesMetricsAdminObservabilityMetricsTimeseriesGet,
+  getTopSlowEndpointsAdminObservabilityMetricsTopSlowGet,
+  getTopVolumeEndpointsAdminObservabilityMetricsTopVolumeGet,
+  getTopErrorEndpointsAdminObservabilityMetricsTopErrorsGet,
+  getToolUsageAdminObservabilityToolsUsageGet,
+  getToolPerformanceAdminObservabilityToolsPerformanceGet,
+  getToolErrorsAdminObservabilityToolsErrorsGet,
+  getToolChainsAdminObservabilityToolsChainsGet,
+  listObservabilityQueriesAdminObservabilityQueriesGet,
+  saveObservabilityQueryAdminObservabilityQueriesPost,
+  deleteObservabilityQueryAdminObservabilityQueriesQueryIdDelete,
+  trackQueryUsageAdminObservabilityQueriesQueryIdUsePost,
   updateGatewayGatewaysGatewayIdPut,
   // OAuth operations
   initiateOauthFlowOauthAuthorizeGatewayIdGet,
@@ -76,6 +97,15 @@ import {
   getAvailablePermissionsRbacPermissionsAvailableGet,
   revokeTokenTokensTokenIdDelete,
   handleRpcRpcPost,
+  // Plugin operations
+  listPluginsAdminPluginsGet,
+  getPluginStatsAdminPluginsStatsGet,
+  // Catalog operations
+  listCatalogServersAdminMcpRegistryServersGet,
+  registerCatalogServerAdminMcpRegistryServerIdRegisterPost,
+  checkCatalogServerStatusAdminMcpRegistryServerIdStatusGet,
+  bulkRegisterCatalogServersAdminMcpRegistryBulkRegisterPost,
+  getPluginDetailsAdminPluginsNameGet,
   type ServerRead,
   type ServerCreate,
   type ServerUpdate,
@@ -99,9 +129,18 @@ import {
   type ResourceRead,
   type ResourceCreate,
   type ResourceUpdate,
+  type PluginListResponse,
+  type PluginStatsResponse,
+  type CatalogListResponse,
+  type CatalogServerRegisterRequest,
+  type CatalogServerRegisterResponse,
+  type CatalogServerStatusResponse,
+  type CatalogBulkRegisterRequest,
+  type CatalogBulkRegisterResponse,
+  type PluginDetail,
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
-import { createElectronFetchAdapter } from './electron-fetch-adapter';
+import { createElectronFetchAdapter, createElectronStreamingFetch } from './electron-fetch-adapter';
 import { mapPromptReadToPrompt } from './prompt-mapper';
 import { Prompt } from '../../types/prompt';
 
@@ -1107,6 +1146,44 @@ export async function getAvailablePermissions(): Promise<PermissionListResponse>
 }
 
 // ============================================================================
+// Plugin Operations
+// ============================================================================
+
+export async function listPlugins(filters?: { status?: string; mode?: string; hook?: string; tag?: string }): Promise<PluginListResponse> {
+  const response = await listPluginsAdminPluginsGet({
+    query: filters
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to list plugins: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as PluginListResponse;
+}
+
+export async function getPluginStats(): Promise<PluginStatsResponse> {
+  const response = await getPluginStatsAdminPluginsStatsGet();
+  
+  if (response.error) {
+    throw new Error('Failed to get plugin stats: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as PluginStatsResponse;
+}
+
+export async function getPluginDetails(name: string): Promise<PluginDetail> {
+  const response = await getPluginDetailsAdminPluginsNameGet({
+    path: { name }
+  });
+  
+  if (response.error) {
+    throw new Error('Failed to get plugin details: ' + JSON.stringify(response.error));
+  }
+  
+  return response.data as PluginDetail;
+}
+
+// ============================================================================
 // RPC Operations (Tool Execution)
 // ============================================================================
 
@@ -1224,6 +1301,233 @@ export async function executeToolRpc(
 }
 
 // ============================================================================
+// Observability and Tracing Operations
+// ============================================================================
+
+/**
+ * Get observability statistics
+ */
+export async function getObservabilityStats(params?: any) {
+  const response = await getObservabilityStatsAdminObservabilityStatsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get observability stats: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get list of traces with filters
+ */
+export async function getTraces(filters?: any) {
+  const response = await getObservabilityTracesAdminObservabilityTracesGet({
+    query: filters,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get traces: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get detailed trace information
+ */
+export async function getTraceDetail(traceId: string) {
+  const response = await getObservabilityTraceDetailAdminObservabilityTraceTraceIdGet({
+    path: { trace_id: traceId },
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get trace detail: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get time series metrics
+ */
+export async function getTimeSeriesMetrics(params?: any) {
+  const response = await getTimeseriesMetricsAdminObservabilityMetricsTimeseriesGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get time series metrics: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get top slow endpoints
+ */
+export async function getTopSlowEndpoints(params?: any) {
+  const response = await getTopSlowEndpointsAdminObservabilityMetricsTopSlowGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get top slow endpoints: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get top volume endpoints
+ */
+export async function getTopVolumeEndpoints(params?: any) {
+  const response = await getTopVolumeEndpointsAdminObservabilityMetricsTopVolumeGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get top volume endpoints: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get top error endpoints
+ */
+export async function getTopErrorEndpoints(params?: any) {
+  const response = await getTopErrorEndpointsAdminObservabilityMetricsTopErrorsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get top error endpoints: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool usage metrics
+ */
+export async function getToolUsage(params?: any) {
+  const response = await getToolUsageAdminObservabilityToolsUsageGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool usage: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool performance metrics
+ */
+export async function getToolPerformance(params?: any) {
+  const response = await getToolPerformanceAdminObservabilityToolsPerformanceGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool performance: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool error metrics
+ */
+export async function getToolErrors(params?: any) {
+  const response = await getToolErrorsAdminObservabilityToolsErrorsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool errors: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get tool chain analysis
+ */
+export async function getToolChains(params?: any) {
+  const response = await getToolChainsAdminObservabilityToolsChainsGet({
+    query: params,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get tool chains: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * List saved observability queries
+ */
+export async function listSavedQueries() {
+  const response = await listObservabilityQueriesAdminObservabilityQueriesGet();
+  
+  if (response.error) {
+    throw new Error(`Failed to list saved queries: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Save a new observability query
+ */
+export async function saveQuery(data: any) {
+  const response = await saveObservabilityQueryAdminObservabilityQueriesPost({
+    body: data,
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to save query: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Delete a saved query
+ */
+export async function deleteQuery(queryId: string) {
+  const response = await deleteObservabilityQueryAdminObservabilityQueriesQueryIdDelete({
+    path: { query_id: parseInt(queryId) },
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to delete query: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Use a saved query (increments usage count)
+ */
+export async function useQuery(queryId: string) {
+  const response = await trackQueryUsageAdminObservabilityQueriesQueryIdUsePost({
+    path: { query_id: parseInt(queryId) },
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to use query: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -1245,3 +1549,342 @@ export type {
   PromptCreate,
   PromptUpdate,
 };
+
+// Catalog operations
+export async function listCatalogServers(filters?: {
+  category?: string;
+  provider?: string;
+  auth_type?: string;
+  search?: string;
+  tags?: string[];
+  show_registered?: boolean;
+  page?: number;
+  page_size?: number;
+}): Promise<CatalogListResponse> {
+  const response = await listCatalogServersAdminMcpRegistryServersGet({
+    client,
+    query: filters
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to list catalog servers: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
+
+export async function registerCatalogServer(
+  serverId: string,
+  request?: CatalogServerRegisterRequest
+): Promise<CatalogServerRegisterResponse> {
+  const response = await registerCatalogServerAdminMcpRegistryServerIdRegisterPost({
+    client,
+    path: { server_id: serverId },
+    body: request || null
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to register catalog server: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
+
+export async function checkCatalogServerStatus(
+  serverId: string
+): Promise<CatalogServerStatusResponse> {
+  const response = await checkCatalogServerStatusAdminMcpRegistryServerIdStatusGet({
+    client,
+    path: { server_id: serverId }
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to check catalog server status: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
+
+export async function bulkRegisterCatalogServers(
+  request: CatalogBulkRegisterRequest
+): Promise<CatalogBulkRegisterResponse> {
+  const response = await bulkRegisterCatalogServersAdminMcpRegistryBulkRegisterPost({
+    client,
+    body: request
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to bulk register catalog servers: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
+// ============================================================================
+// LLM Chat Playground APIs
+// ============================================================================
+
+export async function connectLlmchat(params: {
+  user_id: string;
+  server?: {
+    url: string;
+    transport: string;
+    auth_token?: string;
+  };
+  llm?: {
+    provider: string;
+    config: Record<string, unknown>;
+  };
+  streaming?: boolean;
+}): Promise<any> {
+  // If server config exists but auth_token is not provided, inject the current auth token
+  const requestBody = { ...params };
+  if (requestBody.server) {
+    if (!requestBody.server.auth_token && authToken) {
+      requestBody.server.auth_token = authToken;
+    }
+    // Normalize transport to lowercase (backend expects 'streamable_http', 'sse', or 'stdio')
+    if (requestBody.server.transport) {
+      const transport = requestBody.server.transport.toLowerCase();
+      // Map common variations to expected values
+      if (transport === 'streamable http' || transport === 'streamablehttp') {
+        requestBody.server.transport = 'streamable_http';
+      } else {
+        requestBody.server.transport = transport;
+      }
+    }
+  }
+  
+  console.log('[connectLlmchat] Request body:', JSON.stringify(requestBody, null, 2));
+  console.log('[connectLlmchat] Auth token present:', !!authToken);
+  console.log('[connectLlmchat] Auth token length:', authToken?.length || 0);
+  
+  const response = await connectLlmchatConnectPost({
+    body: requestBody as any,
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    console.error('[connectLlmchat] Error response:', JSON.stringify(response.error, null, 2));
+    throw new Error(`Failed to connect to LLM: ${JSON.stringify(response.error)}`);
+  }
+  
+  console.log('[connectLlmchat] Success!');
+  return response.data;
+}
+
+export async function chatLlmchat(params: {
+  user_id: string;
+  message: string;
+  streaming?: boolean;
+}): Promise<any> {
+  const response = await chatLlmchatChatPost({
+    body: params as any,
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to send chat message: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Stream chat responses via SSE
+ * Sends chunks to renderer via IPC events
+ */
+export async function chatLlmchatStreaming(
+  params: {
+    user_id: string;
+    message: string;
+  },
+  window: BrowserWindow
+): Promise<void> {
+  const url = `${API_BASE_URL}/llmchat/chat`;
+  
+  // Create streaming fetch adapter for SSE
+  const streamingFetch = createElectronStreamingFetch();
+  
+  try {
+    const response = await streamingFetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authToken ? `Bearer ${authToken}` : '',
+        'Accept': 'text/event-stream',
+      },
+      body: JSON.stringify({
+        user_id: params.user_id,
+        message: params.message,
+        streaming: true
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`SSE failed: ${response.status} ${response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No body in SSE response');
+    }
+
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .getReader();
+
+    let buffer = '';
+    let fullResponse = '';
+    let messageId = `msg-${Date.now()}`;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+
+        buffer += value;
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            
+            if (data === '[DONE]') {
+              // Send final complete message
+              window.webContents.send('llmchat:stream-complete', {
+                messageId,
+                fullResponse
+              });
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              
+              // Handle different chunk types
+              if (parsed.type === 'final') {
+                // Final event with complete response
+                fullResponse = parsed.content || fullResponse;
+                window.webContents.send('llmchat:stream-complete', {
+                  messageId,
+                  fullResponse,
+                  tools: parsed.tools,
+                  toolInvocations: parsed.tool_invocations,
+                  elapsedMs: parsed.elapsed_ms
+                });
+                return;
+              } else if (parsed.content) {
+                // Token event - accumulate content
+                fullResponse += parsed.content;
+                window.webContents.send('llmchat:stream-chunk', {
+                  messageId,
+                  token: parsed.content,
+                  fullResponse
+                });
+                // Add small delay to allow IPC message to be processed before next chunk
+                await new Promise(resolve => setImmediate(resolve));
+              } else if (parsed.token) {
+                // Legacy format support
+                fullResponse += parsed.token;
+                window.webContents.send('llmchat:stream-chunk', {
+                  messageId,
+                  token: parsed.token,
+                  fullResponse
+                });
+                // Add small delay to allow IPC message to be processed before next chunk
+                await new Promise(resolve => setImmediate(resolve));
+              } else if (parsed.response) {
+                // Complete response in one chunk (legacy)
+                fullResponse = parsed.response;
+                window.webContents.send('llmchat:stream-complete', {
+                  messageId,
+                  fullResponse,
+                  tools: parsed.tools,
+                  toolInvocations: parsed.tool_invocations,
+                  elapsedMs: parsed.elapsed_ms
+                });
+                return;
+              }
+            } catch (parseError) {
+              console.error('[chatLlmchatStreaming] Failed to parse SSE data:', parseError, data);
+            }
+          }
+        }
+      }
+
+      // If we exit the loop without [DONE], send what we have
+      if (fullResponse) {
+        window.webContents.send('llmchat:stream-complete', {
+          messageId,
+          fullResponse
+        });
+      } else {
+        window.webContents.send('llmchat:stream-error', {
+          error: 'Stream ended without receiving any data'
+        });
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  } catch (error) {
+    console.error('[chatLlmchatStreaming] Streaming chat error:', error);
+    window.webContents.send('llmchat:stream-error', {
+      error: error instanceof Error ? error.message : 'Unknown streaming error'
+    });
+    throw error;
+  }
+}
+
+export async function disconnectLlmchat(params: {
+  user_id: string;
+}): Promise<any> {
+  const response = await disconnectLlmchatDisconnectPost({
+    body: params as any,
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to disconnect from LLM: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+export async function getLlmchatStatus(userId: string): Promise<any> {
+  const response = await statusLlmchatStatusUserIdGet({
+    path: { user_id: userId },
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get LLM status: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+export async function getLlmchatConfig(userId: string): Promise<any> {
+  const response = await getConfigLlmchatConfigUserIdGet({
+    path: { user_id: userId },
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get LLM config: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}

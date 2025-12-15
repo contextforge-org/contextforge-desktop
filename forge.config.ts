@@ -50,6 +50,7 @@ const config: ForgeConfig = {
   },
   packagerConfig: {
     asar: true,
+    icon: './assets/icons/tray/icon',
     extraResource: [
       './assets',
       './python/dist/cforge',

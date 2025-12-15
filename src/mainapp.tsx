@@ -3,12 +3,16 @@ import { SideNav } from './components/SideNav';
 import { TopNav } from './components/TopNav';
 import { VirtualServersPage } from './components/VirtualServersPage';
 import { MCPServersPage } from './components/MCPServersPage';
+import { CatalogPage } from './components/CatalogPage';
 import { ToolsPage } from './components/ToolsPage';
 import { PromptsPage } from './components/PromptsPage';
 import { ResourcesPage } from './components/ResourcesPage';
 import { AgentsPage } from './components/AgentsPage';
 import { MetricsPage } from './components/MetricsPage';
+import { PluginsPage } from './components/PluginsPage';
+import { TracingPage } from './components/TracingPage';
 import { SettingsPage } from './components/SettingsPage';
+import { LLMPlaygroundPage } from './components/LLMPlaygroundPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
 import { Toaster } from './components/ui/sonner';
@@ -19,7 +23,7 @@ import { useBackendStatus } from './hooks/useBackendStatus';
 
 function AppContent() {
   const { theme } = useTheme();
-  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'settings'>('servers');
+  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'catalog' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'playground' | 'settings'>('mcp-servers');
   
   // Initialize tray integration for toast notifications
   useTray();
@@ -37,11 +41,15 @@ function AppContent() {
         <main className="flex-1 overflow-auto">
           {currentPage === 'servers' && <VirtualServersPage />}
           {currentPage === 'mcp-servers' && <MCPServersPage />}
+          {currentPage === 'catalog' && <CatalogPage />}
           {currentPage === 'tools' && <ToolsPage />}
           {currentPage === 'prompts' && <PromptsPage />}
           {currentPage === 'resources' && <ResourcesPage />}
           {currentPage === 'agents' && <AgentsPage />}
           {currentPage === 'metrics' && <MetricsPage />}
+          {currentPage === 'tracing' && <TracingPage />}
+          {currentPage === 'plugins' && <PluginsPage />}
+          {currentPage === 'playground' && <LLMPlaygroundPage />}
           {currentPage === 'settings' && <SettingsPage />}
         </main>
       </div>

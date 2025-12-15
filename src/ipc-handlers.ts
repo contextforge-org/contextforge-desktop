@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, shell } from 'electron';
 import { TrayManager } from './tray-manager';
 import * as mainApi from './lib/api/contextforge-api-main';
 import { profileManager } from './services/ProfileManager';
@@ -46,6 +46,17 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   // Get window visibility state
   ipcMain.handle('window:is-visible', () => {
     return mainWindow.isVisible();
+  });
+
+  // Shell handlers
+  ipcMain.handle('shell:open-external', async (_event, url: string) => {
+    try {
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to open external URL:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
   });
 
   // API handlers - now using generated client
@@ -682,6 +693,43 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // Catalog handlers
+  ipcMain.handle('api:list-catalog-servers', async (_event, filters?: any) => {
+    try {
+      const response = await mainApi.listCatalogServers(filters);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:register-catalog-server', async (_event, serverId: string, request?: any) => {
+    try {
+      const response = await mainApi.registerCatalogServer(serverId, request);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:check-catalog-server-status', async (_event, serverId: string) => {
+    try {
+      const response = await mainApi.checkCatalogServerStatus(serverId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:bulk-register-catalog-servers', async (_event, request: any) => {
+    try {
+      const response = await mainApi.bulkRegisterCatalogServers(request);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Token handlers
   ipcMain.handle('api:list-tokens', async () => {
     try {
@@ -737,6 +785,170 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
       return { success: false, error: (error as Error).message };
     }
   });
+
+  // Plugin handlers
+  ipcMain.handle('api:list-plugins', async (_event, filters?: any) => {
+    try {
+      const response = await mainApi.listPlugins(filters);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-plugin-stats', async () => {
+    try {
+      const response = await mainApi.getPluginStats();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-plugin-details', async (_event, name: string) => {
+    try {
+      const response = await mainApi.getPluginDetails(name);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+  // Observability and Tracing handlers
+  ipcMain.handle('api:get-observability-stats', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getObservabilityStats(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-traces', async (_event, filters?: any) => {
+    try {
+      const response = await mainApi.getTraces(filters);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-trace-detail', async (_event, traceId: string) => {
+    try {
+      const response = await mainApi.getTraceDetail(traceId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-timeseries-metrics', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTimeSeriesMetrics(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-top-slow-endpoints', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTopSlowEndpoints(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-top-volume-endpoints', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTopVolumeEndpoints(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-top-error-endpoints', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getTopErrorEndpoints(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-usage', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolUsage(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-performance', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolPerformance(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-errors', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolErrors(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:get-tool-chains', async (_event, params?: any) => {
+    try {
+      const response = await mainApi.getToolChains(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:list-saved-queries', async () => {
+    try {
+      const response = await mainApi.listSavedQueries();
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:save-query', async (_event, data: any) => {
+    try {
+      const response = await mainApi.saveQuery(data);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:delete-query', async (_event, queryId: string) => {
+    try {
+      const response = await mainApi.deleteQuery(queryId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:use-query', async (_event, queryId: string) => {
+    try {
+      const response = await mainApi.useQuery(queryId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
 
   // Profile Management handlers
   ipcMain.handle('profiles:initialize', async () => {
@@ -844,6 +1056,8 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
+  });
+
   // Backend preferences handlers
   ipcMain.handle('backend:get-preferences', async () => {
     try {
@@ -863,8 +1077,6 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
-  });
-
   });
 
   // Backend health check handler
@@ -901,6 +1113,69 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   ) => {
     try {
       const response = await mainApi.executeToolRpc(toolName, params, passthroughHeaders, timeout);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // ============================================================================
+  // LLM Chat Playground Handlers
+  // ============================================================================
+  
+  ipcMain.handle('api:connectLlmchat', async (_event, params: any) => {
+    try {
+      const response = await mainApi.connectLlmchat(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:chatLlmchat', async (_event, params: any) => {
+    try {
+      const response = await mainApi.chatLlmchat(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:chatLlmchatStreaming', async (event, params: any) => {
+    try {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (!window) {
+        throw new Error('Window not found');
+      }
+      
+      await mainApi.chatLlmchatStreaming(params, window);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:disconnectLlmchat', async (_event, params: any) => {
+    try {
+      const response = await mainApi.disconnectLlmchat(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:getLlmchatStatus', async (_event, userId: string) => {
+    try {
+      const response = await mainApi.getLlmchatStatus(userId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:getLlmchatConfig', async (_event, userId: string) => {
+    try {
+      const response = await mainApi.getLlmchatConfig(userId);
       return { success: true, data: response };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -973,4 +1248,9 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('profiles:logout');
   ipcMain.removeHandler('profiles:get-current');
   ipcMain.removeHandler('profiles:test-credentials');
+
+  // Backend preferences handlers cleanup
+  ipcMain.removeHandler('backend:get-preferences');
+  ipcMain.removeHandler('backend:set-auto-start');
+  ipcMain.removeHandler('backend:check-health');
 }

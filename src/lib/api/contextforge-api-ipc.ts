@@ -22,6 +22,12 @@ import {
   type PermissionListResponse,
   type ResourceRead,
   type ResourceCreate,
+  type CatalogListResponse,
+  type CatalogServerRegisterRequest,
+  type CatalogServerRegisterResponse,
+  type CatalogServerStatusResponse,
+  type CatalogBulkRegisterRequest,
+  type CatalogBulkRegisterResponse,
   type ResourceUpdate
 } from '../contextforge-client-ts';
 import { mapPromptReadToPrompt } from './prompt-mapper';
@@ -552,6 +558,174 @@ export async function testA2AAgent(agentId: string): Promise<any> {
   return response.data;
 }
 
+// ============================================================================
+// LLM Chat Playground APIs
+// ============================================================================
+
+/**
+ * Connect to LLM chat service
+ */
+export async function connectLlmchat(params: {
+  user_id: string;
+  server?: {
+    url: string;
+    transport: string;
+    auth_token?: string;
+  };
+  llm?: {
+    provider: string;
+    config: Record<string, unknown>;
+  };
+  streaming?: boolean;
+}): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.connectLlmchat(params);
+  
+  if (!response.success) {
+    throw new Error('Failed to connect to LLM: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Send chat message to LLM
+ */
+export async function chatLlmchat(params: {
+  user_id: string;
+  message: string;
+  streaming?: boolean;
+}): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.chatLlmchat(params);
+  
+  if (!response.success) {
+    throw new Error('Failed to send chat message: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Send chat message to LLM with streaming support
+ * Returns immediately and sends chunks via event listeners
+ */
+export async function chatLlmchatStreaming(
+  params: {
+    user_id: string;
+    message: string;
+  },
+  callbacks: {
+    onChunk?: (data: { messageId: string; token: string; fullResponse: string }) => void;
+    onComplete?: (data: { messageId: string; fullResponse: string; tools?: string[]; toolInvocations?: number; elapsedMs?: number }) => void;
+    onError?: (data: { error: string }) => void;
+  }
+): Promise<void> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  // Set up event listeners
+  const cleanupChunk = callbacks.onChunk
+    ? window.electronAPI.api.onLlmchatStreamChunk(callbacks.onChunk)
+    : () => {};
+  
+  const cleanupComplete = callbacks.onComplete
+    ? window.electronAPI.api.onLlmchatStreamComplete((data) => {
+        callbacks.onComplete!(data);
+        // Clean up listeners after completion
+        cleanupChunk();
+        cleanupComplete();
+        cleanupError();
+      })
+    : () => {};
+  
+  const cleanupError = callbacks.onError
+    ? window.electronAPI.api.onLlmchatStreamError((data) => {
+        callbacks.onError!(data);
+        // Clean up listeners after error
+        cleanupChunk();
+        cleanupComplete();
+        cleanupError();
+      })
+    : () => {};
+
+  try {
+    const response = await window.electronAPI.api.chatLlmchatStreaming(params);
+    
+    if (!response.success) {
+      cleanupChunk();
+      cleanupComplete();
+      cleanupError();
+      throw new Error('Failed to start streaming chat: ' + response.error);
+    }
+  } catch (error) {
+    cleanupChunk();
+    cleanupComplete();
+    cleanupError();
+    throw error;
+  }
+}
+
+/**
+ * Disconnect from LLM chat service
+ */
+export async function disconnectLlmchat(params: {
+  user_id: string;
+}): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.disconnectLlmchat(params);
+  
+  if (!response.success) {
+    throw new Error('Failed to disconnect from LLM: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Check LLM chat session status
+ */
+export async function getLlmchatStatus(userId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getLlmchatStatus(userId);
+  
+  if (!response.success) {
+    throw new Error('Failed to get LLM status: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get LLM chat session configuration
+ */
+export async function getLlmchatConfig(userId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getLlmchatConfig(userId);
+  
+  if (!response.success) {
+    throw new Error('Failed to get LLM config: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // OAuth Testing operations - Gateway-based OAuth flow
 export async function initiateOAuthFlow(gatewayId: string): Promise<any> {
   if (!isElectron) {
@@ -1005,6 +1179,49 @@ export async function getAvailablePermissions(): Promise<PermissionListResponse>
   return response.data;
 }
 
+// Plugin operations
+export async function listPlugins(filters?: { status?: string; mode?: string; hook?: string; tag?: string }) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listPlugins(filters);
+  
+  if (!response.success) {
+    throw new Error('Failed to list plugins: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function getPluginStats() {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getPluginStats();
+  
+  if (!response.success) {
+    throw new Error('Failed to get plugin stats: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function getPluginDetails(name: string) {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getPluginDetails(name);
+  
+  if (!response.success) {
+    throw new Error('Failed to get plugin details: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // RPC operations (Tool Execution)
 export async function executeToolRpc(
   toolName: string,
@@ -1059,6 +1276,79 @@ export async function getAggregatedMetrics() {
   
   if (!response.success) {
     throw new Error('Failed to get metrics: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+// Catalog operations
+export async function listCatalogServers(filters?: {
+  category?: string;
+  provider?: string;
+  auth_type?: string;
+  search?: string;
+  tags?: string[];
+  show_registered?: boolean;
+  page?: number;
+  page_size?: number;
+}): Promise<CatalogListResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listCatalogServers(filters);
+  
+  if (!response.success) {
+    throw new Error('Failed to list catalog servers: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function registerCatalogServer(
+  serverId: string,
+  request?: CatalogServerRegisterRequest
+): Promise<CatalogServerRegisterResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.registerCatalogServer(serverId, request);
+  
+  if (!response.success) {
+    throw new Error('Failed to register catalog server: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function checkCatalogServerStatus(
+  serverId: string
+): Promise<CatalogServerStatusResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.checkCatalogServerStatus(serverId);
+  
+  if (!response.success) {
+    throw new Error('Failed to check catalog server status: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function bulkRegisterCatalogServers(
+  request: CatalogBulkRegisterRequest
+): Promise<CatalogBulkRegisterResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.bulkRegisterCatalogServers(request);
+  
+  if (!response.success) {
+    throw new Error('Failed to bulk register catalog servers: ' + response.error);
   }
   
   return response.data;

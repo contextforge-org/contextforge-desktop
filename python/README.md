@@ -2,6 +2,28 @@
 
 This directory contains the Python backend that can be controlled from the Electron tray menu. The backend uses the **contextforge-cli** package from GitHub, built into a standalone executable using PyInstaller.
 
+## ⚠️ Important: Authentication Requirements
+
+The Electron application requires the backend to support email/password authentication with specific behavior:
+
+### Required Backend Configuration
+
+1. **Default Admin User**: The backend MUST automatically create a default admin user on first startup:
+   - Email: `admin@example.com`
+   - Password: `changeme`
+   - `password_change_required` flag: `true`
+
+2. **Login Endpoint**: When `password_change_required` is true, the backend MUST:
+   - Return HTTP 403 status
+   - Include an `access_token` in the response (critical for password change flow)
+   - Include message: "Password change required"
+
+3. **Password Change Endpoint**: Must clear the `password_change_required` flag after successful password change
+
+**📖 See detailed requirements**: `docs/backend-authentication-requirements.md`
+
+If the backend doesn't implement these requirements, the Electron app will fail to authenticate on first startup.
+
 ## Quick Start
 
 ### Prerequisites

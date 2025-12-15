@@ -15,6 +15,7 @@ export interface AuthProfile {
     environment?: 'production' | 'staging' | 'development' | 'local';
     color?: string; // For UI theming
     icon?: string; // For profile identification
+    isInternal?: boolean; // Whether this is the embedded backend profile
   };
 }
 

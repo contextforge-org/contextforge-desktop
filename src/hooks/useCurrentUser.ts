@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api/contextforge-api-ipc';
+import { withAuth } from '../lib/api/auth-helper';
 import type { EmailUserResponse } from '../lib/contextforge-client-ts';
 
 export function useCurrentUser() {
@@ -10,9 +11,15 @@ export function useCurrentUser() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        console.log('useCurrentUser: Fetching user data via IPC...');
+        console.log('useCurrentUser: Fetching user data via IPC with auth...');
         setLoading(true);
-        const userData = await api.getCurrentUser();
+        
+        // Use withAuth wrapper to handle authentication automatically
+        const userData = await withAuth(
+          () => api.getCurrentUser(),
+          'Failed to fetch current user'
+        );
+        
         console.log('useCurrentUser: User data received:', userData);
         setUser(userData);
         setError(null);
@@ -25,20 +32,25 @@ export function useCurrentUser() {
       }
     };
 
-    // Initial fetch - always try since auth is handled by IPC layer
+    // Initial fetch - withAuth will handle authentication
     console.log('useCurrentUser: Initial mount, fetching user');
     fetchUser();
 
-    // Listen for custom login event
-    const handleLogin = () => {
-      console.log('useCurrentUser: Login event received, refetching user');
+    // Listen for profile-related events
+    const handleProfileEvent = () => {
+      console.log('useCurrentUser: Profile event received, refetching user');
       fetchUser();
     };
 
-    window.addEventListener('contextforge-login', handleLogin);
+    // Listen for both legacy and new profile events
+    window.addEventListener('contextforge-login', handleProfileEvent);
+    window.addEventListener('contextforge-profile-login', handleProfileEvent);
+    window.addEventListener('contextforge-profile-switched', handleProfileEvent);
 
     return () => {
-      window.removeEventListener('contextforge-login', handleLogin);
+      window.removeEventListener('contextforge-login', handleProfileEvent);
+      window.removeEventListener('contextforge-profile-login', handleProfileEvent);
+      window.removeEventListener('contextforge-profile-switched', handleProfileEvent);
     };
   }, []);
 

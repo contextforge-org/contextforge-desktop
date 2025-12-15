@@ -6,6 +6,9 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Shell methods
+  openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+
   // Tray methods
   showNotification: (title: string, body: string, options?: { silent?: boolean }) => {
     ipcRenderer.send('tray:show-notification', title, body, options);
@@ -104,6 +107,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) =>
       ipcRenderer.invoke('api:execute-tool-rpc', toolName, params, passthroughHeaders, timeout),
     getAggregatedMetrics: () => ipcRenderer.invoke('api:getAggregatedMetrics'),
+    listPlugins: (filters?: any) => ipcRenderer.invoke('api:list-plugins', filters),
+    getPluginStats: () => ipcRenderer.invoke('api:get-plugin-stats'),
+    getPluginDetails: (name: string) => ipcRenderer.invoke('api:get-plugin-details', name),
+    
+    // Observability and tracing methods
+    getObservabilityStats: (params?: any) => ipcRenderer.invoke('api:get-observability-stats', params),
+    getTraces: (filters?: any) => ipcRenderer.invoke('api:get-traces', filters),
+    getTraceDetail: (traceId: string) => ipcRenderer.invoke('api:get-trace-detail', traceId),
+    getTimeSeriesMetrics: (params?: any) => ipcRenderer.invoke('api:get-timeseries-metrics', params),
+    getTopSlowEndpoints: (params?: any) => ipcRenderer.invoke('api:get-top-slow-endpoints', params),
+    getTopVolumeEndpoints: (params?: any) => ipcRenderer.invoke('api:get-top-volume-endpoints', params),
+    getTopErrorEndpoints: (params?: any) => ipcRenderer.invoke('api:get-top-error-endpoints', params),
+    getToolUsage: (params?: any) => ipcRenderer.invoke('api:get-tool-usage', params),
+    getToolPerformance: (params?: any) => ipcRenderer.invoke('api:get-tool-performance', params),
+    getToolErrors: (params?: any) => ipcRenderer.invoke('api:get-tool-errors', params),
+    getToolChains: (params?: any) => ipcRenderer.invoke('api:get-tool-chains', params),
+    listSavedQueries: () => ipcRenderer.invoke('api:list-saved-queries'),
+    saveQuery: (data: any) => ipcRenderer.invoke('api:save-query', data),
+    deleteQuery: (queryId: string) => ipcRenderer.invoke('api:delete-query', queryId),
+    useQuery: (queryId: string) => ipcRenderer.invoke('api:use-query', queryId),
     
     // Profile management methods
     initializeProfiles: () => ipcRenderer.invoke('profiles:initialize'),
@@ -122,7 +145,37 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Backend preferences
     getBackendPreferences: () => ipcRenderer.invoke('backend:get-preferences'),
     setAutoStartEmbedded: (value: boolean) => ipcRenderer.invoke('backend:set-auto-start', value),
+    // Catalog operations
+    listCatalogServers: (filters?: any) => ipcRenderer.invoke('api:list-catalog-servers', filters),
+    registerCatalogServer: (serverId: string, request?: any) => ipcRenderer.invoke('api:register-catalog-server', serverId, request),
+    checkCatalogServerStatus: (serverId: string) => ipcRenderer.invoke('api:check-catalog-server-status', serverId),
+    bulkRegisterCatalogServers: (request: any) => ipcRenderer.invoke('api:bulk-register-catalog-servers', request),
     checkBackendHealth: () => ipcRenderer.invoke('backend:check-health'),
+    
+    // LLM Chat Playground
+    connectLlmchat: (params: any) => ipcRenderer.invoke('api:connectLlmchat', params),
+    chatLlmchat: (params: any) => ipcRenderer.invoke('api:chatLlmchat', params),
+    chatLlmchatStreaming: (params: any) => ipcRenderer.invoke('api:chatLlmchatStreaming', params),
+    disconnectLlmchat: (params: any) => ipcRenderer.invoke('api:disconnectLlmchat', params),
+    getLlmchatStatus: (userId: string) => ipcRenderer.invoke('api:getLlmchatStatus', userId),
+    getLlmchatConfig: (userId: string) => ipcRenderer.invoke('api:getLlmchatConfig', userId),
+    
+    // LLM Chat streaming event listeners
+    onLlmchatStreamChunk: (callback: (data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('llmchat:stream-chunk', listener);
+      return () => ipcRenderer.removeListener('llmchat:stream-chunk', listener);
+    },
+    onLlmchatStreamComplete: (callback: (data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('llmchat:stream-complete', listener);
+      return () => ipcRenderer.removeListener('llmchat:stream-complete', listener);
+    },
+    onLlmchatStreamError: (callback: (data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('llmchat:stream-error', listener);
+      return () => ipcRenderer.removeListener('llmchat:stream-error', listener);
+    },
   },
 });
 
@@ -130,6 +183,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 declare global {
   interface Window {
     electronAPI: {
+      openExternal: (url: string) => Promise<void>;
       showNotification: (title: string, body: string, options?: { silent?: boolean }) => void;
       updateBadge: (count: number) => void;
       getTrayConfig: () => Promise<any>;
@@ -210,6 +264,26 @@ declare global {
         getAvailablePermissions: () => Promise<{ success: boolean; data?: any; error?: string }>;
         executeToolRpc: (toolName: string, params: Record<string, any>, passthroughHeaders: Record<string, string>, timeout: number) => Promise<{ success: boolean; data?: any; error?: string }>;
         getAggregatedMetrics: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        listPlugins: (filters?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getPluginStats: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getPluginDetails: (name: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        
+        // Observability and tracing methods
+        getObservabilityStats: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTraces: (filters?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTraceDetail: (traceId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTimeSeriesMetrics: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTopSlowEndpoints: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTopVolumeEndpoints: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getTopErrorEndpoints: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolUsage: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolPerformance: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolErrors: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getToolChains: (params?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        listSavedQueries: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        saveQuery: (data: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deleteQuery: (queryId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        useQuery: (queryId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         
         // Profile management methods
         initializeProfiles: () => Promise<{ success: boolean; error?: string }>;
@@ -229,6 +303,22 @@ declare global {
         // Backend preferences
         getBackendPreferences: () => Promise<{ success: boolean; data?: { autoStartEmbedded: boolean }; error?: string }>;
         setAutoStartEmbedded: (value: boolean) => Promise<{ success: boolean; error?: string }>;
+        
+        // Catalog operations
+        listCatalogServers: (filters?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        registerCatalogServer: (serverId: string, request?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        checkCatalogServerStatus: (serverId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        bulkRegisterCatalogServers: (request: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        // LLM Chat Playground
+        connectLlmchat: (params: any) => Promise<any>;
+        chatLlmchat: (params: any) => Promise<any>;
+        chatLlmchatStreaming: (params: any) => Promise<any>;
+        disconnectLlmchat: (params: any) => Promise<any>;
+        getLlmchatStatus: (userId: string) => Promise<any>;
+        getLlmchatConfig: (userId: string) => Promise<any>;
+        onLlmchatStreamChunk: (callback: (data: any) => void) => () => void;
+        onLlmchatStreamComplete: (callback: (data: any) => void) => () => void;
+        onLlmchatStreamError: (callback: (data: any) => void) => () => void;
         checkBackendHealth: () => Promise<{ success: boolean; isHealthy: boolean; status?: number; error?: string }>;
       };
     };

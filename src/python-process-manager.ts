@@ -102,8 +102,13 @@ export class PythonProcessManager {
       MCG_PORT: '4444',
       HOST: '127.0.0.1',
       PORT: '4444',
-      // Authentication - enable for internal backend
-      AUTH_REQUIRED: 'false',
+      // Email authentication - enable for internal backend
+      EMAIL_AUTH_ENABLED: 'true',
+      CREATE_DEFAULT_ADMIN: 'true',
+      DEFAULT_ADMIN_EMAIL: 'admin@example.com',
+      DEFAULT_ADMIN_PASSWORD: 'changeme',
+      // Enable authentication (required for email auth to work)
+      AUTH_REQUIRED: 'true',
       BASIC_AUTH_USER: 'admin@example.com',
       BASIC_AUTH_PASSWORD: 'changeme',
       // Database
@@ -115,6 +120,14 @@ export class PythonProcessManager {
       MCPGATEWAY_ADMIN_API_ENABLED: 'true',
       // Development mode for easier setup
       DEV_MODE: 'true',
+      // Enable plugins
+      ENABLE_PLUGINS: 'true',
+      // Enable observability and tracing
+      ENABLE_OBSERVABILITY: 'true',
+      ENABLE_TRACING: 'true',
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318',
+      // Enable LLM Chat Playground
+      LLMCHAT_ENABLED: 'true',
     };
 
     return {

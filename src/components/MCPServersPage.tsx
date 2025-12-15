@@ -63,8 +63,15 @@ export function MCPServersPage() {
       } catch (err) {
         console.log(err)
         const errorMessage = (err as Error).message;
-        setError(errorMessage);
-        toast.error('Failed to load gateways: ' + errorMessage);
+        
+        // Check if this is the catalog tags validation error
+        if (errorMessage.includes('validation') || errorMessage.includes('tags')) {
+          setError('Gateway validation error. This may be caused by a corrupted gateway entry from the catalog. Please check the backend logs or reset your database.');
+          toast.error('Gateway validation error - see console for details');
+        } else {
+          setError(errorMessage);
+          toast.error('Failed to load gateways: ' + errorMessage);
+        }
         console.error('Failed to fetch gateways:', err);
       } finally {
         setIsLoading(false);

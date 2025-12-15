@@ -19,12 +19,15 @@ interface VirtualServerDetailsPanelProps {
   editedTools: string[];
   editedResources: string[];
   editedPrompts: string[];
+  editedA2aAgents: string[];
   availableTools: Array<{id: string, name: string}>;
   availableResources: Array<{id: string, name: string}>;
   availablePrompts: Array<{id: string, name: string}>;
+  availableA2aAgents: Array<{id: string, name: string}>;
   toolsSearch: string;
   resourcesSearch: string;
   promptsSearch: string;
+  a2aAgentsSearch: string;
   onClose: () => void;
   onSave: () => void;
   onNameChange: (value: string) => void;
@@ -40,9 +43,12 @@ interface VirtualServerDetailsPanelProps {
   onRemoveResource: (resource: string) => void;
   onTogglePrompt: (prompt: string) => void;
   onRemovePrompt: (prompt: string) => void;
+  onToggleA2aAgent: (agent: string) => void;
+  onRemoveA2aAgent: (agent: string) => void;
   onToolsSearchChange: (value: string) => void;
   onResourcesSearchChange: (value: string) => void;
   onPromptsSearchChange: (value: string) => void;
+  onA2aAgentsSearchChange: (value: string) => void;
 }
 
 export function VirtualServerDetailsPanel({
@@ -59,12 +65,15 @@ export function VirtualServerDetailsPanel({
   editedTools,
   editedResources,
   editedPrompts,
+  editedA2aAgents,
   availableTools,
   availableResources,
   availablePrompts,
+  availableA2aAgents,
   toolsSearch,
   resourcesSearch,
   promptsSearch,
+  a2aAgentsSearch,
   onClose,
   onSave,
   onNameChange,
@@ -80,9 +89,12 @@ export function VirtualServerDetailsPanel({
   onRemoveResource,
   onTogglePrompt,
   onRemovePrompt,
+  onToggleA2aAgent,
+  onRemoveA2aAgent,
   onToolsSearchChange,
   onResourcesSearchChange,
   onPromptsSearchChange,
+  onA2aAgentsSearchChange,
 }: VirtualServerDetailsPanelProps) {
   const removeTag = (index: number) => {
     onTagsChange(editedTags.filter((_, i) => i !== index));
@@ -334,6 +346,19 @@ export function VirtualServerDetailsPanel({
             onToggle={onTogglePrompt}
             onRemove={onRemovePrompt}
             onSearchChange={onPromptsSearchChange}
+          />
+
+          {/* Associated A2A Agents */}
+          <AssociatedItemsSelector
+            label="Associated A2A Agents"
+            items={editedA2aAgents}
+            selectedItems={editedA2aAgents}
+            availableItems={availableA2aAgents}
+            searchValue={a2aAgentsSearch}
+            theme={theme}
+            onToggle={onToggleA2aAgent}
+            onRemove={onRemoveA2aAgent}
+            onSearchChange={onA2aAgentsSearchChange}
           />
         </div>
     </RightSidePanel>

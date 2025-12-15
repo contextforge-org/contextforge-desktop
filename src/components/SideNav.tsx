@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import svgPaths from "../imports/svg-00ihbob3cz";
-import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings } from 'lucide-react';
+import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings, Activity, Store, MessageSquare } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useTeam } from '../context/TeamContext';
 import { MCPIcon } from './common';
@@ -138,12 +138,17 @@ function OrgSelector({ theme = 'dark' }: { theme?: 'light' | 'dark' }) {
 
 
 function BottomLink({ icon, label, href, isCollapsed = false, theme = 'dark' }: { icon: React.ReactNode; label: string; href: string; isCollapsed?: boolean; theme?: 'light' | 'dark' }) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Open in user's default browser
+    window.electronAPI.openExternal(href);
+  };
+
   return (
-    <a 
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="h-[32px] relative shrink-0 w-full cursor-pointer" 
+    <div
+      onClick={handleClick}
+      className="h-[32px] relative shrink-0 w-full cursor-pointer"
     >
       <div className="flex flex-row items-center size-full">
         <div className={`box-border content-stretch flex gap-[8px] h-[32px] items-center px-[8px] py-0 relative w-full ${isCollapsed ? 'justify-center' : ''}`}>
@@ -162,7 +167,7 @@ function BottomLink({ icon, label, href, isCollapsed = false, theme = 'dark' }: 
           )}
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -194,7 +199,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'settings') => void }) {
+export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'catalog' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'playground' | 'settings') => void }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useTheme();
 
@@ -221,9 +226,9 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           isCollapsed={isCollapsed}
           theme={theme}
         />
-        <NavItem 
-          icon={<Server size={18} strokeWidth={1.5} />} 
-          label="Virtual Servers" 
+        <NavItem
+          icon={<Server size={18} strokeWidth={1.5} />}
+          label="Virtual Servers"
           active={currentPage === 'servers'}
           onClick={(e) => {
             e?.stopPropagation();
@@ -276,9 +281,20 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           isCollapsed={isCollapsed}
           theme={theme}
         />
-        <NavItem 
-          icon={<LineChart size={18} strokeWidth={1.5} />} 
-          label="Metrics" 
+        <NavItem
+          icon={<MessageSquare size={18} strokeWidth={1.5} />}
+          label="Playground"
+          active={currentPage === 'playground'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('playground');
+          }}
+          isCollapsed={isCollapsed}
+          theme={theme}
+        />
+        <NavItem
+          icon={<LineChart size={18} strokeWidth={1.5} />}
+          label="Metrics"
           active={currentPage === 'metrics'}
           onClick={(e) => {
             e?.stopPropagation();
@@ -287,11 +303,36 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           isCollapsed={isCollapsed}
           theme={theme}
         />
-        <NavItem 
-          icon={<Plug size={18} strokeWidth={1.5} />} 
-          label="Plugins" 
-          active={currentPage === 'Plugins'}
-          // onClick={() => onNavigate('Plugins')}
+        <NavItem
+          icon={<Activity size={18} strokeWidth={1.5} />}
+          label="Observability"
+          active={currentPage === 'tracing'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('tracing');
+          }}
+          isCollapsed={isCollapsed}
+          theme={theme}
+        />
+        <NavItem
+          icon={<Plug size={18} strokeWidth={1.5} />}
+          label="Plugins"
+          active={currentPage === 'plugins'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('plugins');
+          }}
+          isCollapsed={isCollapsed}
+          theme={theme}
+        />
+        <NavItem
+          icon={<Store size={18} strokeWidth={1.5} />}
+          label="Server Catalog"
+          active={currentPage === 'catalog'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('catalog');
+          }}
           isCollapsed={isCollapsed}
           theme={theme}
         />
@@ -303,10 +344,9 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
       {/* Bottom Links */}
       <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
         <div className={`h-px shrink-0 w-full my-[8px] ${theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-200'}`} />
-        <DeployButton isCollapsed={isCollapsed} />
-        <NavItem 
-          icon={<Settings size={18} strokeWidth={1.5} />} 
-          label="Settings" 
+        <NavItem
+          icon={<Settings size={18} strokeWidth={1.5} />}
+          label="Settings"
           active={currentPage === 'settings'}
           onClick={(e) => {
             e?.stopPropagation();
@@ -316,17 +356,17 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           theme={theme}
           muted={true}
         />
-        <BottomLink 
-          icon={<BookOpen size={18} strokeWidth={1.5} />} 
-          label="Documentation" 
-          href="#"
+        <BottomLink
+          icon={<BookOpen size={18} strokeWidth={1.5} />}
+          label="Documentation"
+          href="https://ibm.github.io/mcp-context-forge"
           isCollapsed={isCollapsed}
           theme={theme}
         />
         <BottomLink 
           icon={<Github size={18} strokeWidth={1.5} />} 
           label="GitHub" 
-          href="#"
+          href="https://github.com/ibm/mcp-context-forge"
           isCollapsed={isCollapsed}
           theme={theme}
         />

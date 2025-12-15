@@ -63,23 +63,23 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo [+] Virtual environment activated
 
-REM Install mcp-context-forge (provides cforge module via contextforge-cli)
-echo [*] Installing mcp-context-forge from GitHub (IBM/mcp-context-forge)...
+REM Install mcp-context-forge (provides cforge module via contextforge-cli) with llmchat extras
+echo [*] Installing mcp-context-forge from GitHub (IBM/mcp-context-forge) with [llmchat] extras...
 echo.
 
 REM Try SSH first, fallback to HTTPS
-uv pip install "%GATEWAY_REPO_SSH%" >nul 2>nul
+uv pip install "%GATEWAY_REPO_SSH%[llmchat]" >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo [+] Installed mcp-context-forge via SSH
+    echo [+] Installed mcp-context-forge via SSH with [llmchat] extras
 ) else (
     echo [!] SSH installation failed, trying HTTPS...
-    uv pip install "%GATEWAY_REPO_HTTPS%"
+    uv pip install "%GATEWAY_REPO_HTTPS%[llmchat]"
     if !ERRORLEVEL! NEQ 0 (
         echo [X] Failed to install mcp-context-forge from GitHub
         echo [X] Please check your git credentials and network connection
         exit /b 1
     )
-    echo [+] Installed mcp-context-forge via HTTPS
+    echo [+] Installed mcp-context-forge via HTTPS with [llmchat] extras
 )
 
 REM Install contextforge-cli (provides cforge module)

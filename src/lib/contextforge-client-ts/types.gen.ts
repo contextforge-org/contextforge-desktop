@@ -335,7 +335,9 @@ export type A2aAgentRead = {
      *
      * Tags for categorizing the agent
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     metrics: A2aAgentMetrics;
     /**
      * Passthroughheaders
@@ -655,6 +657,62 @@ export type Annotations = {
      * Lastmodified
      */
     lastModified?: string | null;
+};
+
+/**
+ * AuditTrailResponse
+ *
+ * Audit trail response model.
+ */
+export type AuditTrailResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    /**
+     * Correlation Id
+     */
+    correlation_id?: string | null;
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Resource Type
+     */
+    resource_type: string;
+    /**
+     * Resource Id
+     */
+    resource_id: string | null;
+    /**
+     * Resource Name
+     */
+    resource_name?: string | null;
+    /**
+     * User Id
+     */
+    user_id: string;
+    /**
+     * User Email
+     */
+    user_email?: string | null;
+    /**
+     * Success
+     */
+    success: boolean;
+    /**
+     * Requires Review
+     */
+    requires_review: boolean;
+    /**
+     * Data Classification
+     */
+    data_classification: string | null;
 };
 
 /**
@@ -1534,6 +1592,52 @@ export type ConnectInput = {
 };
 
 /**
+ * CorrelationTraceResponse
+ *
+ * Correlation trace response with all related logs.
+ */
+export type CorrelationTraceResponse = {
+    /**
+     * Correlation Id
+     */
+    correlation_id: string;
+    /**
+     * Total Duration Ms
+     */
+    total_duration_ms: number | null;
+    /**
+     * Log Count
+     */
+    log_count: number;
+    /**
+     * Error Count
+     */
+    error_count: number;
+    /**
+     * Logs
+     */
+    logs: Array<LogEntry>;
+    /**
+     * Security Events
+     */
+    security_events: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Audit Trails
+     */
+    audit_trails: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Performance Metrics
+     */
+    performance_metrics: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
  * DisconnectInput
  *
  * Request model for terminating a chat session.
@@ -1708,6 +1812,12 @@ export type EmailUserResponse = {
      * Whether email is verified
      */
     email_verified?: boolean;
+    /**
+     * Password Change Required
+     *
+     * Whether user must change password on next login
+     */
+    password_change_required?: boolean;
 };
 
 /**
@@ -2036,7 +2146,9 @@ export type GatewayRead = {
      *
      * Tags for categorizing the gateway
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Authpasswordunmasked
      *
@@ -2589,7 +2701,9 @@ export type GrpcServiceRead = {
      *
      * Service tags
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Created At
      *
@@ -2837,6 +2951,186 @@ export type ListResourceTemplatesResult = {
      * List of resource templates available on the server
      */
     resource_templates?: Array<ResourceTemplate>;
+};
+
+/**
+ * LogEntry
+ *
+ * Log entry response model.
+ */
+export type LogEntry = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    /**
+     * Level
+     */
+    level: string;
+    /**
+     * Component
+     */
+    component: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Correlation Id
+     */
+    correlation_id?: string | null;
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * User Email
+     */
+    user_email?: string | null;
+    /**
+     * Duration Ms
+     */
+    duration_ms?: number | null;
+    /**
+     * Operation Type
+     */
+    operation_type?: string | null;
+    /**
+     * Request Path
+     */
+    request_path?: string | null;
+    /**
+     * Request Method
+     */
+    request_method?: string | null;
+    /**
+     * Is Security Event
+     */
+    is_security_event?: boolean;
+    /**
+     * Error Details
+     */
+    error_details?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * LogSearchRequest
+ *
+ * Log search request parameters.
+ */
+export type LogSearchRequest = {
+    /**
+     * Search Text
+     *
+     * Text search query
+     */
+    search_text?: string | null;
+    /**
+     * Level
+     *
+     * Log levels to filter
+     */
+    level?: Array<string> | null;
+    /**
+     * Component
+     *
+     * Components to filter
+     */
+    component?: Array<string> | null;
+    /**
+     * Category
+     *
+     * Categories to filter
+     */
+    category?: Array<string> | null;
+    /**
+     * Correlation Id
+     *
+     * Correlation ID to filter
+     */
+    correlation_id?: string | null;
+    /**
+     * User Id
+     *
+     * User ID to filter
+     */
+    user_id?: string | null;
+    /**
+     * Start Time
+     *
+     * Start timestamp
+     */
+    start_time?: string | null;
+    /**
+     * End Time
+     *
+     * End timestamp
+     */
+    end_time?: string | null;
+    /**
+     * Min Duration Ms
+     *
+     * Minimum duration
+     */
+    min_duration_ms?: number | null;
+    /**
+     * Max Duration Ms
+     *
+     * Maximum duration
+     */
+    max_duration_ms?: number | null;
+    /**
+     * Has Error
+     *
+     * Filter for errors
+     */
+    has_error?: boolean | null;
+    /**
+     * Limit
+     *
+     * Maximum results
+     */
+    limit?: number;
+    /**
+     * Offset
+     *
+     * Result offset
+     */
+    offset?: number;
+    /**
+     * Sort By
+     *
+     * Field to sort by
+     */
+    sort_by?: string;
+    /**
+     * Sort Order
+     *
+     * Sort order (asc/desc)
+     */
+    sort_order?: string;
+};
+
+/**
+ * LogSearchResponse
+ *
+ * Log search response.
+ */
+export type LogSearchResponse = {
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Results
+     */
+    results: Array<LogEntry>;
 };
 
 /**
@@ -3183,6 +3477,74 @@ export type ObservabilityTraceWithSpans = {
      * List of spans in this trace
      */
     spans?: Array<ObservabilitySpanRead>;
+};
+
+/**
+ * PerformanceMetricResponse
+ *
+ * Performance metric response model.
+ */
+export type PerformanceMetricResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    /**
+     * Component
+     */
+    component: string;
+    /**
+     * Operation Type
+     */
+    operation_type: string;
+    /**
+     * Window Start
+     */
+    window_start: string;
+    /**
+     * Window End
+     */
+    window_end: string;
+    /**
+     * Request Count
+     */
+    request_count: number;
+    /**
+     * Error Count
+     */
+    error_count: number;
+    /**
+     * Error Rate
+     */
+    error_rate: number;
+    /**
+     * Avg Duration Ms
+     */
+    avg_duration_ms: number;
+    /**
+     * Min Duration Ms
+     */
+    min_duration_ms: number;
+    /**
+     * Max Duration Ms
+     */
+    max_duration_ms: number;
+    /**
+     * P50 Duration Ms
+     */
+    p50_duration_ms: number;
+    /**
+     * P95 Duration Ms
+     */
+    p95_duration_ms: number;
+    /**
+     * P99 Duration Ms
+     */
+    p99_duration_ms: number;
 };
 
 /**
@@ -3759,8 +4121,10 @@ export type PromptMetrics = {
 export type PromptRead = {
     /**
      * Id
+     *
+     * Unique ID of the prompt
      */
-    id: number;
+    id: string;
     /**
      * Name
      */
@@ -3786,15 +4150,17 @@ export type PromptRead = {
      */
     updatedAt: string;
     /**
-     * Isactive
+     * Enabled
      */
-    isActive: boolean;
+    enabled: boolean;
     /**
      * Tags
      *
      * Tags for categorizing the prompt
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     metrics: PromptMetrics;
     /**
      * Createdby
@@ -4000,11 +4366,11 @@ export type ResourceCreate = {
      */
     mimeType?: string | null;
     /**
-     * Template
+     * Uri Template
      *
      * URI template for parameterized resources
      */
-    template?: string | null;
+    uri_template?: string | null;
     /**
      * Content
      *
@@ -4118,8 +4484,10 @@ export type ResourceMetrics = {
 export type ResourceRead = {
     /**
      * Id
+     *
+     * Unique ID of the resource
      */
-    id: number;
+    id: string;
     /**
      * Uri
      */
@@ -4137,6 +4505,12 @@ export type ResourceRead = {
      */
     mimeType: string | null;
     /**
+     * Uritemplate
+     *
+     * URI template for parameterized resources
+     */
+    uriTemplate?: string | null;
+    /**
      * Size
      */
     size: number | null;
@@ -4149,16 +4523,18 @@ export type ResourceRead = {
      */
     updatedAt: string;
     /**
-     * Isactive
+     * Enabled
      */
-    isActive: boolean;
+    enabled: boolean;
     metrics: ResourceMetrics;
     /**
      * Tags
      *
      * Tags for categorizing the resource
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Createdby
      *
@@ -4275,6 +4651,7 @@ export type ResourceRead = {
  * A template for constructing resource URIs (MCP spec-compliant).
  *
  * Attributes:
+ * id (Optional[str]): Unique identifier for resource
  * uri_template (str): The URI template string.
  * name (str): The unique name of the template.
  * description (Optional[str]): A description of the template.
@@ -4285,6 +4662,10 @@ export type ResourceRead = {
  * Serialized as '_meta' in JSON.
  */
 export type ResourceTemplate = {
+    /**
+     * Id
+     */
+    id?: string | null;
     /**
      * Uritemplate
      */
@@ -4301,7 +4682,12 @@ export type ResourceTemplate = {
      * Mimetype
      */
     mimeType?: string | null;
-    annotations?: Annotations | null;
+    /**
+     * Annotations
+     */
+    annotations?: {
+        [key: string]: unknown;
+    } | null;
     /**
      * Meta
      */
@@ -4343,11 +4729,11 @@ export type ResourceUpdate = {
      */
     mimeType?: string | null;
     /**
-     * Template
+     * Uritemplate
      *
      * URI template for parameterized resources
      */
-    template?: string | null;
+    uriTemplate?: string | null;
     /**
      * Content
      *
@@ -4659,6 +5045,58 @@ export type Root = {
 };
 
 /**
+ * SecurityEventResponse
+ *
+ * Security event response model.
+ */
+export type SecurityEventResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Timestamp
+     */
+    timestamp: string;
+    /**
+     * Event Type
+     */
+    event_type: string;
+    /**
+     * Severity
+     */
+    severity: string;
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * User Id
+     */
+    user_id: string | null;
+    /**
+     * Client Ip
+     */
+    client_ip: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Threat Score
+     */
+    threat_score: number;
+    /**
+     * Action Taken
+     */
+    action_taken: string | null;
+    /**
+     * Resolved
+     */
+    resolved: boolean;
+};
+
+/**
  * ServerCapabilities
  *
  * Capabilities that a server may support.
@@ -4943,9 +5381,9 @@ export type ServerRead = {
      */
     updatedAt: string;
     /**
-     * Isactive
+     * Enabled
      */
-    isActive: boolean;
+    enabled: boolean;
     /**
      * Associatedtools
      */
@@ -4953,11 +5391,11 @@ export type ServerRead = {
     /**
      * Associatedresources
      */
-    associatedResources?: Array<number>;
+    associatedResources?: Array<string>;
     /**
      * Associatedprompts
      */
-    associatedPrompts?: Array<number>;
+    associatedPrompts?: Array<string>;
     /**
      * Associateda2Aagents
      */
@@ -4968,7 +5406,9 @@ export type ServerRead = {
      *
      * Tags for categorizing the server
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Createdby
      *
@@ -6808,8 +7248,8 @@ export type ToolRead = {
     /**
      * Executioncount
      */
-    executionCount: number;
-    metrics: ToolMetrics;
+    executionCount?: number | null;
+    metrics?: ToolMetrics | null;
     /**
      * Name
      */
@@ -6837,7 +7277,9 @@ export type ToolRead = {
      *
      * Tags for categorizing the tool
      */
-    tags?: Array<string>;
+    tags?: Array<{
+        [key: string]: string;
+    }>;
     /**
      * Createdby
      *
@@ -7938,7 +8380,7 @@ export type ToggleResourceStatusResourcesResourceIdTogglePostData = {
         /**
          * Resource Id
          */
-        resource_id: number;
+        resource_id: string;
     };
     query?: {
         /**
@@ -8211,28 +8653,23 @@ export type UpdateResourceResourcesResourceIdPutResponses = {
 
 export type UpdateResourceResourcesResourceIdPutResponse = UpdateResourceResourcesResourceIdPutResponses[keyof UpdateResourceResourcesResourceIdPutResponses];
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostData = {
+export type SubscribeResourceResourcesSubscribePostData = {
     body?: never;
-    path: {
-        /**
-         * Resource Id
-         */
-        resource_id: string;
-    };
+    path?: never;
     query?: never;
-    url: '/resources/subscribe/{resource_id}';
+    url: '/resources/subscribe';
 };
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostErrors = {
+export type SubscribeResourceResourcesSubscribePostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostError = SubscribeResourceResourcesSubscribeResourceIdPostErrors[keyof SubscribeResourceResourcesSubscribeResourceIdPostErrors];
+export type SubscribeResourceResourcesSubscribePostError = SubscribeResourceResourcesSubscribePostErrors[keyof SubscribeResourceResourcesSubscribePostErrors];
 
-export type SubscribeResourceResourcesSubscribeResourceIdPostResponses = {
+export type SubscribeResourceResourcesSubscribePostResponses = {
     /**
      * Successful Response
      */
@@ -8245,7 +8682,7 @@ export type TogglePromptStatusPromptsPromptIdTogglePostData = {
         /**
          * Prompt Id
          */
-        prompt_id: number;
+        prompt_id: string;
     };
     query?: {
         /**
@@ -9436,6 +9873,10 @@ export type ServerGetToolsServersServerIdToolsGetData = {
          * Include Inactive
          */
         include_inactive?: boolean;
+        /**
+         * Include Metrics
+         */
+        include_metrics?: boolean;
     };
     url: '/servers/{server_id}/tools';
 };
@@ -9941,6 +10382,225 @@ export type CleanupImportStatusesImportCleanupPostResponses = {
 };
 
 export type CleanupImportStatusesImportCleanupPostResponse = CleanupImportStatusesImportCleanupPostResponses[keyof CleanupImportStatusesImportCleanupPostResponses];
+
+export type SearchLogsApiLogsSearchPostData = {
+    body: LogSearchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/logs/search';
+};
+
+export type SearchLogsApiLogsSearchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchLogsApiLogsSearchPostError = SearchLogsApiLogsSearchPostErrors[keyof SearchLogsApiLogsSearchPostErrors];
+
+export type SearchLogsApiLogsSearchPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: LogSearchResponse;
+};
+
+export type SearchLogsApiLogsSearchPostResponse = SearchLogsApiLogsSearchPostResponses[keyof SearchLogsApiLogsSearchPostResponses];
+
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Correlation Id
+         */
+        correlation_id: string;
+    };
+    query?: never;
+    url: '/api/logs/trace/{correlation_id}';
+};
+
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetError = TraceCorrelationIdApiLogsTraceCorrelationIdGetErrors[keyof TraceCorrelationIdApiLogsTraceCorrelationIdGetErrors];
+
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: CorrelationTraceResponse;
+};
+
+export type TraceCorrelationIdApiLogsTraceCorrelationIdGetResponse = TraceCorrelationIdApiLogsTraceCorrelationIdGetResponses[keyof TraceCorrelationIdApiLogsTraceCorrelationIdGetResponses];
+
+export type GetSecurityEventsApiLogsSecurityEventsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Severity
+         */
+        severity?: Array<string> | null;
+        /**
+         * Event Type
+         */
+        event_type?: Array<string> | null;
+        /**
+         * Resolved
+         */
+        resolved?: boolean | null;
+        /**
+         * Start Time
+         */
+        start_time?: string | null;
+        /**
+         * End Time
+         */
+        end_time?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/api/logs/security-events';
+};
+
+export type GetSecurityEventsApiLogsSecurityEventsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSecurityEventsApiLogsSecurityEventsGetError = GetSecurityEventsApiLogsSecurityEventsGetErrors[keyof GetSecurityEventsApiLogsSecurityEventsGetErrors];
+
+export type GetSecurityEventsApiLogsSecurityEventsGetResponses = {
+    /**
+     * Response Get Security Events Api Logs Security Events Get
+     *
+     * Successful Response
+     */
+    200: Array<SecurityEventResponse>;
+};
+
+export type GetSecurityEventsApiLogsSecurityEventsGetResponse = GetSecurityEventsApiLogsSecurityEventsGetResponses[keyof GetSecurityEventsApiLogsSecurityEventsGetResponses];
+
+export type GetAuditTrailsApiLogsAuditTrailsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Action
+         */
+        action?: Array<string> | null;
+        /**
+         * Resource Type
+         */
+        resource_type?: Array<string> | null;
+        /**
+         * User Id
+         */
+        user_id?: string | null;
+        /**
+         * Requires Review
+         */
+        requires_review?: boolean | null;
+        /**
+         * Start Time
+         */
+        start_time?: string | null;
+        /**
+         * End Time
+         */
+        end_time?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/api/logs/audit-trails';
+};
+
+export type GetAuditTrailsApiLogsAuditTrailsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetAuditTrailsApiLogsAuditTrailsGetError = GetAuditTrailsApiLogsAuditTrailsGetErrors[keyof GetAuditTrailsApiLogsAuditTrailsGetErrors];
+
+export type GetAuditTrailsApiLogsAuditTrailsGetResponses = {
+    /**
+     * Response Get Audit Trails Api Logs Audit Trails Get
+     *
+     * Successful Response
+     */
+    200: Array<AuditTrailResponse>;
+};
+
+export type GetAuditTrailsApiLogsAuditTrailsGetResponse = GetAuditTrailsApiLogsAuditTrailsGetResponses[keyof GetAuditTrailsApiLogsAuditTrailsGetResponses];
+
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Component
+         */
+        component?: string | null;
+        /**
+         * Operation
+         */
+        operation?: string | null;
+        /**
+         * Hours
+         *
+         * Historical window to display
+         */
+        hours?: number;
+        /**
+         * Aggregation
+         *
+         * Aggregation level for metrics
+         */
+        aggregation?: string;
+    };
+    url: '/api/logs/performance-metrics';
+};
+
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetError = GetPerformanceMetricsApiLogsPerformanceMetricsGetErrors[keyof GetPerformanceMetricsApiLogsPerformanceMetricsGetErrors];
+
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses = {
+    /**
+     * Response Get Performance Metrics Api Logs Performance Metrics Get
+     *
+     * Successful Response
+     */
+    200: Array<PerformanceMetricResponse>;
+};
+
+export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponse = GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses[keyof GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses];
 
 export type ListTracesObservabilityTracesGetData = {
     body?: never;
@@ -10817,10 +11477,6 @@ export type ListUsersAuthEmailAdminUsersGetData = {
          * Offset
          */
         offset?: number;
-        /**
-         * Request
-         */
-        request?: unknown | null;
     };
     url: '/auth/email/admin/users';
 };
@@ -10846,12 +11502,7 @@ export type ListUsersAuthEmailAdminUsersGetResponse = ListUsersAuthEmailAdminUse
 export type CreateUserAuthEmailAdminUsersPostData = {
     body: EmailRegistrationRequest;
     path?: never;
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users';
 };
 
@@ -10889,10 +11540,6 @@ export type ListAllAuthEventsAuthEmailAdminEventsGetData = {
          * User Email
          */
         user_email?: string | null;
-        /**
-         * Request
-         */
-        request?: unknown | null;
     };
     url: '/auth/email/admin/events';
 };
@@ -10925,12 +11572,7 @@ export type DeleteUserAuthEmailAdminUsersUserEmailDeleteData = {
          */
         user_email: string;
     };
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users/{user_email}';
 };
 
@@ -10960,12 +11602,7 @@ export type GetUserAuthEmailAdminUsersUserEmailGetData = {
          */
         user_email: string;
     };
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users/{user_email}';
 };
 
@@ -10995,12 +11632,7 @@ export type UpdateUserAuthEmailAdminUsersUserEmailPutData = {
          */
         user_email: string;
     };
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users/{user_email}';
 };
 
@@ -13478,6 +14110,36 @@ export type AdminLogoutAdminLogoutPostResponses = {
     200: unknown;
 };
 
+export type ChangePasswordRequiredPageAdminChangePasswordRequiredGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/change-password-required';
+};
+
+export type ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponse = ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponses[keyof ChangePasswordRequiredPageAdminChangePasswordRequiredGetResponses];
+
+export type ChangePasswordRequiredHandlerAdminChangePasswordRequiredPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/change-password-required';
+};
+
+export type ChangePasswordRequiredHandlerAdminChangePasswordRequiredPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type AdminListTeamsAdminTeamsGetData = {
     body?: never;
     path?: never;
@@ -14091,6 +14753,34 @@ export type AdminDeleteUserAdminUsersUserEmailDeleteResponses = {
     200: unknown;
 };
 
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostData = {
+    body?: never;
+    path: {
+        /**
+         * User Email
+         */
+        user_email: string;
+    };
+    query?: never;
+    url: '/admin/users/{user_email}/force-password-change';
+};
+
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostError = AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostErrors[keyof AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostErrors];
+
+export type AdminForcePasswordChangeAdminUsersUserEmailForcePasswordChangePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type AdminListToolsAdminToolsGetData = {
     body?: never;
     path?: never;
@@ -14268,6 +14958,12 @@ export type AdminSearchToolsAdminToolsSearchGetData = {
          * Maximum number of results to return
          */
         limit?: number;
+        /**
+         * Gateway Id
+         *
+         * Filter by gateway ID(s), comma-separated
+         */
+        gateway_id?: string | null;
     };
     url: '/admin/tools/search';
 };
@@ -14458,6 +15154,50 @@ export type AdminGetAllResourceIdsAdminResourcesIdsGetResponses = {
     200: unknown;
 };
 
+export type AdminSearchResourcesAdminResourcesSearchGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         *
+         * Search query
+         */
+        q?: string;
+        /**
+         * Include Inactive
+         */
+        include_inactive?: boolean;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Gateway Id
+         *
+         * Filter by gateway ID(s), comma-separated
+         */
+        gateway_id?: string | null;
+    };
+    url: '/admin/resources/search';
+};
+
+export type AdminSearchResourcesAdminResourcesSearchGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminSearchResourcesAdminResourcesSearchGetError = AdminSearchResourcesAdminResourcesSearchGetErrors[keyof AdminSearchResourcesAdminResourcesSearchGetErrors];
+
+export type AdminSearchResourcesAdminResourcesSearchGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type AdminSearchPromptsAdminPromptsSearchGetData = {
     body?: never;
     path?: never;
@@ -14476,6 +15216,12 @@ export type AdminSearchPromptsAdminPromptsSearchGetData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Gateway Id
+         *
+         * Filter by gateway ID(s), comma-separated
+         */
+        gateway_id?: string | null;
     };
     url: '/admin/prompts/search';
 };
@@ -14747,13 +15493,47 @@ export type AdminDeleteGatewayAdminGatewaysGatewayIdDeletePostResponses = {
     200: unknown;
 };
 
+export type AdminTestResourceAdminResourcesTestResourceUriGetData = {
+    body?: never;
+    path: {
+        /**
+         * Resource Uri
+         */
+        resource_uri: string;
+    };
+    query?: never;
+    url: '/admin/resources/test/{resource_uri}';
+};
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetError = AdminTestResourceAdminResourcesTestResourceUriGetErrors[keyof AdminTestResourceAdminResourcesTestResourceUriGetErrors];
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetResponses = {
+    /**
+     * Response Admin Test Resource Admin Resources Test  Resource Uri  Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type AdminTestResourceAdminResourcesTestResourceUriGetResponse = AdminTestResourceAdminResourcesTestResourceUriGetResponses[keyof AdminTestResourceAdminResourcesTestResourceUriGetResponses];
+
 export type AdminGetResourceAdminResourcesResourceIdGetData = {
     body?: never;
     path: {
         /**
          * Resource Id
          */
-        resource_id: number;
+        resource_id: string;
     };
     query?: never;
     url: '/admin/resources/{resource_id}';
@@ -14843,7 +15623,7 @@ export type AdminToggleResourceAdminResourcesResourceIdTogglePostData = {
         /**
          * Resource Id
          */
-        resource_id: number;
+        resource_id: string;
     };
     query?: never;
     url: '/admin/resources/{resource_id}/toggle';
@@ -14871,7 +15651,7 @@ export type AdminGetPromptAdminPromptsPromptIdGetData = {
         /**
          * Prompt Id
          */
-        prompt_id: number;
+        prompt_id: string;
     };
     query?: never;
     url: '/admin/prompts/{prompt_id}';
@@ -14961,7 +15741,7 @@ export type AdminTogglePromptAdminPromptsPromptIdTogglePostData = {
         /**
          * Prompt Id
          */
-        prompt_id: number;
+        prompt_id: string;
     };
     query?: never;
     url: '/admin/prompts/{prompt_id}/toggle';
@@ -15063,6 +15843,50 @@ export type GetAggregatedMetricsAdminMetricsGetResponses = {
 
 export type GetAggregatedMetricsAdminMetricsGetResponse = GetAggregatedMetricsAdminMetricsGetResponses[keyof GetAggregatedMetricsAdminMetricsGetResponses];
 
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Entity Type
+         *
+         * Entity type: tools, resources, prompts, or servers
+         */
+        entity_type?: string;
+        /**
+         * Page
+         *
+         * Page number (1-indexed)
+         */
+        page?: number;
+        /**
+         * Per Page
+         *
+         * Items per page
+         */
+        per_page?: number;
+    };
+    url: '/admin/metrics/partial';
+};
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetError = AdminMetricsPartialHtmlAdminMetricsPartialGetErrors[keyof AdminMetricsPartialHtmlAdminMetricsPartialGetErrors];
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type AdminMetricsPartialHtmlAdminMetricsPartialGetResponse = AdminMetricsPartialHtmlAdminMetricsPartialGetResponses[keyof AdminMetricsPartialHtmlAdminMetricsPartialGetResponses];
+
 export type AdminResetMetricsAdminMetricsResetPostData = {
     body?: never;
     path?: never;
@@ -15121,6 +15945,29 @@ export type AdminTestGatewayAdminGatewaysTestPostResponses = {
 };
 
 export type AdminTestGatewayAdminGatewaysTestPostResponse = AdminTestGatewayAdminGatewaysTestPostResponses[keyof AdminTestGatewayAdminGatewaysTestPostResponses];
+
+export type AdminEventsAdminEventsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/events';
+};
+
+export type AdminEventsAdminEventsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminEventsAdminEventsGetError = AdminEventsAdminEventsGetErrors[keyof AdminEventsAdminEventsGetErrors];
+
+export type AdminEventsAdminEventsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type AdminListTagsAdminTagsGetData = {
     body?: never;
@@ -16078,6 +16925,10 @@ export type GetServersSectionAdminSectionsServersGetData = {
          * Team Id
          */
         team_id?: string | null;
+        /**
+         * Include Inactive
+         */
+        include_inactive?: boolean;
     };
     url: '/admin/sections/servers';
 };
@@ -17624,14 +18475,14 @@ export type GetResourcesPartialAdminObservabilityResourcesPartialGetResponses = 
 
 export type GetResourcesPartialAdminObservabilityResourcesPartialGetResponse = GetResourcesPartialAdminObservabilityResourcesPartialGetResponses[keyof GetResourcesPartialAdminObservabilityResourcesPartialGetResponses];
 
-export type RootRedirectGetData = {
+export type RootInfoGetData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/';
 };
 
-export type RootRedirectGetResponses = {
+export type RootInfoGetResponses = {
     /**
      * Successful Response
      */

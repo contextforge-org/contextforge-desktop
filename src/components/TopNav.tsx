@@ -1,4 +1,3 @@
-import svgPaths from "../imports/svg-00ihbob3cz";
 import { Sun, Moon, Bell as BellIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { ProfileSelector } from './ProfileSelector';
@@ -12,12 +11,12 @@ function Logo() {
   const { theme } = useTheme();
   return (
     <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-name="logo">
-      <div className="h-[10px] relative shrink-0 w-[16px]">
-        <div className="absolute inset-0" style={{ "--fill-0": theme === 'dark' ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)" } as React.CSSProperties}>
-          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 10">
-            <path clipRule="evenodd" d={svgPaths.p461f600} fill="var(--fill-0, white)" fillRule="evenodd" />
-          </svg>
-        </div>
+      <div className="h-[16px] relative shrink-0 w-[16px]">
+        <img
+          src={theme === 'dark' ? '/assets/icons/contextforge-icon_white_512.png' : '/assets/icons/contextforge-icon_black_512.png'}
+          alt="Context Forge"
+          className="block size-full object-contain"
+        />
       </div>
       <p className={`font-['Inter:Semi_Bold',sans-serif] font-semibold leading-[20px] not-italic relative shrink-0 text-[14px] ${theme === 'dark' ? 'text-white' : 'text-black'}`}>Context Forge</p>
     </div>

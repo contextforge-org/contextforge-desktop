@@ -79,12 +79,12 @@ export class ProfileManager extends EventEmitter {
 
       if (allProfiles.success && allProfiles.data) {
         internalProfile = allProfiles.data.find(
-          p => p.name === INTERNAL_PROFILE_NAME || p.apiUrl === INTERNAL_API_URL
+          p => p.metadata?.isInternal || p.name === INTERNAL_PROFILE_NAME || p.apiUrl === INTERNAL_API_URL
         );
       }
 
       if (internalProfile) {
-        // Profile exists, update credentials if needed and login
+        // Profile exists, ensure it's marked as internal
         console.log('Internal profile found, logging in...');
         const updateResult = await profileStorage.updateProfile(internalProfile.id, {
           email: INTERNAL_EMAIL,
@@ -92,7 +92,8 @@ export class ProfileManager extends EventEmitter {
           metadata: {
             ...internalProfile.metadata,
             environment: 'local',
-            description: 'Embedded backend server'
+            description: 'Embedded backend server',
+            isInternal: true
           }
         });
 
@@ -100,16 +101,7 @@ export class ProfileManager extends EventEmitter {
           console.warn('Failed to update internal profile:', updateResult.error);
         }
 
-        // Update credentials by updating the profile with password
-        const credentialsResult = await profileStorage.updateProfile(internalProfile.id, {
-          password: INTERNAL_PASSWORD
-        });
-
-        if (!credentialsResult.success) {
-          console.warn('Failed to update internal profile credentials:', credentialsResult.error);
-        }
-
-        // Login with the profile (will handle password change if needed)
+        // Login with the profile (will handle password fallback if needed)
         return await this.loginWithProfile(internalProfile.id);
       } else {
         // Create new internal profile - always skip credential test for internal backend
@@ -125,7 +117,8 @@ export class ProfileManager extends EventEmitter {
           metadata: {
             environment: 'local',
             description: 'Embedded backend server',
-            icon: '🏠'
+            icon: '🏠',
+            isInternal: true
           }
         });
 
@@ -326,6 +319,129 @@ export class ProfileManager extends EventEmitter {
   }
 
   /**
+   * Try admin login flow (form-based with cookies) as fallback
+   * This is used when the API login doesn't return a token with 403
+   */
+  private async tryAdminLoginFlow(email: string, password: string, apiUrl: string, profileId: string, retryCount = 0): Promise<ProfileLoginResult> {
+    // Prevent infinite recursion
+    if (retryCount > 1) {
+      console.error('Too many retries in admin login flow');
+      return {
+        success: false,
+        error: 'Failed to login after multiple attempts. Please check your credentials and try again.'
+      };
+    }
+    try {
+      console.log('Attempting admin login flow (form-based)...');
+      
+      // Try admin login which uses form data and sets cookies
+      const formData = new URLSearchParams();
+      formData.append('email', email);
+      formData.append('password', password);
+      
+      const loginResponse = await fetch(`${apiUrl}/admin/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+        redirect: 'manual' // Don't follow redirects automatically
+      });
+      
+      console.log('Admin login response status:', loginResponse.status);
+      
+      // Admin login redirects on success or shows password change page
+      if (loginResponse.status === 302 || loginResponse.status === 303) {
+        const location = loginResponse.headers.get('location');
+        console.log('Admin login redirect to:', location);
+        
+        // If redirected to change-password-required, handle it
+        if (location?.includes('change-password-required')) {
+          console.log('Password change required via admin flow');
+          
+          // Extract cookies from response
+          const cookies = loginResponse.headers.get('set-cookie');
+          console.log('Cookies received:', !!cookies);
+          
+          if (!cookies) {
+            return {
+              success: false,
+              error: 'Admin login succeeded but no session cookie received'
+            };
+          }
+          
+          // Change password using admin endpoint
+          // Generate a random secure password to clear the password_change_required flag
+          const newPassword = this.generateSecurePassword();
+          const changeFormData = new URLSearchParams();
+          changeFormData.append('current_password', password);
+          changeFormData.append('new_password', newPassword);
+          changeFormData.append('confirm_password', newPassword);
+          
+          const changeResponse = await fetch(`${apiUrl}/admin/change-password-required`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Cookie': cookies
+            },
+            body: changeFormData.toString(),
+            redirect: 'manual'
+          });
+          
+          console.log('Password change response status:', changeResponse.status);
+          
+          if (changeResponse.status === 302 || changeResponse.status === 303) {
+            console.log('Password changed successfully via admin flow');
+            
+            // Always persist the new password - it will be used by API client
+            console.log('Updating stored password in profile...');
+            await profileStorage.updateProfile(profileId, {
+              password: newPassword
+            });
+            console.log('Profile password updated to new random password');
+            
+            // Now retry the API login which should work (increment retry count)
+            console.log('Retrying API login...');
+            return await this.loginWithProfile(profileId, retryCount + 1);
+          } else {
+            return {
+              success: false,
+              error: 'Failed to change password via admin flow'
+            };
+          }
+        }
+        
+        // If redirected to admin panel, login succeeded
+        // But we still need an API token, so retry API login
+        console.log('Admin login succeeded, retrying API login for token...');
+        return await this.loginWithProfile(profileId, retryCount + 1);
+      }
+      
+      return {
+        success: false,
+        error: 'Admin login failed'
+      };
+    } catch (error) {
+      console.error('Admin login flow error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error in admin login flow'
+      };
+    }
+  }
+  /**
+   * Generate a secure random password
+   */
+  private generateSecurePassword(): string {
+    const length = 16;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => charset[byte % charset.length]).join('');
+  }
+
+
+  /**
    * Change password for a user
    */
   private async changePassword(oldPassword: string, newPassword: string, token: string, apiUrl: string): Promise<{ success: boolean; error?: string }> {
@@ -365,7 +481,7 @@ export class ProfileManager extends EventEmitter {
   /**
    * Login with a specific profile
    */
-  async loginWithProfile(profileId: string): Promise<ProfileLoginResult> {
+  async loginWithProfile(profileId: string, adminFlowRetryCount = 0): Promise<ProfileLoginResult> {
     try {
       // Get profile and credentials
       const profileResult = await profileStorage.getProfile(profileId);
@@ -387,14 +503,17 @@ export class ProfileManager extends EventEmitter {
 
       const profile = profileResult.data;
       const credentials = credentialsResult.data;
+      const isInternalBackend = profile.metadata?.isInternal === true;
+      const DEFAULT_PASSWORD = 'changeme';
 
       // Configure API client for this profile's API URL
       const { setApiBaseUrl } = await import('../lib/api/contextforge-api-main');
       setApiBaseUrl(profile.apiUrl);
       
-      // Attempt login - use fetch directly to handle 403 password change errors
+      // Attempt login - use fetch directly to handle 403/500 password change errors
       try {
-        const loginResponse = await fetch(`${profile.apiUrl}/auth/email/login`, {
+        console.log('Attempting API login at:', `${profile.apiUrl}/auth/email/login`);
+        let loginResponse = await fetch(`${profile.apiUrl}/auth/email/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -405,29 +524,77 @@ export class ProfileManager extends EventEmitter {
           })
         });
 
-        const responseData = await loginResponse.json();
+        let responseData = await loginResponse.json();
         console.log('Login response status:', loginResponse.status);
         console.log('Login response data:', JSON.stringify(responseData, null, 2));
         
-        // Check if we got a token despite error status
-        const token = responseData?.access_token;
-        
-        // Check if this is a password change required error (even without token)
-        if (!loginResponse.ok && responseData?.detail?.toLowerCase().includes('password change required')) {
-          console.log('Password change required detected');
+        // Check if authentication failed with invalid password for internal backend
+        // If so, try the default password as fallback (backend may have been restarted)
+        if (isInternalBackend &&
+            loginResponse.status === 401 &&
+            responseData?.detail?.toLowerCase().includes('invalid password') &&
+            credentials.password !== DEFAULT_PASSWORD) {
+          console.log('Internal backend auth failed with stored password - trying default password as fallback...');
           
-          // If we don't have a token, we can't proceed with password change
-          // This means the backend doesn't return a token with the 403 error
-          // We need to handle this differently - perhaps by directly modifying the database
+          // Try with default password
+          loginResponse = await fetch(`${profile.apiUrl}/auth/email/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: DEFAULT_PASSWORD
+            })
+          });
+          
+          responseData = await loginResponse.json();
+          console.log('Fallback login response status:', loginResponse.status);
+          
+          if (loginResponse.ok || responseData?.access_token) {
+            console.log('Fallback login succeeded - updating stored password to default');
+            
+            // Update stored password back to default
+            await profileStorage.updateProfile(profileId, {
+              password: DEFAULT_PASSWORD
+            });
+          }
+        }
+        
+        // Extract token from response (may be present even with error status)
+        const token = responseData?.access_token;
+        console.log('Token present in response:', !!token);
+        
+        // If no token and password change required, try admin login flow as fallback
+        const isPasswordChangeError =
+          responseData?.detail?.toLowerCase().includes('password change required') ||
+          responseData?.detail?.toLowerCase().includes('authentication service error');
+        
+        if (!token && (loginResponse.status === 403 || loginResponse.status === 500) && isPasswordChangeError && adminFlowRetryCount === 0) {
+          console.log('Password change required or auth service error, trying admin login flow...');
+          return await this.tryAdminLoginFlow(credentials.email, credentials.password, profile.apiUrl, profileId, adminFlowRetryCount);
+        }
+        
+        // Check for password change required
+        // Backend may return 403 or 500 with "Password change required" message
+        const isPasswordChangeRequired =
+          responseData?.detail?.toLowerCase().includes('password change required') ||
+          responseData?.detail?.toLowerCase().includes('please change your password');
+        
+        if ((loginResponse.status === 403 || loginResponse.status === 500) && isPasswordChangeRequired) {
+          console.log('Password change required detected (status:', loginResponse.status, ')');
+          
+          // The backend SHOULD provide a token, but if it doesn't, we need to handle it
           if (!token) {
             console.error('No token provided with password change requirement');
+            console.error('Backend error: The login endpoint must return an access_token with the error response');
             return {
               success: false,
-              error: 'Password change required but no authentication token provided. This is a backend configuration issue - the backend should either not require password changes for the default admin user, or should provide a token with the 403 response.'
+              error: 'Password change required but backend did not provide authentication token. This is a backend bug - the login endpoint should return an access_token even when password change is required. Please contact the backend team to fix this issue.'
             };
           }
           
-          console.log('Attempting to clear password change flag...');
+          console.log('Token received with password change requirement, proceeding to change password...');
           
           // Change password to the same password (to clear the password_change_required flag)
           const changeResult = await this.changePassword(
@@ -438,9 +605,18 @@ export class ProfileManager extends EventEmitter {
           );
           
           if (changeResult.success) {
-            console.log('Password change flag cleared successfully, retrying login...');
-            // Retry login - this should now succeed
-            return await this.loginWithProfile(profileId);
+            console.log('Password change flag cleared successfully');
+            
+            // Always persist the password - it will be used by API client
+            console.log('Updating stored password in profile...');
+            await profileStorage.updateProfile(profileId, {
+              password: credentials.password
+            });
+            console.log('Profile password updated');
+            
+            // Retry login - this should now succeed (increment retry to prevent loop)
+            console.log('Retrying API login...');
+            return await this.loginWithProfile(profileId, 1);
           } else {
             console.error('Failed to change password:', changeResult.error);
             return {
@@ -450,8 +626,9 @@ export class ProfileManager extends EventEmitter {
           }
         }
         
-        if (token) {
-          // Normal successful login
+        // Check for successful login (200 status)
+        if (loginResponse.ok && token) {
+          console.log('Login successful');
           this.authToken = token;
           this.currentProfile = profile;
           
@@ -475,10 +652,10 @@ export class ProfileManager extends EventEmitter {
           };
         }
         
-        // No token in response
+        // Login failed for other reasons
         return {
           success: false,
-          error: responseData?.detail || 'Login failed - no token received'
+          error: responseData?.detail || `Login failed with status ${loginResponse.status}`
         };
       } catch (loginError: any) {
         console.error('Login error:', loginError);

@@ -51,6 +51,7 @@ async function waitForBackendReady(maxAttempts = 30, delayMs = 1000): Promise<bo
 async function startBackendAndSetupProfile(manager: PythonProcessManager): Promise<void> {
   try {
     console.log('Starting Python backend...');
+    // Start backend - default admin user creation should be handled by environment variables
     await manager.start(["serve"]);
     console.log('Python backend process started');
 
