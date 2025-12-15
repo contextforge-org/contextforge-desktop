@@ -7,48 +7,40 @@ A desktop application for managing MCP (Model Context Protocol) servers, tools, 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Python 3.8+ (for backend)
+- Python 3.8+
 - Git
 
-### Installation
+### Setup
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd context-forge-electron
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd context-forge-electron
+   ```
 
-# Install dependencies
-npm install
+2. **Install Node dependencies**
+   ```bash
+   npm install
+   ```
 
-# Install Python dependencies (optional, for backend)
-cd python
-pip install pyinstaller
-cd ..
-```
+3. **Build the Python backend**
+   ```bash
+   cd python
+   
+   # On macOS/Linux:
+   ./build.sh
+   
+   # On Windows:
+   build.bat
+   ```
 
-### Development
+4. **Start the application**
+   ```bash
+   # From the root directory
+   npm start
+   ```
 
-```bash
-# Start the application in development mode
-npm start
-
-# This will:
-# - Start the Electron app with hot reload
-# - Open DevTools automatically
-# - Watch for file changes
-```
-
-### Building the Python Backend
-
-The application can optionally run a Python backend process. To build the executable:
-
-```bash
-cd python
-pip install pyinstaller
-pyinstaller --onefile --name backend backend.py
-```
-
-The executable will be created in `python/dist/backend` (or `backend.exe` on Windows).
+That's it! The app will launch with the Python backend integrated.
 
 ## 📦 Building for Production
 
@@ -69,7 +61,6 @@ context-forge-electron/
 ├── src/
 │   ├── components/          # React components
 │   │   ├── ui/             # Reusable UI components (Radix UI)
-│   │   ├── common/         # Shared components
 │   │   └── *.tsx           # Feature components
 │   ├── hooks/              # Custom React hooks
 │   ├── context/            # React contexts (Theme, Team)
@@ -77,39 +68,18 @@ context-forge-electron/
 │   │   ├── api/           # API client layer
 │   │   └── contextforge-client-ts/  # Generated API client
 │   ├── types/              # TypeScript type definitions
-│   ├── styles/             # Global styles
+│   ├── services/           # Application services
 │   ├── main.ts             # Electron main process
 │   ├── preload.ts          # Electron preload script
-│   ├── renderer.ts         # Renderer entry point
 │   └── app.tsx             # React app root
 ├── python/                 # Python backend
-│   ├── backend.py         # Main backend script
-│   └── dist/              # PyInstaller output
+│   ├── build.sh           # Build script (macOS/Linux)
+│   ├── build.bat          # Build script (Windows)
+│   └── dist/              # Built backend executable
 ├── assets/                 # Static assets (icons, images)
 ├── docs/                   # Documentation
 └── forge.config.ts         # Electron Forge configuration
 ```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create a `.env` file in the root directory:
-
-```bash
-# API Configuration
-VITE_API_URL=http://localhost:4444
-
-# Development
-VITE_LOG_LEVEL=info
-VITE_ENABLE_DEVTOOLS=true
-```
-
-### API Backend
-
-The application expects a backend API running at `http://localhost:4444` by default. Configure this in:
-- `.env` file (recommended)
-- `src/lib/api/contextforge-api.ts` (hardcoded fallback)
 
 ## 🎯 Features
 
@@ -136,28 +106,100 @@ The application expects a backend API running at `http://localhost:4444` by defa
 - Execute prompts with arguments
 - Track execution metrics
 
-### Settings
+### Resources Management
+- Browse and manage MCP resources
+- View resource metadata and content
+- Filter and search capabilities
+
+### Catalog Integration
+- Browse MCP server catalog
+- Install servers from catalog
+- View server details and documentation
+
+### LLM Playground
+- Interactive chat interface
+- Test prompts and tools
+- Multiple LLM provider support
+- Conversation history
+
+### Settings & Administration
+- Multi-profile support with OAuth
 - User management with RBAC
 - Team management
 - API token generation
 - Permission management
 
-## 🐍 Python Backend Integration
+### Observability & Metrics
+- Real-time metrics dashboard
+- Performance monitoring
+- Activity tracking
+- Security insights
 
-The application includes a Python process manager that can spawn and control a PyInstaller-packaged Python executable.
+## 🐍 Python Backend
 
-### Features
-- Start/stop Python backend from tray menu
-- Monitor process status (PID, uptime)
-- Graceful shutdown handling
-- Automatic cleanup on app quit
+The Python backend is automatically managed by the application:
 
-### Usage
-1. Build the Python executable (see above)
-2. Start the app
-3. Right-click tray icon → Python Backend → Start Backend
+- **Auto-start**: Backend starts when the app launches
+- **Tray control**: Start/stop from system tray menu
+- **Status monitoring**: View PID and uptime
+- **Graceful shutdown**: Automatic cleanup on app quit
 
-See [docs/README-python-backend.md](docs/README-python-backend.md) for detailed documentation.
+The backend provides:
+- MCP server catalog management
+- Server configuration validation
+- Plugin system support
+- Local API endpoints
+
+See [python/README.md](python/README.md) for backend-specific documentation.
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory (optional):
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:4444
+
+# Development
+VITE_LOG_LEVEL=info
+VITE_ENABLE_DEVTOOLS=true
+```
+
+### Backend API
+
+The application can connect to an external backend API at `http://localhost:4444` by default. This is optional - the built-in Python backend provides core functionality.
+
+## 🛠️ Development
+
+### Available Scripts
+
+- `npm start` - Start development server with hot reload
+- `npm run package` - Package the app for distribution
+- `npm run make` - Create platform-specific installers
+- `npm run publish` - Publish the app
+- `npm run lint` - Run ESLint
+- `npm run lint -- --fix` - Fix linting issues
+
+### Tech Stack
+
+- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **UI Components**: Radix UI, Lucide Icons, shadcn/ui
+- **Desktop**: Electron 39, Electron Forge
+- **Build**: Vite 7
+- **Backend**: Python 3.8+ with FastAPI
+- **State Management**: React Context + Hooks
+
+## 📝 Documentation
+
+- [Python Backend](python/README.md)
+- [Python Backend Integration](docs/README-python-backend.md)
+- [Toast & Tray Integration](docs/README-toast-tray.md)
+- [Multi-Profile Authentication](docs/multi-profile-authentication.md)
+- [LLM Playground Design](docs/llm-playground-design.md)
+- [Prompts Page Design](docs/prompts-page-design.md)
+- [Metrics Dashboard](docs/metrics-dashboard-architecture.md)
 
 ## 🧪 Testing
 
@@ -169,39 +211,15 @@ npm run lint
 npm run lint -- --fix
 ```
 
-*Note: Test suite to be added*
-
-## 🛠️ Development Tools
-
-### Available Scripts
-
-- `npm start` - Start development server
-- `npm run package` - Package the app
-- `npm run make` - Create distributable installers
-- `npm run publish` - Publish the app
-- `npm run lint` - Run ESLint
-
-### Tech Stack
-
-- **Frontend**: React 19, TypeScript, Tailwind CSS
-- **UI Components**: Radix UI, Lucide Icons
-- **Desktop**: Electron 39, Electron Forge
-- **Build**: Vite 7
-- **Backend**: Python 3.8+ (optional)
-
-## 📝 Documentation
-
-- [Python Backend Integration](docs/README-python-backend.md)
-- [Toast & Tray Integration](docs/README-toast-tray.md)
-- [Settings Page RBAC](docs/settings-page-rbac-integration-plan.md)
-- [Prompts Page Design](docs/prompts-page-design.md)
+*Note: Comprehensive test suite to be added*
 
 ## 🔐 Security
 
-- Tokens stored in localStorage (consider using Electron's safeStorage API)
+- Profile credentials stored securely using Electron's safeStorage API
+- OAuth 2.0 support for authentication
 - HTTPS recommended for production API endpoints
 - Input validation on all user inputs
-- Content Security Policy to be implemented
+- Role-based access control (RBAC)
 
 ## 🤝 Contributing
 
@@ -219,23 +237,16 @@ MIT License - see LICENSE file for details
 
 Rynne Whitnah (rpwhitna@us.ibm.com)
 
-## 🐛 Known Issues
-
-- TypeScript version needs upgrade (currently 4.5.4)
-- No automated tests yet
-- Error boundaries not implemented
-- API layer needs consolidation
-
 ## 🗺️ Roadmap
 
 - [ ] Add comprehensive test coverage
 - [ ] Implement error boundaries
 - [ ] Upgrade to TypeScript 5.7+
-- [ ] Consolidate API layer
 - [ ] Add CI/CD pipeline
-- [ ] Implement proper state management
-- [ ] Add performance monitoring
-- [ ] Create component library/Storybook
+- [ ] Enhanced plugin system
+- [ ] Advanced metrics and analytics
+- [ ] Component library/Storybook
+- [ ] Mobile companion app
 
 ## 💬 Support
 

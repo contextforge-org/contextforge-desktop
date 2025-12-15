@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { TrayManager } from './tray-manager';
@@ -15,6 +15,7 @@ if (started) {
 let mainWindow: BrowserWindow | null = null;
 let trayManager: TrayManager | null = null;
 let pythonManager: PythonProcessManager | null = null;
+let shouldStopBackend = false; // Flag to control backend shutdown
 
 /**
  * Wait for backend to be ready by polling the health endpoint
@@ -103,6 +104,9 @@ const createWindow = () => {
     },
   });
 
+  // Create application menu with custom quit behavior
+  createApplicationMenu();
+
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -178,6 +182,82 @@ const createWindow = () => {
   console.log('Main window created successfully');
 };
 
+/**
+ * Create application menu with custom quit behavior
+ */
+const createApplicationMenu = () => {
+  if (process.platform === 'darwin') {
+    const template: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          {
+            label: 'Quit',
+            accelerator: 'Command+Q',
+            click: () => {
+              // Hide to tray instead of quitting
+              if (mainWindow && trayManager) {
+                mainWindow.hide();
+                trayManager.showNotification(
+                  'Context Forge',
+                  'App hidden to tray. Backend still running. Use tray menu to quit completely.',
+                  { silent: true }
+                );
+              }
+            }
+          }
+        ]
+      },
+      {
+        label: 'Edit',
+        submenu: [
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' }
+        ]
+      },
+      {
+        label: 'View',
+        submenu: [
+          { role: 'reload' },
+          { role: 'forceReload' },
+          { role: 'toggleDevTools' },
+          { type: 'separator' },
+          { role: 'resetZoom' },
+          { role: 'zoomIn' },
+          { role: 'zoomOut' },
+          { type: 'separator' },
+          { role: 'togglefullscreen' }
+        ]
+      },
+      {
+        label: 'Window',
+        submenu: [
+          { role: 'minimize' },
+          { role: 'zoom' },
+          { type: 'separator' },
+          { role: 'front' }
+        ]
+      }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+  }
+};
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -185,17 +265,10 @@ app.on('ready', () => {
   createWindow();
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Keep app running when all windows are closed (tray mode)
 app.on('window-all-closed', () => {
-  // On macOS, keep the app running in the tray
-  if (process.platform !== 'darwin') {
-    // On other platforms, only quit if tray is not active
-    if (!trayManager) {
-      app.quit();
-    }
-  }
+  // Don't quit - keep running in tray on all platforms
+  console.log('All windows closed, app continues running in tray');
 });
 
 app.on('activate', () => {
@@ -210,21 +283,39 @@ app.on('activate', () => {
 });
 
 // Cleanup before quit
-app.on('before-quit', async () => {
+app.on('before-quit', async (event) => {
   // Set the quitting flag so window close won't be prevented
   if (trayManager) {
     trayManager.setQuitting(true);
   }
 
-  // Stop Python process if running
-  if (pythonManager) {
+  // Only stop Python process if explicitly requested
+  if (shouldStopBackend && pythonManager) {
     console.log('Stopping Python process before quit...');
-    await pythonManager.stop();
+    event.preventDefault(); // Prevent immediate quit
+    
+    try {
+      await pythonManager.stop();
+    } catch (error) {
+      console.error('Error stopping Python process:', error);
+    }
+    
+    // Now actually quit
+    shouldStopBackend = false; // Reset flag
+    app.quit();
+  } else {
+    console.log('Quitting without stopping backend (backend will continue running)');
   }
 
   cleanupIpcHandlers();
   trayManager?.destroy();
 });
+
+// Export function to trigger quit with backend stop
+export function quitAndStopBackend() {
+  shouldStopBackend = true;
+  app.quit();
+}
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.

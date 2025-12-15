@@ -239,10 +239,29 @@ export class TrayManager {
       },
       { type: 'separator' },
       {
-        label: 'Quit',
+        label: 'Hide App',
         click: () => {
-          // Force quit, bypassing minimize to tray
-          this.forceQuit();
+          // Hide window to tray, keep backend running
+          this.hideWindow();
+          this.showNotification(
+            'Context Forge',
+            'App hidden to tray. Backend still running.',
+            { silent: true }
+          );
+        },
+      },
+      {
+        label: 'Quit App (Keep Backend Running)',
+        click: () => {
+          // Quit app but keep backend running
+          this.quitWithoutStoppingBackend();
+        },
+      },
+      {
+        label: 'Quit and Stop Backend',
+        click: () => {
+          // Force quit and stop backend
+          this.quitAndStopBackend();
         },
       },
     ]);
@@ -427,14 +446,45 @@ export class TrayManager {
   }
 
   /**
-   * Force quit the application
+   * Quit app without stopping backend
    */
-  private forceQuit(): void {
+  private quitWithoutStoppingBackend(): void {
     // Set flag to allow window to close
     this.isQuitting = true;
 
-    // Quit the app
+    // Show notification
+    this.showNotification(
+      'Context Forge',
+      'App closing. Backend will continue running in background.',
+      { silent: true }
+    );
+
+    // Quit the app (backend will keep running)
     app.quit();
+  }
+
+  /**
+   * Quit app and stop backend
+   */
+  private quitAndStopBackend(): void {
+    // Set flag to allow window to close
+    this.isQuitting = true;
+
+    // Show notification
+    this.showNotification(
+      'Context Forge',
+      'Stopping backend and quitting app...',
+      { silent: true }
+    );
+
+    // Import and call the quit function that stops backend
+    import('./main').then(({ quitAndStopBackend }) => {
+      quitAndStopBackend();
+    }).catch(error => {
+      console.error('Failed to import quitAndStopBackend:', error);
+      // Fallback: just quit
+      app.quit();
+    });
   }
 
   /**
