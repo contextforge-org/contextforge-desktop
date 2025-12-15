@@ -126,6 +126,10 @@ const createWindow = () => {
 
   // Initialize tray manager with Python manager
   trayManager = new TrayManager(mainWindow, pythonManager);
+  trayManager.setQuitAndStopBackendCallback(() => {
+    shouldStopBackend = true;
+    app.quit();
+  });
   trayManager.createTray();
 
   // Initialize profile manager to load saved profiles and active profile

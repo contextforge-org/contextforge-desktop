@@ -5,7 +5,7 @@ import { useTeam } from '../context/TeamContext';
 import { useState } from 'react';
 
 interface Resource {
-  id: number;
+  id: string;
   uri: string;
   name: string;
   description: string | null;

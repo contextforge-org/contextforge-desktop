@@ -93,7 +93,7 @@ const getMimeTypeInfo = (mimeType: string | null): { icon: any; color: string; l
 };
 
 interface Resource {
-  id: number;
+  id: string;
   uri: string;
   name: string;
   title?: string | null;
@@ -169,12 +169,14 @@ export function ResourcesPage() {
           description: resource.description,
           mimeType: resource.mimeType,
           size: resource.size,
-          tags: resource.tags || [],
+          tags: Array.isArray(resource.tags)
+            ? resource.tags.map(tag => typeof tag === 'string' ? tag : Object.values(tag)[0] || '')
+            : [],
           owner: resource.ownerEmail || 'Unknown',
           team: resource.team || 'Default Team',
           teamId: resource.teamId,
           visibility: (resource.visibility as 'public' | 'team' | 'private') || 'public',
-          isActive: resource.isActive,
+          isActive: resource.enabled,
           createdAt: resource.createdAt,
           updatedAt: resource.updatedAt,
           ownerEmail: resource.ownerEmail,
@@ -257,7 +259,7 @@ export function ResourcesPage() {
     
     try {
       // Call the API to toggle the status
-      await api.toggleResourceStatus(resource.id.toString(), newActiveState);
+      await api.toggleResourceStatus(resource.id, newActiveState);
       
       toast.success(`Resource ${newActiveState ? 'activated' : 'deactivated'} successfully`);
     } catch (err) {
@@ -299,7 +301,7 @@ export function ResourcesPage() {
     }
 
     try {
-      await api.deleteResource(resource.id.toString());
+      await api.deleteResource(resource.id);
       
       // Update local state
       setResourcesData(prev => prev.filter(r => r.id !== resource.id));
@@ -342,7 +344,7 @@ export function ResourcesPage() {
           description: editedDescription || null,
           mimeType: editedMimeType || null,
           content: editedContent,
-          template: editedTemplate || null,
+          uri_template: editedTemplate || null,
           tags: editedTags.length > 0 ? editedTags : null,
           visibility: editedVisibility || null,
         };
@@ -357,12 +359,14 @@ export function ResourcesPage() {
           description: newResource.description,
           mimeType: newResource.mimeType,
           size: newResource.size,
-          tags: newResource.tags || [],
+          tags: Array.isArray(newResource.tags)
+            ? newResource.tags.map((tag: any) => typeof tag === 'string' ? tag : Object.values(tag)[0] || '')
+            : [],
           owner: newResource.ownerEmail || 'Unknown',
           team: 'Default Team',
           teamId: newResource.teamId,
           visibility: (newResource.visibility as 'public' | 'team' | 'private') || 'private',
-          isActive: newResource.isActive,
+          isActive: newResource.enabled,
           createdAt: newResource.createdAt,
           updatedAt: newResource.updatedAt,
           ownerEmail: newResource.ownerEmail,
@@ -378,12 +382,12 @@ export function ResourcesPage() {
           description: editedDescription || null,
           mimeType: editedMimeType || null,
           content: editedContent || null,
-          template: editedTemplate || null,
+          uriTemplate: editedTemplate || null,
           tags: editedTags.length > 0 ? editedTags : null,
           visibility: editedVisibility || null,
         };
         
-        const updatedResource = await api.updateResource(selectedResource.id.toString(), resourceData);
+        const updatedResource = await api.updateResource(selectedResource.id, resourceData);
         
         // Update local state
         setResourcesData(prev => prev.map(r =>
@@ -394,7 +398,9 @@ export function ResourcesPage() {
             description: updatedResource.description,
             mimeType: updatedResource.mimeType,
             size: updatedResource.size,
-            tags: updatedResource.tags || [],
+            tags: Array.isArray(updatedResource.tags)
+              ? updatedResource.tags.map((tag: any) => typeof tag === 'string' ? tag : Object.values(tag)[0] || '')
+              : [],
             visibility: (updatedResource.visibility as 'public' | 'team' | 'private') || 'private',
             updatedAt: updatedResource.updatedAt,
           } : r
@@ -407,7 +413,9 @@ export function ResourcesPage() {
           description: updatedResource.description,
           mimeType: updatedResource.mimeType,
           size: updatedResource.size,
-          tags: updatedResource.tags || [],
+          tags: Array.isArray(updatedResource.tags)
+            ? updatedResource.tags.map((tag: any) => typeof tag === 'string' ? tag : Object.values(tag)[0] || '')
+            : [],
           visibility: (updatedResource.visibility as 'public' | 'team' | 'private') || 'private',
           updatedAt: updatedResource.updatedAt,
         } : null);

@@ -20,10 +20,18 @@ export class TrayManager {
   private unreadCount = 0;
   private isQuitting = false;
   private menuUpdateInterval: NodeJS.Timeout | null = null;
+  private quitAndStopBackendCallback: (() => void) | null = null;
 
   constructor(mainWindow: BrowserWindow, pythonManager?: PythonProcessManager) {
     this.mainWindow = mainWindow;
     this.pythonManager = pythonManager || null;
+  }
+
+  /**
+   * Set the callback for quitting and stopping backend
+   */
+  public setQuitAndStopBackendCallback(callback: () => void): void {
+    this.quitAndStopBackendCallback = callback;
   }
 
   /**
@@ -466,7 +474,7 @@ export class TrayManager {
   /**
    * Quit app and stop backend
    */
-  private quitAndStopBackend(): void {
+  private async quitAndStopBackend(): Promise<void> {
     // Set flag to allow window to close
     this.isQuitting = true;
 
@@ -477,14 +485,23 @@ export class TrayManager {
       { silent: true }
     );
 
-    // Import and call the quit function that stops backend
-    import('./main').then(({ quitAndStopBackend }) => {
-      quitAndStopBackend();
-    }).catch(error => {
-      console.error('Failed to import quitAndStopBackend:', error);
-      // Fallback: just quit
+    // Stop the backend if we have a python manager
+    if (this.pythonManager) {
+      try {
+        console.log('Stopping Python backend...');
+        await this.pythonManager.stop();
+        console.log('Python backend stopped successfully');
+      } catch (error) {
+        console.error('Failed to stop Python backend:', error);
+      }
+    }
+
+    // Use the callback if provided, otherwise just quit
+    if (this.quitAndStopBackendCallback) {
+      this.quitAndStopBackendCallback();
+    } else {
       app.quit();
-    });
+    }
   }
 
   /**

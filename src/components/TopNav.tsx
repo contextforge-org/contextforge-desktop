@@ -13,7 +13,7 @@ function Logo() {
     <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-name="logo">
       <div className="h-[16px] relative shrink-0 w-[16px]">
         <img
-          src={theme === 'dark' ? '/assets/icons/contextforge-icon_white_512.png' : '/assets/icons/contextforge-icon_black_512.png'}
+          src={theme === 'dark' ? './icons/contextforge-icon_white_512.png' : './icons/contextforge-icon_black_512.png'}
           alt="Context Forge"
           className="block size-full object-contain"
         />

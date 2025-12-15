@@ -178,8 +178,8 @@ export function PromptTableView({
               </td>
               <td className="px-4 py-4">
                 <ServerActionsDropdown
-                  server={{ 
-                    id: prompt.id.toString(), 
+                  server={{
+                    id: prompt.id,
                     name: prompt.name,
                     active: prompt.isActive 
                   } as any}

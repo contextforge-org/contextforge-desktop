@@ -107,7 +107,7 @@ export function PromptsPage() {
   const handleExecutePrompt = useCallback(async (args: Record<string, any>) => {
     if (!selectedPrompt) return;
     try {
-      const result = await api.executePrompt(selectedPrompt.id.toString(), args);
+      const result = await api.executePrompt(selectedPrompt.id, args);
       toast.success('Prompt executed successfully');
       return result;
     } catch (error) {

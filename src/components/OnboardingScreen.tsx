@@ -103,7 +103,7 @@ export function OnboardingScreen({ status, mode = 'embedded', defaultProfile }: 
         <div className="flex items-center gap-3">
           <div className="h-[48px] relative shrink-0 w-[48px]">
             <img
-              src={theme === 'dark' ? '/assets/icons/contextforge-icon_white_512.png' : '/assets/icons/contextforge-icon_black_512.png'}
+              src={theme === 'dark' ? './icons/contextforge-icon_white_512.png' : './icons/contextforge-icon_black_512.png'}
               alt="Context Forge"
               className="block size-full object-contain"
             />

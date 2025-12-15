@@ -216,7 +216,7 @@ export function PromptDetailsPanel({
                 </h3>
                 <Switch
                   checked={editedActive}
-                  onCheckedChange={() => onToggleActive?.(prompt.id.toString())}
+                  onCheckedChange={() => onToggleActive?.(prompt.id)}
                   className="data-[state=checked]:bg-cyan-500"
                 />
               </div>

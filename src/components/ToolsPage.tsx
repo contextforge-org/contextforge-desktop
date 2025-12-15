@@ -62,7 +62,7 @@ const getTagColor = (tag: string, theme: string): { bg: string; text: string; bo
 };
 
 interface Tool {
-  id: number;
+  id: string;
   gatewayName: string;
   name: string;
   displayName?: string;
@@ -87,7 +87,7 @@ interface Tool {
 
 const sampleTools: Tool[] = [
   {
-    id: 1,
+    id: '1',
     gatewayName: 'Azure DevOps',
     name: 'create_work_item',
     displayName: 'Create Work Item',
@@ -109,7 +109,7 @@ const sampleTools: Tool[] = [
     active: true
   },
   {
-    id: 2,
+    id: '2',
     gatewayName: 'GitHub API',
     name: 'delete_repository',
     displayName: 'Delete Repository',
@@ -131,7 +131,7 @@ const sampleTools: Tool[] = [
     active: true
   },
   {
-    id: 3,
+    id: '3',
     gatewayName: 'Jira Cloud',
     name: 'get_issue',
     displayName: 'Get Issue',
@@ -153,7 +153,7 @@ const sampleTools: Tool[] = [
     active: true
   },
   {
-    id: 4,
+    id: '4',
     gatewayName: 'Stripe API',
     name: 'process_payment',
     displayName: 'Process Payment',
@@ -175,7 +175,7 @@ const sampleTools: Tool[] = [
     active: false
   },
   {
-    id: 5,
+    id: '5',
     gatewayName: 'System Utils',
     name: 'get_system_time',
     displayName: 'Get System Time',
@@ -489,7 +489,7 @@ export function ToolsPage() {
 
   const handleBulkImport = (importedTools: any[]) => {
     const newTools = importedTools.map((tool, index) => ({
-      id: Math.max(...toolsData.map(t => t.id), 0) + index + 1,
+      id: `tool-${Date.now()}-${index}`,
       gatewayName: tool.gateway_name || 'Imported Gateway',
       name: tool.name,
       displayName: tool.displayName || tool.name,
@@ -517,7 +517,7 @@ export function ToolsPage() {
   const handleSaveTool = () => {
     if (panelMode === 'add') {
       const newTool = {
-        id: Math.max(...toolsData.map(t => t.id)) + 1,
+        id: `tool-${Date.now()}`,
         gatewayName: editedGatewayName || 'New Gateway',
         name: editedName || 'new_tool',
         displayName: editedDisplayName,
@@ -574,7 +574,7 @@ export function ToolsPage() {
     }
   };
 
-  const toggleToolActive = async (toolId: number) => {
+  const toggleToolActive = async (toolId: string) => {
     const tool = toolsData.find(t => t.id === toolId);
     if (!tool) return;
     
@@ -601,7 +601,7 @@ export function ToolsPage() {
     
     try {
       // Call the API to persist the change with explicit activate parameter
-      await api.toggleToolStatus(String(toolId), newActiveState);
+      await api.toggleToolStatus(toolId, newActiveState);
       
       // Show confirmation toast with undo option only when deactivating
       if (wasActive) {
@@ -616,7 +616,7 @@ export function ToolsPage() {
                 setEditedActive(true);
               }
               // Call API to revert with explicit activate=true
-              await api.toggleToolStatus(String(toolId), true);
+              await api.toggleToolStatus(toolId, true);
               toast.info('Deactivation undone');
             },
           },
@@ -635,12 +635,12 @@ export function ToolsPage() {
     }
   };
 
-  const duplicateTool = (toolId: number) => {
+  const duplicateTool = (toolId: string) => {
     const toolToDuplicate = toolsData.find(t => t.id === toolId);
     if (toolToDuplicate) {
       const newTool = {
         ...toolToDuplicate,
-        id: Math.max(...toolsData.map(t => t.id)) + 1,
+        id: `tool-${Date.now()}`,
         name: `${toolToDuplicate.name}_copy`
       };
       setToolsData(prevData => [...prevData, newTool]);
@@ -648,7 +648,7 @@ export function ToolsPage() {
     }
   };
 
-  const deleteTool = (toolId: number) => {
+  const deleteTool = (toolId: string) => {
     const toolToDelete = toolsData.find(t => t.id === toolId);
     if (toolToDelete) {
       const deletedToolIndex = toolsData.findIndex(t => t.id === toolId);
