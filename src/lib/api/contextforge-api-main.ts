@@ -8,6 +8,7 @@
  * process requires a custom adapter that wraps Electron's net module.
  */
 
+import { BrowserWindow } from 'electron';
 import {
   listServersServersGet,
   createServerServersPost,
@@ -28,6 +29,11 @@ import {
   assignRoleToUserRbacUsersUserEmailRolesPost,
   revokeUserRoleRbacUsersUserEmailRolesRoleIdDelete,
   listRolesRbacRolesGet,
+  connectLlmchatConnectPost,
+  chatLlmchatChatPost,
+  disconnectLlmchatDisconnectPost,
+  statusLlmchatStatusUserIdGet,
+  getConfigLlmchatConfigUserIdGet,
   listToolsToolsGet,
   createToolToolsPost,
   updateToolToolsToolIdPut,
@@ -1612,4 +1618,290 @@ export async function bulkRegisterCatalogServers(
   }
   
   return response.data!;
+}
+// ============================================================================
+// LLM Chat Playground APIs
+// ============================================================================
+
+export async function connectLlmchat(params: {
+  user_id: string;
+  server?: {
+    url: string;
+    transport: string;
+    auth_token?: string;
+  };
+  llm?: {
+    provider: string;
+    config: Record<string, unknown>;
+  };
+  streaming?: boolean;
+}): Promise<any> {
+  // If server config exists but auth_token is not provided, inject the current auth token
+  const requestBody = { ...params };
+  if (requestBody.server) {
+    if (!requestBody.server.auth_token && authToken) {
+      requestBody.server.auth_token = authToken;
+    }
+    // Normalize transport to lowercase (backend expects 'streamable_http', 'sse', or 'stdio')
+    if (requestBody.server.transport) {
+      const transport = requestBody.server.transport.toLowerCase();
+      // Map common variations to expected values
+      if (transport === 'streamable http' || transport === 'streamablehttp') {
+        requestBody.server.transport = 'streamable_http';
+      } else {
+        requestBody.server.transport = transport;
+      }
+    }
+  }
+  
+  console.log('[connectLlmchat] Request body:', JSON.stringify(requestBody, null, 2));
+  console.log('[connectLlmchat] Auth token present:', !!authToken);
+  console.log('[connectLlmchat] Auth token length:', authToken?.length || 0);
+  
+  const response = await connectLlmchatConnectPost({
+    body: requestBody as any,
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    console.error('[connectLlmchat] Error response:', JSON.stringify(response.error, null, 2));
+    throw new Error(`Failed to connect to LLM: ${JSON.stringify(response.error)}`);
+  }
+  
+  console.log('[connectLlmchat] Success!');
+  return response.data;
+}
+
+export async function chatLlmchat(params: {
+  user_id: string;
+  message: string;
+  streaming?: boolean;
+}): Promise<any> {
+  const response = await chatLlmchatChatPost({
+    body: params as any,
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to send chat message: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Stream chat responses via SSE
+ * Sends chunks to renderer via IPC events
+ */
+export async function chatLlmchatStreaming(
+  params: {
+    user_id: string;
+    message: string;
+  },
+  window: BrowserWindow
+): Promise<void> {
+  const url = `${API_BASE_URL}/llmchat/chat`;
+  
+  console.log('[chatLlmchatStreaming] Starting stream request to:', url);
+  console.log('[chatLlmchatStreaming] Params:', params);
+  
+  try {
+    const response = await electronFetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authToken ? `Bearer ${authToken}` : '',
+        'Accept': 'text/event-stream',
+      },
+      body: JSON.stringify({
+        user_id: params.user_id,
+        message: params.message,
+        streaming: true
+      })
+    });
+
+    console.log('[chatLlmchatStreaming] Response status:', response.status);
+    console.log('[chatLlmchatStreaming] Response headers:', response.headers);
+
+    if (!response.ok) {
+      throw new Error(`SSE failed: ${response.status} ${response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No body in SSE response');
+    }
+
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .getReader();
+
+    let buffer = '';
+    let fullResponse = '';
+    let messageId = `msg-${Date.now()}`;
+    let chunkCount = 0;
+
+    console.log('[chatLlmchatStreaming] Starting to read stream...');
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('[chatLlmchatStreaming] Stream done, total chunks:', chunkCount);
+          break;
+        }
+
+        chunkCount++;
+        console.log('[chatLlmchatStreaming] Received chunk', chunkCount, ':', value.substring(0, 100));
+
+        buffer += value;
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          console.log('[chatLlmchatStreaming] Processing line:', line);
+          
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            console.log('[chatLlmchatStreaming] Data:', data);
+            
+            if (data === '[DONE]') {
+              console.log('[chatLlmchatStreaming] Received [DONE] signal');
+              // Send final complete message
+              window.webContents.send('llmchat:stream-complete', {
+                messageId,
+                fullResponse
+              });
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              console.log('[chatLlmchatStreaming] Parsed data:', parsed);
+              
+              // Handle different chunk types
+              if (parsed.type === 'final') {
+                // Final event with complete response
+                fullResponse = parsed.content || fullResponse;
+                console.log('[chatLlmchatStreaming] Received final event');
+                window.webContents.send('llmchat:stream-complete', {
+                  messageId,
+                  fullResponse,
+                  tools: parsed.tools,
+                  toolInvocations: parsed.tool_invocations,
+                  elapsedMs: parsed.elapsed_ms
+                });
+                return;
+              } else if (parsed.content) {
+                // Token event - accumulate content
+                fullResponse += parsed.content;
+                console.log('[chatLlmchatStreaming] Sending chunk, fullResponse length:', fullResponse.length);
+                window.webContents.send('llmchat:stream-chunk', {
+                  messageId,
+                  token: parsed.content,
+                  fullResponse
+                });
+              } else if (parsed.token) {
+                // Legacy format support
+                fullResponse += parsed.token;
+                console.log('[chatLlmchatStreaming] Sending chunk (legacy), fullResponse length:', fullResponse.length);
+                window.webContents.send('llmchat:stream-chunk', {
+                  messageId,
+                  token: parsed.token,
+                  fullResponse
+                });
+              } else if (parsed.response) {
+                // Complete response in one chunk (legacy)
+                fullResponse = parsed.response;
+                console.log('[chatLlmchatStreaming] Received complete response (legacy)');
+                window.webContents.send('llmchat:stream-complete', {
+                  messageId,
+                  fullResponse,
+                  tools: parsed.tools,
+                  toolInvocations: parsed.tool_invocations,
+                  elapsedMs: parsed.elapsed_ms
+                });
+                return;
+              }
+            } catch (parseError) {
+              console.error('[chatLlmchatStreaming] Failed to parse SSE data:', parseError, data);
+            }
+          }
+        }
+      }
+
+      // If we exit the loop without [DONE], send what we have
+      console.log('[chatLlmchatStreaming] Stream ended without [DONE], fullResponse:', fullResponse);
+      if (fullResponse) {
+        window.webContents.send('llmchat:stream-complete', {
+          messageId,
+          fullResponse
+        });
+      } else {
+        console.warn('[chatLlmchatStreaming] Stream ended with no response data');
+        window.webContents.send('llmchat:stream-error', {
+          error: 'Stream ended without receiving any data'
+        });
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  } catch (error) {
+    console.error('[chatLlmchatStreaming] Streaming chat error:', error);
+    window.webContents.send('llmchat:stream-error', {
+      error: error instanceof Error ? error.message : 'Unknown streaming error'
+    });
+    throw error;
+  }
+}
+
+export async function disconnectLlmchat(params: {
+  user_id: string;
+}): Promise<any> {
+  const response = await disconnectLlmchatDisconnectPost({
+    body: params as any,
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to disconnect from LLM: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+export async function getLlmchatStatus(userId: string): Promise<any> {
+  const response = await statusLlmchatStatusUserIdGet({
+    path: { user_id: userId },
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get LLM status: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
+}
+
+export async function getLlmchatConfig(userId: string): Promise<any> {
+  const response = await getConfigLlmchatConfigUserIdGet({
+    path: { user_id: userId },
+    headers: authToken ? {
+      'Authorization': `Bearer ${authToken}`
+    } : {}
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to get LLM config: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data;
 }

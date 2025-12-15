@@ -1520,6 +1520,78 @@ export type ChangePasswordRequest = {
 };
 
 /**
+ * ChatInput
+ *
+ * Request model for sending chat messages.
+ *
+ * Encapsulates user message data for processing by the chat service.
+ *
+ * Attributes:
+ * user_id: Unique identifier for the active user session.
+ * message: The chat message content to be processed.
+ * streaming: Whether to stream the response. Defaults to False.
+ *
+ * Examples:
+ * >>> chat = ChatInput(user_id='user123', message='Hello, AI!')
+ * >>> len(chat.message) > 0
+ * True
+ *
+ * >>> chat = ChatInput(user_id='user456', message='Tell me a story', streaming=True)
+ * >>> chat.streaming
+ * True
+ */
+export type ChatInput = {
+    /**
+     * User Id
+     */
+    user_id: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Streaming
+     */
+    streaming?: boolean;
+};
+
+/**
+ * ConnectInput
+ *
+ * Request model for establishing a new chat session.
+ *
+ * Contains all necessary parameters to initialize a user's chat session
+ * including server connection details, LLM configuration, and streaming preferences.
+ *
+ * Attributes:
+ * user_id: Unique identifier for the user session. Required for session management.
+ * server: Optional MCP server configuration. Uses defaults if not provided.
+ * llm: Optional LLM provider configuration. Uses environment defaults if not provided.
+ * streaming: Whether to enable streaming responses. Defaults to False.
+ *
+ * Examples:
+ * >>> connect = ConnectInput(user_id='user123')
+ * >>> connect.streaming
+ * False
+ *
+ * >>> connect = ConnectInput(user_id='user456', streaming=True)
+ * >>> connect.user_id
+ * 'user456'
+ */
+export type ConnectInput = {
+    /**
+     * User Id
+     */
+    user_id: string;
+    server?: ServerInput | null;
+    llm?: LlmInput | null;
+    /**
+     * Streaming
+     */
+    streaming?: boolean;
+};
+
+/**
  * CorrelationTraceResponse
  *
  * Correlation trace response with all related logs.
@@ -1563,6 +1635,28 @@ export type CorrelationTraceResponse = {
     performance_metrics: {
         [key: string]: unknown;
     } | null;
+};
+
+/**
+ * DisconnectInput
+ *
+ * Request model for terminating a chat session.
+ *
+ * Simple model containing only the user identifier for session cleanup.
+ *
+ * Attributes:
+ * user_id: Unique identifier of the session to disconnect.
+ *
+ * Examples:
+ * >>> disconnect = DisconnectInput(user_id='user123')
+ * >>> disconnect.user_id
+ * 'user123'
+ */
+export type DisconnectInput = {
+    /**
+     * User Id
+     */
+    user_id: string;
 };
 
 /**
@@ -2791,6 +2885,41 @@ export type JsonPathModifier = {
 };
 
 /**
+ * LLMInput
+ *
+ * Input configuration for Language Learning Model providers.
+ *
+ * This model encapsulates the provider type and associated configuration
+ * parameters for initializing LLM connections.
+ *
+ * Attributes:
+ * provider: LLM provider identifier (e.g., 'azure_openai', 'openai', 'ollama').
+ * config: Dictionary containing provider-specific configuration parameters
+ * such as API keys, endpoints, models, and temperature settings.
+ *
+ * Examples:
+ * >>> llm_input = LLMInput(provider='azure_openai', config={'api_key': 'test_key'})
+ * >>> llm_input.provider
+ * 'azure_openai'
+ *
+ * >>> llm_input = LLMInput(provider='ollama')
+ * >>> llm_input.config
+ * {}
+ */
+export type LlmInput = {
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * ListResourceTemplatesResult
  *
  * The server's response to a resources/templates/list request from the client.
@@ -3026,6 +3155,328 @@ export type LoginRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * ObservabilitySpanRead
+ *
+ * Schema for reading an observability span.
+ */
+export type ObservabilitySpanRead = {
+    /**
+     * Trace Id
+     *
+     * Parent trace ID
+     */
+    trace_id: string;
+    /**
+     * Parent Span Id
+     *
+     * Parent span ID (for nested spans)
+     */
+    parent_span_id?: string | null;
+    /**
+     * Name
+     *
+     * Span name (e.g., 'database_query', 'tool_invocation')
+     */
+    name: string;
+    /**
+     * Kind
+     *
+     * Span kind (internal, server, client, producer, consumer)
+     */
+    kind?: string;
+    /**
+     * Start Time
+     *
+     * Span start timestamp
+     */
+    start_time: string;
+    /**
+     * End Time
+     *
+     * Span end timestamp
+     */
+    end_time?: string | null;
+    /**
+     * Duration Ms
+     *
+     * Span duration in milliseconds
+     */
+    duration_ms?: number | null;
+    /**
+     * Status
+     *
+     * Span status (unset, ok, error)
+     */
+    status?: string;
+    /**
+     * Status Message
+     *
+     * Status message
+     */
+    status_message?: string | null;
+    /**
+     * Attributes
+     *
+     * Span attributes
+     */
+    attributes?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Resource Name
+     *
+     * Resource name
+     */
+    resource_name?: string | null;
+    /**
+     * Resource Type
+     *
+     * Resource type (tool, resource, prompt, gateway, a2a_agent)
+     */
+    resource_type?: string | null;
+    /**
+     * Resource Id
+     *
+     * Resource ID
+     */
+    resource_id?: string | null;
+    /**
+     * Span Id
+     *
+     * Span ID
+     */
+    span_id: string;
+    /**
+     * Created At
+     *
+     * Creation timestamp
+     */
+    created_at: string;
+};
+
+/**
+ * ObservabilityTraceRead
+ *
+ * Schema for reading an observability trace.
+ */
+export type ObservabilityTraceRead = {
+    /**
+     * Name
+     *
+     * Trace name (e.g., 'POST /tools/invoke')
+     */
+    name: string;
+    /**
+     * Start Time
+     *
+     * Trace start timestamp
+     */
+    start_time: string;
+    /**
+     * End Time
+     *
+     * Trace end timestamp
+     */
+    end_time?: string | null;
+    /**
+     * Duration Ms
+     *
+     * Total duration in milliseconds
+     */
+    duration_ms?: number | null;
+    /**
+     * Status
+     *
+     * Trace status (unset, ok, error)
+     */
+    status?: string;
+    /**
+     * Status Message
+     *
+     * Status message or error description
+     */
+    status_message?: string | null;
+    /**
+     * Http Method
+     *
+     * HTTP method
+     */
+    http_method?: string | null;
+    /**
+     * Http Url
+     *
+     * HTTP URL
+     */
+    http_url?: string | null;
+    /**
+     * Http Status Code
+     *
+     * HTTP status code
+     */
+    http_status_code?: number | null;
+    /**
+     * User Email
+     *
+     * User email
+     */
+    user_email?: string | null;
+    /**
+     * User Agent
+     *
+     * User agent string
+     */
+    user_agent?: string | null;
+    /**
+     * Ip Address
+     *
+     * Client IP address
+     */
+    ip_address?: string | null;
+    /**
+     * Attributes
+     *
+     * Additional trace attributes
+     */
+    attributes?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Resource Attributes
+     *
+     * Resource attributes
+     */
+    resource_attributes?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Trace Id
+     *
+     * Trace ID
+     */
+    trace_id: string;
+    /**
+     * Created At
+     *
+     * Creation timestamp
+     */
+    created_at: string;
+};
+
+/**
+ * ObservabilityTraceWithSpans
+ *
+ * Schema for reading a trace with its spans.
+ */
+export type ObservabilityTraceWithSpans = {
+    /**
+     * Name
+     *
+     * Trace name (e.g., 'POST /tools/invoke')
+     */
+    name: string;
+    /**
+     * Start Time
+     *
+     * Trace start timestamp
+     */
+    start_time: string;
+    /**
+     * End Time
+     *
+     * Trace end timestamp
+     */
+    end_time?: string | null;
+    /**
+     * Duration Ms
+     *
+     * Total duration in milliseconds
+     */
+    duration_ms?: number | null;
+    /**
+     * Status
+     *
+     * Trace status (unset, ok, error)
+     */
+    status?: string;
+    /**
+     * Status Message
+     *
+     * Status message or error description
+     */
+    status_message?: string | null;
+    /**
+     * Http Method
+     *
+     * HTTP method
+     */
+    http_method?: string | null;
+    /**
+     * Http Url
+     *
+     * HTTP URL
+     */
+    http_url?: string | null;
+    /**
+     * Http Status Code
+     *
+     * HTTP status code
+     */
+    http_status_code?: number | null;
+    /**
+     * User Email
+     *
+     * User email
+     */
+    user_email?: string | null;
+    /**
+     * User Agent
+     *
+     * User agent string
+     */
+    user_agent?: string | null;
+    /**
+     * Ip Address
+     *
+     * Client IP address
+     */
+    ip_address?: string | null;
+    /**
+     * Attributes
+     *
+     * Additional trace attributes
+     */
+    attributes?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Resource Attributes
+     *
+     * Resource attributes
+     */
+    resource_attributes?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Trace Id
+     *
+     * Trace ID
+     */
+    trace_id: string;
+    /**
+     * Created At
+     *
+     * Creation timestamp
+     */
+    created_at: string;
+    /**
+     * Spans
+     *
+     * List of spans in this trace
+     */
+    spans?: Array<ObservabilitySpanRead>;
 };
 
 /**
@@ -4786,6 +5237,44 @@ export type ServerCreate = {
      * Visibility level (private, team, public)
      */
     visibility?: string | null;
+};
+
+/**
+ * ServerInput
+ *
+ * Input configuration for MCP server connection.
+ *
+ * Defines the connection parameters required to establish communication
+ * with an MCP (Model Context Protocol) server.
+ *
+ * Attributes:
+ * url: Optional MCP server URL endpoint. Defaults to environment variable
+ * or 'http://localhost:8000/mcp'.
+ * transport: Communication transport protocol. Defaults to 'streamable_http'.
+ * auth_token: Optional authentication token for secure server access.
+ *
+ * Examples:
+ * >>> server = ServerInput(url='http://example.com/mcp')
+ * >>> server.transport
+ * 'streamable_http'
+ *
+ * >>> server = ServerInput()
+ * >>> server.url is None
+ * True
+ */
+export type ServerInput = {
+    /**
+     * Url
+     */
+    url?: string | null;
+    /**
+     * Transport
+     */
+    transport?: string | null;
+    /**
+     * Auth Token
+     */
+    auth_token?: string | null;
 };
 
 /**
@@ -10113,6 +10602,357 @@ export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses = {
 
 export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponse = GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses[keyof GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses];
 
+export type ListTracesObservabilityTracesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Start Time
+         *
+         * Filter traces after this time
+         */
+        start_time?: string | null;
+        /**
+         * End Time
+         *
+         * Filter traces before this time
+         */
+        end_time?: string | null;
+        /**
+         * Min Duration Ms
+         *
+         * Minimum duration in milliseconds
+         */
+        min_duration_ms?: number | null;
+        /**
+         * Max Duration Ms
+         *
+         * Maximum duration in milliseconds
+         */
+        max_duration_ms?: number | null;
+        /**
+         * Status
+         *
+         * Filter by status (ok, error)
+         */
+        status?: string | null;
+        /**
+         * Http Status Code
+         *
+         * Filter by HTTP status code
+         */
+        http_status_code?: number | null;
+        /**
+         * Http Method
+         *
+         * Filter by HTTP method (GET, POST, etc.)
+         */
+        http_method?: string | null;
+        /**
+         * User Email
+         *
+         * Filter by user email
+         */
+        user_email?: string | null;
+        /**
+         * Attribute Search
+         *
+         * Free-text search within trace attributes
+         */
+        attribute_search?: string | null;
+        /**
+         * Limit
+         *
+         * Maximum results
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Result offset
+         */
+        offset?: number;
+    };
+    url: '/observability/traces';
+};
+
+export type ListTracesObservabilityTracesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListTracesObservabilityTracesGetError = ListTracesObservabilityTracesGetErrors[keyof ListTracesObservabilityTracesGetErrors];
+
+export type ListTracesObservabilityTracesGetResponses = {
+    /**
+     * Response List Traces Observability Traces Get
+     *
+     * Successful Response
+     */
+    200: Array<ObservabilityTraceRead>;
+};
+
+export type ListTracesObservabilityTracesGetResponse = ListTracesObservabilityTracesGetResponses[keyof ListTracesObservabilityTracesGetResponses];
+
+export type QueryTracesAdvancedObservabilityTracesQueryPostData = {
+    /**
+     * Request Body
+     */
+    body: {
+        [key: string]: unknown;
+    };
+    path?: never;
+    query?: never;
+    url: '/observability/traces/query';
+};
+
+export type QueryTracesAdvancedObservabilityTracesQueryPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type QueryTracesAdvancedObservabilityTracesQueryPostError = QueryTracesAdvancedObservabilityTracesQueryPostErrors[keyof QueryTracesAdvancedObservabilityTracesQueryPostErrors];
+
+export type QueryTracesAdvancedObservabilityTracesQueryPostResponses = {
+    /**
+     * Response Query Traces Advanced Observability Traces Query Post
+     *
+     * Successful Response
+     */
+    200: Array<ObservabilityTraceRead>;
+};
+
+export type QueryTracesAdvancedObservabilityTracesQueryPostResponse = QueryTracesAdvancedObservabilityTracesQueryPostResponses[keyof QueryTracesAdvancedObservabilityTracesQueryPostResponses];
+
+export type GetTraceObservabilityTracesTraceIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Trace Id
+         */
+        trace_id: string;
+    };
+    query?: never;
+    url: '/observability/traces/{trace_id}';
+};
+
+export type GetTraceObservabilityTracesTraceIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetTraceObservabilityTracesTraceIdGetError = GetTraceObservabilityTracesTraceIdGetErrors[keyof GetTraceObservabilityTracesTraceIdGetErrors];
+
+export type GetTraceObservabilityTracesTraceIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ObservabilityTraceWithSpans;
+};
+
+export type GetTraceObservabilityTracesTraceIdGetResponse = GetTraceObservabilityTracesTraceIdGetResponses[keyof GetTraceObservabilityTracesTraceIdGetResponses];
+
+export type ListSpansObservabilitySpansGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Trace Id
+         *
+         * Filter by trace ID
+         */
+        trace_id?: string | null;
+        /**
+         * Resource Type
+         *
+         * Filter by resource type
+         */
+        resource_type?: string | null;
+        /**
+         * Resource Name
+         *
+         * Filter by resource name
+         */
+        resource_name?: string | null;
+        /**
+         * Start Time
+         *
+         * Filter spans after this time
+         */
+        start_time?: string | null;
+        /**
+         * End Time
+         *
+         * Filter spans before this time
+         */
+        end_time?: string | null;
+        /**
+         * Limit
+         *
+         * Maximum results
+         */
+        limit?: number;
+        /**
+         * Offset
+         *
+         * Result offset
+         */
+        offset?: number;
+    };
+    url: '/observability/spans';
+};
+
+export type ListSpansObservabilitySpansGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListSpansObservabilitySpansGetError = ListSpansObservabilitySpansGetErrors[keyof ListSpansObservabilitySpansGetErrors];
+
+export type ListSpansObservabilitySpansGetResponses = {
+    /**
+     * Response List Spans Observability Spans Get
+     *
+     * Successful Response
+     */
+    200: Array<ObservabilitySpanRead>;
+};
+
+export type ListSpansObservabilitySpansGetResponse = ListSpansObservabilitySpansGetResponses[keyof ListSpansObservabilitySpansGetResponses];
+
+export type CleanupOldTracesObservabilityTracesCleanupDeleteData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Days
+         *
+         * Delete traces older than this many days
+         */
+        days?: number;
+    };
+    url: '/observability/traces/cleanup';
+};
+
+export type CleanupOldTracesObservabilityTracesCleanupDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CleanupOldTracesObservabilityTracesCleanupDeleteError = CleanupOldTracesObservabilityTracesCleanupDeleteErrors[keyof CleanupOldTracesObservabilityTracesCleanupDeleteErrors];
+
+export type CleanupOldTracesObservabilityTracesCleanupDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetStatsObservabilityStatsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Hours
+         *
+         * Time window in hours
+         */
+        hours?: number;
+    };
+    url: '/observability/stats';
+};
+
+export type GetStatsObservabilityStatsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetStatsObservabilityStatsGetError = GetStatsObservabilityStatsGetErrors[keyof GetStatsObservabilityStatsGetErrors];
+
+export type GetStatsObservabilityStatsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ExportTracesObservabilityTracesExportPostData = {
+    /**
+     * Request Body
+     */
+    body: {
+        [key: string]: unknown;
+    };
+    path?: never;
+    query?: {
+        /**
+         * Format
+         *
+         * Export format (json, csv, ndjson)
+         */
+        format?: string;
+    };
+    url: '/observability/traces/export';
+};
+
+export type ExportTracesObservabilityTracesExportPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExportTracesObservabilityTracesExportPostError = ExportTracesObservabilityTracesExportPostErrors[keyof ExportTracesObservabilityTracesExportPostErrors];
+
+export type ExportTracesObservabilityTracesExportPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Hours
+         *
+         * Time window in hours
+         */
+        hours?: number;
+    };
+    url: '/observability/analytics/query-performance';
+};
+
+export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetError = GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors[keyof GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors];
+
+export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type ListA2aAgentsA2aGetData = {
     body?: never;
     path?: never;
@@ -10637,10 +11477,6 @@ export type ListUsersAuthEmailAdminUsersGetData = {
          * Offset
          */
         offset?: number;
-        /**
-         * Request
-         */
-        request?: unknown | null;
     };
     url: '/auth/email/admin/users';
 };
@@ -10666,12 +11502,7 @@ export type ListUsersAuthEmailAdminUsersGetResponse = ListUsersAuthEmailAdminUse
 export type CreateUserAuthEmailAdminUsersPostData = {
     body: EmailRegistrationRequest;
     path?: never;
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users';
 };
 
@@ -10709,10 +11540,6 @@ export type ListAllAuthEventsAuthEmailAdminEventsGetData = {
          * User Email
          */
         user_email?: string | null;
-        /**
-         * Request
-         */
-        request?: unknown | null;
     };
     url: '/auth/email/admin/events';
 };
@@ -10745,12 +11572,7 @@ export type DeleteUserAuthEmailAdminUsersUserEmailDeleteData = {
          */
         user_email: string;
     };
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users/{user_email}';
 };
 
@@ -10780,12 +11602,7 @@ export type GetUserAuthEmailAdminUsersUserEmailGetData = {
          */
         user_email: string;
     };
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users/{user_email}';
 };
 
@@ -10815,12 +11632,7 @@ export type UpdateUserAuthEmailAdminUsersUserEmailPutData = {
          */
         user_email: string;
     };
-    query?: {
-        /**
-         * Request
-         */
-        request?: unknown | null;
-    };
+    query?: never;
     url: '/auth/email/admin/users/{user_email}';
 };
 
@@ -12620,6 +13432,131 @@ export type SseEndpointReverseProxySseSessionIdGetResponses = {
     200: unknown;
 };
 
+export type ConnectLlmchatConnectPostData = {
+    body: ConnectInput;
+    path?: never;
+    query?: never;
+    url: '/llmchat/connect';
+};
+
+export type ConnectLlmchatConnectPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ConnectLlmchatConnectPostError = ConnectLlmchatConnectPostErrors[keyof ConnectLlmchatConnectPostErrors];
+
+export type ConnectLlmchatConnectPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ChatLlmchatChatPostData = {
+    body: ChatInput;
+    path?: never;
+    query?: never;
+    url: '/llmchat/chat';
+};
+
+export type ChatLlmchatChatPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChatLlmchatChatPostError = ChatLlmchatChatPostErrors[keyof ChatLlmchatChatPostErrors];
+
+export type ChatLlmchatChatPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type DisconnectLlmchatDisconnectPostData = {
+    body: DisconnectInput;
+    path?: never;
+    query?: never;
+    url: '/llmchat/disconnect';
+};
+
+export type DisconnectLlmchatDisconnectPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DisconnectLlmchatDisconnectPostError = DisconnectLlmchatDisconnectPostErrors[keyof DisconnectLlmchatDisconnectPostErrors];
+
+export type DisconnectLlmchatDisconnectPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type StatusLlmchatStatusUserIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/llmchat/status/{user_id}';
+};
+
+export type StatusLlmchatStatusUserIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StatusLlmchatStatusUserIdGetError = StatusLlmchatStatusUserIdGetErrors[keyof StatusLlmchatStatusUserIdGetErrors];
+
+export type StatusLlmchatStatusUserIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetConfigLlmchatConfigUserIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/llmchat/config/{user_id}';
+};
+
+export type GetConfigLlmchatConfigUserIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetConfigLlmchatConfigUserIdGetError = GetConfigLlmchatConfigUserIdGetErrors[keyof GetConfigLlmchatConfigUserIdGetErrors];
+
+export type GetConfigLlmchatConfigUserIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type GetGlobalPassthroughHeadersAdminConfigPassthroughHeadersGetData = {
     body?: never;
     path?: never;
@@ -14021,6 +14958,12 @@ export type AdminSearchToolsAdminToolsSearchGetData = {
          * Maximum number of results to return
          */
         limit?: number;
+        /**
+         * Gateway Id
+         *
+         * Filter by gateway ID(s), comma-separated
+         */
+        gateway_id?: string | null;
     };
     url: '/admin/tools/search';
 };
@@ -14229,6 +15172,12 @@ export type AdminSearchResourcesAdminResourcesSearchGetData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Gateway Id
+         *
+         * Filter by gateway ID(s), comma-separated
+         */
+        gateway_id?: string | null;
     };
     url: '/admin/resources/search';
 };
@@ -14267,6 +15216,12 @@ export type AdminSearchPromptsAdminPromptsSearchGetData = {
          * Limit
          */
         limit?: number;
+        /**
+         * Gateway Id
+         *
+         * Filter by gateway ID(s), comma-separated
+         */
+        gateway_id?: string | null;
     };
     url: '/admin/prompts/search';
 };
@@ -17520,14 +18475,14 @@ export type GetResourcesPartialAdminObservabilityResourcesPartialGetResponses = 
 
 export type GetResourcesPartialAdminObservabilityResourcesPartialGetResponse = GetResourcesPartialAdminObservabilityResourcesPartialGetResponses[keyof GetResourcesPartialAdminObservabilityResourcesPartialGetResponses];
 
-export type RootRedirectGetData = {
+export type RootInfoGetData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/';
 };
 
-export type RootRedirectGetResponses = {
+export type RootInfoGetResponses = {
     /**
      * Successful Response
      */

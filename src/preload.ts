@@ -6,6 +6,9 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Shell methods
+  openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+
   // Tray methods
   showNotification: (title: string, body: string, options?: { silent?: boolean }) => {
     ipcRenderer.send('tray:show-notification', title, body, options);
@@ -148,6 +151,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkCatalogServerStatus: (serverId: string) => ipcRenderer.invoke('api:check-catalog-server-status', serverId),
     bulkRegisterCatalogServers: (request: any) => ipcRenderer.invoke('api:bulk-register-catalog-servers', request),
     checkBackendHealth: () => ipcRenderer.invoke('backend:check-health'),
+    
+    // LLM Chat Playground
+    connectLlmchat: (params: any) => ipcRenderer.invoke('api:connectLlmchat', params),
+    chatLlmchat: (params: any) => ipcRenderer.invoke('api:chatLlmchat', params),
+    chatLlmchatStreaming: (params: any) => ipcRenderer.invoke('api:chatLlmchatStreaming', params),
+    disconnectLlmchat: (params: any) => ipcRenderer.invoke('api:disconnectLlmchat', params),
+    getLlmchatStatus: (userId: string) => ipcRenderer.invoke('api:getLlmchatStatus', userId),
+    getLlmchatConfig: (userId: string) => ipcRenderer.invoke('api:getLlmchatConfig', userId),
+    
+    // LLM Chat streaming event listeners
+    onLlmchatStreamChunk: (callback: (data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('llmchat:stream-chunk', listener);
+      return () => ipcRenderer.removeListener('llmchat:stream-chunk', listener);
+    },
+    onLlmchatStreamComplete: (callback: (data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('llmchat:stream-complete', listener);
+      return () => ipcRenderer.removeListener('llmchat:stream-complete', listener);
+    },
+    onLlmchatStreamError: (callback: (data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(data);
+      ipcRenderer.on('llmchat:stream-error', listener);
+      return () => ipcRenderer.removeListener('llmchat:stream-error', listener);
+    },
   },
 });
 
@@ -155,6 +183,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 declare global {
   interface Window {
     electronAPI: {
+      openExternal: (url: string) => Promise<void>;
       showNotification: (title: string, body: string, options?: { silent?: boolean }) => void;
       updateBadge: (count: number) => void;
       getTrayConfig: () => Promise<any>;
@@ -274,6 +303,22 @@ declare global {
         // Backend preferences
         getBackendPreferences: () => Promise<{ success: boolean; data?: { autoStartEmbedded: boolean }; error?: string }>;
         setAutoStartEmbedded: (value: boolean) => Promise<{ success: boolean; error?: string }>;
+        
+        // Catalog operations
+        listCatalogServers: (filters?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        registerCatalogServer: (serverId: string, request?: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        checkCatalogServerStatus: (serverId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        bulkRegisterCatalogServers: (request: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        // LLM Chat Playground
+        connectLlmchat: (params: any) => Promise<any>;
+        chatLlmchat: (params: any) => Promise<any>;
+        chatLlmchatStreaming: (params: any) => Promise<any>;
+        disconnectLlmchat: (params: any) => Promise<any>;
+        getLlmchatStatus: (userId: string) => Promise<any>;
+        getLlmchatConfig: (userId: string) => Promise<any>;
+        onLlmchatStreamChunk: (callback: (data: any) => void) => () => void;
+        onLlmchatStreamComplete: (callback: (data: any) => void) => () => void;
+        onLlmchatStreamError: (callback: (data: any) => void) => () => void;
         checkBackendHealth: () => Promise<{ success: boolean; isHealthy: boolean; status?: number; error?: string }>;
       };
     };

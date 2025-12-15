@@ -558,6 +558,174 @@ export async function testA2AAgent(agentId: string): Promise<any> {
   return response.data;
 }
 
+// ============================================================================
+// LLM Chat Playground APIs
+// ============================================================================
+
+/**
+ * Connect to LLM chat service
+ */
+export async function connectLlmchat(params: {
+  user_id: string;
+  server?: {
+    url: string;
+    transport: string;
+    auth_token?: string;
+  };
+  llm?: {
+    provider: string;
+    config: Record<string, unknown>;
+  };
+  streaming?: boolean;
+}): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.connectLlmchat(params);
+  
+  if (!response.success) {
+    throw new Error('Failed to connect to LLM: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Send chat message to LLM
+ */
+export async function chatLlmchat(params: {
+  user_id: string;
+  message: string;
+  streaming?: boolean;
+}): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.chatLlmchat(params);
+  
+  if (!response.success) {
+    throw new Error('Failed to send chat message: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Send chat message to LLM with streaming support
+ * Returns immediately and sends chunks via event listeners
+ */
+export async function chatLlmchatStreaming(
+  params: {
+    user_id: string;
+    message: string;
+  },
+  callbacks: {
+    onChunk?: (data: { messageId: string; token: string; fullResponse: string }) => void;
+    onComplete?: (data: { messageId: string; fullResponse: string; tools?: string[]; toolInvocations?: number; elapsedMs?: number }) => void;
+    onError?: (data: { error: string }) => void;
+  }
+): Promise<void> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  // Set up event listeners
+  const cleanupChunk = callbacks.onChunk
+    ? window.electronAPI.api.onLlmchatStreamChunk(callbacks.onChunk)
+    : () => {};
+  
+  const cleanupComplete = callbacks.onComplete
+    ? window.electronAPI.api.onLlmchatStreamComplete((data) => {
+        callbacks.onComplete!(data);
+        // Clean up listeners after completion
+        cleanupChunk();
+        cleanupComplete();
+        cleanupError();
+      })
+    : () => {};
+  
+  const cleanupError = callbacks.onError
+    ? window.electronAPI.api.onLlmchatStreamError((data) => {
+        callbacks.onError!(data);
+        // Clean up listeners after error
+        cleanupChunk();
+        cleanupComplete();
+        cleanupError();
+      })
+    : () => {};
+
+  try {
+    const response = await window.electronAPI.api.chatLlmchatStreaming(params);
+    
+    if (!response.success) {
+      cleanupChunk();
+      cleanupComplete();
+      cleanupError();
+      throw new Error('Failed to start streaming chat: ' + response.error);
+    }
+  } catch (error) {
+    cleanupChunk();
+    cleanupComplete();
+    cleanupError();
+    throw error;
+  }
+}
+
+/**
+ * Disconnect from LLM chat service
+ */
+export async function disconnectLlmchat(params: {
+  user_id: string;
+}): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.disconnectLlmchat(params);
+  
+  if (!response.success) {
+    throw new Error('Failed to disconnect from LLM: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Check LLM chat session status
+ */
+export async function getLlmchatStatus(userId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getLlmchatStatus(userId);
+  
+  if (!response.success) {
+    throw new Error('Failed to get LLM status: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+/**
+ * Get LLM chat session configuration
+ */
+export async function getLlmchatConfig(userId: string): Promise<any> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.getLlmchatConfig(userId);
+  
+  if (!response.success) {
+    throw new Error('Failed to get LLM config: ' + response.error);
+  }
+  
+  return response.data;
+}
+
 // OAuth Testing operations - Gateway-based OAuth flow
 export async function initiateOAuthFlow(gatewayId: string): Promise<any> {
   if (!isElectron) {

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, shell } from 'electron';
 import { TrayManager } from './tray-manager';
 import * as mainApi from './lib/api/contextforge-api-main';
 import { profileManager } from './services/ProfileManager';
@@ -46,6 +46,17 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
   // Get window visibility state
   ipcMain.handle('window:is-visible', () => {
     return mainWindow.isVisible();
+  });
+
+  // Shell handlers
+  ipcMain.handle('shell:open-external', async (_event, url: string) => {
+    try {
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to open external URL:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
   });
 
   // API handlers - now using generated client
@@ -1108,6 +1119,69 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // ============================================================================
+  // LLM Chat Playground Handlers
+  // ============================================================================
+  
+  ipcMain.handle('api:connectLlmchat', async (_event, params: any) => {
+    try {
+      const response = await mainApi.connectLlmchat(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:chatLlmchat', async (_event, params: any) => {
+    try {
+      const response = await mainApi.chatLlmchat(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:chatLlmchatStreaming', async (event, params: any) => {
+    try {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (!window) {
+        throw new Error('Window not found');
+      }
+      
+      await mainApi.chatLlmchatStreaming(params, window);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:disconnectLlmchat', async (_event, params: any) => {
+    try {
+      const response = await mainApi.disconnectLlmchat(params);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:getLlmchatStatus', async (_event, userId: string) => {
+    try {
+      const response = await mainApi.getLlmchatStatus(userId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:getLlmchatConfig', async (_event, userId: string) => {
+    try {
+      const response = await mainApi.getLlmchatConfig(userId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   console.log('IPC handlers registered successfully');
 }
 
@@ -1174,7 +1248,7 @@ export function cleanupIpcHandlers(): void {
   ipcMain.removeHandler('profiles:logout');
   ipcMain.removeHandler('profiles:get-current');
   ipcMain.removeHandler('profiles:test-credentials');
-  
+
   // Backend preferences handlers cleanup
   ipcMain.removeHandler('backend:get-preferences');
   ipcMain.removeHandler('backend:set-auto-start');

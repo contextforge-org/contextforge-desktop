@@ -126,6 +126,8 @@ export class PythonProcessManager {
       ENABLE_OBSERVABILITY: 'true',
       ENABLE_TRACING: 'true',
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318',
+      // Enable LLM Chat Playground
+      LLMCHAT_ENABLED: 'true',
     };
 
     return {

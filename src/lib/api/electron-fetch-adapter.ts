@@ -68,7 +68,9 @@ export function createElectronFetchAdapter(): typeof fetch {
           });
           
           // Create fetch-compatible Response
-          const fetchResponse = new Response(responseData, {
+          // 204 No Content responses must not have a body
+          const body = statusCode === 204 ? null : responseData;
+          const fetchResponse = new Response(body, {
             status: statusCode,
             statusText: statusMessage || getStatusText(statusCode),
             headers: fetchHeaders,

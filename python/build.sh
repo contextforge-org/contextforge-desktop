@@ -85,17 +85,17 @@ else
     print_warning "Python may not be from venv: $PYTHON_PATH"
 fi
 
-# Install mcp-context-forge (provides mcpgateway module)
-print_status "Installing mcp-context-forge from GitHub (IBM/mcp-context-forge)..."
+# Install mcp-context-forge (provides mcpgateway module) with llmchat extras
+print_status "Installing mcp-context-forge from GitHub (IBM/mcp-context-forge) with [llmchat] extras..."
 echo ""
 
 # Try SSH first, fallback to HTTPS
-if uv pip install "$GATEWAY_REPO_SSH" 2>/dev/null; then
-    print_success "Installed mcp-context-forge via SSH"
+if uv pip install "${GATEWAY_REPO_SSH}[llmchat]" 2>/dev/null; then
+    print_success "Installed mcp-context-forge via SSH with [llmchat] extras"
 else
     print_warning "SSH installation failed, trying HTTPS..."
-    if uv pip install "$GATEWAY_REPO_HTTPS"; then
-        print_success "Installed mcp-context-forge via HTTPS"
+    if uv pip install "${GATEWAY_REPO_HTTPS}[llmchat]"; then
+        print_success "Installed mcp-context-forge via HTTPS with [llmchat] extras"
     else
         print_error "Failed to install mcp-context-forge from GitHub"
         print_error "Please check your git credentials and network connection"

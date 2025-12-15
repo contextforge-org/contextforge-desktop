@@ -12,6 +12,7 @@ import { MetricsPage } from './components/MetricsPage';
 import { PluginsPage } from './components/PluginsPage';
 import { TracingPage } from './components/TracingPage';
 import { SettingsPage } from './components/SettingsPage';
+import { LLMPlaygroundPage } from './components/LLMPlaygroundPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { TeamProvider } from './context/TeamContext';
 import { Toaster } from './components/ui/sonner';
@@ -22,7 +23,7 @@ import { useBackendStatus } from './hooks/useBackendStatus';
 
 function AppContent() {
   const { theme } = useTheme();
-  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'catalog' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'settings'>('mcp-servers');
+  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'catalog' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'playground' | 'settings'>('mcp-servers');
   
   // Initialize tray integration for toast notifications
   useTray();
@@ -48,6 +49,7 @@ function AppContent() {
           {currentPage === 'metrics' && <MetricsPage />}
           {currentPage === 'tracing' && <TracingPage />}
           {currentPage === 'plugins' && <PluginsPage />}
+          {currentPage === 'playground' && <LLMPlaygroundPage />}
           {currentPage === 'settings' && <SettingsPage />}
         </main>
       </div>
