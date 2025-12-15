@@ -140,7 +140,7 @@ import {
   type PluginDetail,
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
-import { createElectronFetchAdapter } from './electron-fetch-adapter';
+import { createElectronFetchAdapter, createElectronStreamingFetch } from './electron-fetch-adapter';
 import { mapPromptReadToPrompt } from './prompt-mapper';
 import { Prompt } from '../../types/prompt';
 
@@ -1706,11 +1706,11 @@ export async function chatLlmchatStreaming(
 ): Promise<void> {
   const url = `${API_BASE_URL}/llmchat/chat`;
   
-  console.log('[chatLlmchatStreaming] Starting stream request to:', url);
-  console.log('[chatLlmchatStreaming] Params:', params);
+  // Create streaming fetch adapter for SSE
+  const streamingFetch = createElectronStreamingFetch();
   
   try {
-    const response = await electronFetch(url, {
+    const response = await streamingFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1723,9 +1723,6 @@ export async function chatLlmchatStreaming(
         streaming: true
       })
     });
-
-    console.log('[chatLlmchatStreaming] Response status:', response.status);
-    console.log('[chatLlmchatStreaming] Response headers:', response.headers);
 
     if (!response.ok) {
       throw new Error(`SSE failed: ${response.status} ${response.statusText}`);
@@ -1742,35 +1739,24 @@ export async function chatLlmchatStreaming(
     let buffer = '';
     let fullResponse = '';
     let messageId = `msg-${Date.now()}`;
-    let chunkCount = 0;
-
-    console.log('[chatLlmchatStreaming] Starting to read stream...');
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         
         if (done) {
-          console.log('[chatLlmchatStreaming] Stream done, total chunks:', chunkCount);
           break;
         }
-
-        chunkCount++;
-        console.log('[chatLlmchatStreaming] Received chunk', chunkCount, ':', value.substring(0, 100));
 
         buffer += value;
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          console.log('[chatLlmchatStreaming] Processing line:', line);
-          
           if (line.startsWith('data: ')) {
             const data = line.slice(6).trim();
-            console.log('[chatLlmchatStreaming] Data:', data);
             
             if (data === '[DONE]') {
-              console.log('[chatLlmchatStreaming] Received [DONE] signal');
               // Send final complete message
               window.webContents.send('llmchat:stream-complete', {
                 messageId,
@@ -1781,13 +1767,11 @@ export async function chatLlmchatStreaming(
 
             try {
               const parsed = JSON.parse(data);
-              console.log('[chatLlmchatStreaming] Parsed data:', parsed);
               
               // Handle different chunk types
               if (parsed.type === 'final') {
                 // Final event with complete response
                 fullResponse = parsed.content || fullResponse;
-                console.log('[chatLlmchatStreaming] Received final event');
                 window.webContents.send('llmchat:stream-complete', {
                   messageId,
                   fullResponse,
@@ -1799,25 +1783,26 @@ export async function chatLlmchatStreaming(
               } else if (parsed.content) {
                 // Token event - accumulate content
                 fullResponse += parsed.content;
-                console.log('[chatLlmchatStreaming] Sending chunk, fullResponse length:', fullResponse.length);
                 window.webContents.send('llmchat:stream-chunk', {
                   messageId,
                   token: parsed.content,
                   fullResponse
                 });
+                // Add small delay to allow IPC message to be processed before next chunk
+                await new Promise(resolve => setImmediate(resolve));
               } else if (parsed.token) {
                 // Legacy format support
                 fullResponse += parsed.token;
-                console.log('[chatLlmchatStreaming] Sending chunk (legacy), fullResponse length:', fullResponse.length);
                 window.webContents.send('llmchat:stream-chunk', {
                   messageId,
                   token: parsed.token,
                   fullResponse
                 });
+                // Add small delay to allow IPC message to be processed before next chunk
+                await new Promise(resolve => setImmediate(resolve));
               } else if (parsed.response) {
                 // Complete response in one chunk (legacy)
                 fullResponse = parsed.response;
-                console.log('[chatLlmchatStreaming] Received complete response (legacy)');
                 window.webContents.send('llmchat:stream-complete', {
                   messageId,
                   fullResponse,
@@ -1835,14 +1820,12 @@ export async function chatLlmchatStreaming(
       }
 
       // If we exit the loop without [DONE], send what we have
-      console.log('[chatLlmchatStreaming] Stream ended without [DONE], fullResponse:', fullResponse);
       if (fullResponse) {
         window.webContents.send('llmchat:stream-complete', {
           messageId,
           fullResponse
         });
       } else {
-        console.warn('[chatLlmchatStreaming] Stream ended with no response data');
         window.webContents.send('llmchat:stream-error', {
           error: 'Stream ended without receiving any data'
         });

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useTeam } from '../context/TeamContext';
 import { useCurrentUser } from '../hooks/useCurrentUser';
@@ -54,6 +55,10 @@ export function LLMPlaygroundPage({ preSelectedServerId }: LLMPlaygroundPageProp
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  
+  // Streaming refs for batched updates
+  const streamingContentRef = useRef('');
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Virtual servers
   const [virtualServers, setVirtualServers] = useState<MCPServer[]>([]);
@@ -282,6 +287,10 @@ export function LLMPlaygroundPage({ preSelectedServerId }: LLMPlaygroundPageProp
         };
         setMessages(prev => [...prev, placeholderMessage]);
 
+        // Track last update time for throttling
+        let lastUpdateTime = 0;
+        const UPDATE_INTERVAL = 50; // Update every 50ms for smooth streaming
+
         await withAuth(
           () => api.chatLlmchatStreaming(
             {
@@ -290,26 +299,41 @@ export function LLMPlaygroundPage({ preSelectedServerId }: LLMPlaygroundPageProp
             },
             {
               onChunk: (data) => {
-                // Update the assistant message with new content
-                setMessages(prev => prev.map(msg =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: data.fullResponse }
-                    : msg
-                ));
+                const now = Date.now();
+                const timeSinceLastUpdate = now - lastUpdateTime;
+                
+                // Throttle updates to every 50ms for smooth streaming without overwhelming React
+                if (timeSinceLastUpdate >= UPDATE_INTERVAL) {
+                  lastUpdateTime = now;
+                  // Use flushSync to force immediate synchronous update
+                  flushSync(() => {
+                    setMessages(prev => prev.map(msg =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, content: data.fullResponse }
+                        : msg
+                    ));
+                  });
+                } else {
+                  // Store the latest content for the final update
+                  streamingContentRef.current = data.fullResponse;
+                }
               },
               onComplete: (data) => {
-                // Update with final content and metadata
-                setMessages(prev => prev.map(msg =>
-                  msg.id === assistantMessageId
-                    ? {
-                        ...msg,
-                        content: data.fullResponse,
-                        toolsUsed: data.tools,
-                        toolInvocations: data.toolInvocations,
-                        elapsedMs: data.elapsedMs
-                      }
-                    : msg
-                ));
+                // Update with final content and metadata immediately
+                // Use the data.fullResponse to ensure we have the complete final content
+                flushSync(() => {
+                  setMessages(prev => prev.map(msg =>
+                    msg.id === assistantMessageId
+                      ? {
+                          ...msg,
+                          content: data.fullResponse,
+                          toolsUsed: data.tools,
+                          toolInvocations: data.toolInvocations,
+                          elapsedMs: data.elapsedMs
+                        }
+                      : msg
+                  ));
+                });
 
                 // Update metrics
                 setSessionMetrics(prev => {
