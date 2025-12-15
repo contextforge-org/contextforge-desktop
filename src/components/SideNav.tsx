@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import svgPaths from "../imports/svg-00ihbob3cz";
-import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings, Activity } from 'lucide-react';
+import { Server, Wrench, FileText, Package, Users, LineChart, Plug, BookOpen, Github, Settings, Activity, Store } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useTeam } from '../context/TeamContext';
 import { MCPIcon } from './common';
@@ -194,7 +194,7 @@ function DeployButton({ isCollapsed = false }: { isCollapsed?: boolean }) {
   );
 }
 
-export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'settings') => void }) {
+export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNavigate: (page: 'servers' | 'mcp-servers' | 'catalog' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'settings') => void }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useTheme();
 
@@ -221,9 +221,9 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           isCollapsed={isCollapsed}
           theme={theme}
         />
-        <NavItem 
-          icon={<Server size={18} strokeWidth={1.5} />} 
-          label="Virtual Servers" 
+        <NavItem
+          icon={<Server size={18} strokeWidth={1.5} />}
+          label="Virtual Servers"
           active={currentPage === 'servers'}
           onClick={(e) => {
             e?.stopPropagation();
@@ -305,6 +305,17 @@ export function SideNav({ currentPage, onNavigate }: { currentPage: string; onNa
           onClick={(e) => {
             e?.stopPropagation();
             onNavigate('plugins');
+          }}
+          isCollapsed={isCollapsed}
+          theme={theme}
+        />
+        <NavItem
+          icon={<Store size={18} strokeWidth={1.5} />}
+          label="Server Catalog"
+          active={currentPage === 'catalog'}
+          onClick={(e) => {
+            e?.stopPropagation();
+            onNavigate('catalog');
           }}
           isCollapsed={isCollapsed}
           theme={theme}

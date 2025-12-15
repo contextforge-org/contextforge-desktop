@@ -22,6 +22,12 @@ import {
   type PermissionListResponse,
   type ResourceRead,
   type ResourceCreate,
+  type CatalogListResponse,
+  type CatalogServerRegisterRequest,
+  type CatalogServerRegisterResponse,
+  type CatalogServerStatusResponse,
+  type CatalogBulkRegisterRequest,
+  type CatalogBulkRegisterResponse,
   type ResourceUpdate
 } from '../contextforge-client-ts';
 import { mapPromptReadToPrompt } from './prompt-mapper';
@@ -1102,6 +1108,79 @@ export async function getAggregatedMetrics() {
   
   if (!response.success) {
     throw new Error('Failed to get metrics: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+// Catalog operations
+export async function listCatalogServers(filters?: {
+  category?: string;
+  provider?: string;
+  auth_type?: string;
+  search?: string;
+  tags?: string[];
+  show_registered?: boolean;
+  page?: number;
+  page_size?: number;
+}): Promise<CatalogListResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.listCatalogServers(filters);
+  
+  if (!response.success) {
+    throw new Error('Failed to list catalog servers: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function registerCatalogServer(
+  serverId: string,
+  request?: CatalogServerRegisterRequest
+): Promise<CatalogServerRegisterResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.registerCatalogServer(serverId, request);
+  
+  if (!response.success) {
+    throw new Error('Failed to register catalog server: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function checkCatalogServerStatus(
+  serverId: string
+): Promise<CatalogServerStatusResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.checkCatalogServerStatus(serverId);
+  
+  if (!response.success) {
+    throw new Error('Failed to check catalog server status: ' + response.error);
+  }
+  
+  return response.data;
+}
+
+export async function bulkRegisterCatalogServers(
+  request: CatalogBulkRegisterRequest
+): Promise<CatalogBulkRegisterResponse> {
+  if (!isElectron) {
+    throw new Error('This API wrapper requires Electron environment');
+  }
+
+  const response = await window.electronAPI.api.bulkRegisterCatalogServers(request);
+  
+  if (!response.success) {
+    throw new Error('Failed to bulk register catalog servers: ' + response.error);
   }
   
   return response.data;

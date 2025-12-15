@@ -682,6 +682,43 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // Catalog handlers
+  ipcMain.handle('api:list-catalog-servers', async (_event, filters?: any) => {
+    try {
+      const response = await mainApi.listCatalogServers(filters);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:register-catalog-server', async (_event, serverId: string, request?: any) => {
+    try {
+      const response = await mainApi.registerCatalogServer(serverId, request);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:check-catalog-server-status', async (_event, serverId: string) => {
+    try {
+      const response = await mainApi.checkCatalogServerStatus(serverId);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('api:bulk-register-catalog-servers', async (_event, request: any) => {
+    try {
+      const response = await mainApi.bulkRegisterCatalogServers(request);
+      return { success: true, data: response };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Token handlers
   ipcMain.handle('api:list-tokens', async () => {
     try {

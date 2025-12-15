@@ -142,6 +142,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Backend preferences
     getBackendPreferences: () => ipcRenderer.invoke('backend:get-preferences'),
     setAutoStartEmbedded: (value: boolean) => ipcRenderer.invoke('backend:set-auto-start', value),
+    // Catalog operations
+    listCatalogServers: (filters?: any) => ipcRenderer.invoke('api:list-catalog-servers', filters),
+    registerCatalogServer: (serverId: string, request?: any) => ipcRenderer.invoke('api:register-catalog-server', serverId, request),
+    checkCatalogServerStatus: (serverId: string) => ipcRenderer.invoke('api:check-catalog-server-status', serverId),
+    bulkRegisterCatalogServers: (request: any) => ipcRenderer.invoke('api:bulk-register-catalog-servers', request),
     checkBackendHealth: () => ipcRenderer.invoke('backend:check-health'),
   },
 });

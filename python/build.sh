@@ -255,6 +255,18 @@ else
     print_warning "Wrapper test inconclusive, but proceeding with build..."
 fi
 
+# Download mcp-catalog.yml from the backend repository
+print_status "Downloading mcp-catalog.yml from backend repository..."
+CATALOG_URL="https://raw.githubusercontent.com/IBM/mcp-context-forge/main/mcp-catalog.yml"
+if curl -fsSL "$CATALOG_URL" -o mcp-catalog.yml; then
+    print_success "Downloaded mcp-catalog.yml"
+else
+    print_warning "Could not download mcp-catalog.yml, catalog feature may not work"
+    # Create an empty catalog file as fallback
+    echo "# MCP Server Catalog" > mcp-catalog.yml
+    echo "servers: []" >> mcp-catalog.yml
+    print_warning "Created empty catalog file as fallback"
+fi
 
 # Clean previous build artifacts
 print_status "Cleaning previous build artifacts..."
@@ -294,6 +306,7 @@ pyinstaller "$CFORGE_PATH" \
     --hidden-import cryptography.hazmat.primitives.kdf \
     --hidden-import cryptography.hazmat.backends \
     --hidden-import cryptography.hazmat.backends.openssl \
+    --add-data "mcp-catalog.yml:." \
     --name "$OUTPUT_NAME"
 
 # Check if build was successful

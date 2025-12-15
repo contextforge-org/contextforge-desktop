@@ -3,6 +3,7 @@ import { SideNav } from './components/SideNav';
 import { TopNav } from './components/TopNav';
 import { VirtualServersPage } from './components/VirtualServersPage';
 import { MCPServersPage } from './components/MCPServersPage';
+import { CatalogPage } from './components/CatalogPage';
 import { ToolsPage } from './components/ToolsPage';
 import { PromptsPage } from './components/PromptsPage';
 import { ResourcesPage } from './components/ResourcesPage';
@@ -21,7 +22,7 @@ import { useBackendStatus } from './hooks/useBackendStatus';
 
 function AppContent() {
   const { theme } = useTheme();
-  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'settings'>('servers');
+  const [currentPage, setCurrentPage] = useState<'servers' | 'mcp-servers' | 'catalog' | 'tools' | 'prompts' | 'resources' | 'agents' | 'metrics' | 'plugins' | 'tracing' | 'settings'>('mcp-servers');
   
   // Initialize tray integration for toast notifications
   useTray();
@@ -39,6 +40,7 @@ function AppContent() {
         <main className="flex-1 overflow-auto">
           {currentPage === 'servers' && <VirtualServersPage />}
           {currentPage === 'mcp-servers' && <MCPServersPage />}
+          {currentPage === 'catalog' && <CatalogPage />}
           {currentPage === 'tools' && <ToolsPage />}
           {currentPage === 'prompts' && <PromptsPage />}
           {currentPage === 'resources' && <ResourcesPage />}

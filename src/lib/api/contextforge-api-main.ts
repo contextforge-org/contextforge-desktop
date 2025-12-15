@@ -94,6 +94,11 @@ import {
   // Plugin operations
   listPluginsAdminPluginsGet,
   getPluginStatsAdminPluginsStatsGet,
+  // Catalog operations
+  listCatalogServersAdminMcpRegistryServersGet,
+  registerCatalogServerAdminMcpRegistryServerIdRegisterPost,
+  checkCatalogServerStatusAdminMcpRegistryServerIdStatusGet,
+  bulkRegisterCatalogServersAdminMcpRegistryBulkRegisterPost,
   getPluginDetailsAdminPluginsNameGet,
   type ServerRead,
   type ServerCreate,
@@ -120,6 +125,12 @@ import {
   type ResourceUpdate,
   type PluginListResponse,
   type PluginStatsResponse,
+  type CatalogListResponse,
+  type CatalogServerRegisterRequest,
+  type CatalogServerRegisterResponse,
+  type CatalogServerStatusResponse,
+  type CatalogBulkRegisterRequest,
+  type CatalogBulkRegisterResponse,
   type PluginDetail,
 } from '../contextforge-client-ts';
 import { client } from '../contextforge-client-ts/client.gen';
@@ -1532,3 +1543,73 @@ export type {
   PromptCreate,
   PromptUpdate,
 };
+
+// Catalog operations
+export async function listCatalogServers(filters?: {
+  category?: string;
+  provider?: string;
+  auth_type?: string;
+  search?: string;
+  tags?: string[];
+  show_registered?: boolean;
+  page?: number;
+  page_size?: number;
+}): Promise<CatalogListResponse> {
+  const response = await listCatalogServersAdminMcpRegistryServersGet({
+    client,
+    query: filters
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to list catalog servers: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
+
+export async function registerCatalogServer(
+  serverId: string,
+  request?: CatalogServerRegisterRequest
+): Promise<CatalogServerRegisterResponse> {
+  const response = await registerCatalogServerAdminMcpRegistryServerIdRegisterPost({
+    client,
+    path: { server_id: serverId },
+    body: request || null
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to register catalog server: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
+
+export async function checkCatalogServerStatus(
+  serverId: string
+): Promise<CatalogServerStatusResponse> {
+  const response = await checkCatalogServerStatusAdminMcpRegistryServerIdStatusGet({
+    client,
+    path: { server_id: serverId }
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to check catalog server status: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
+
+export async function bulkRegisterCatalogServers(
+  request: CatalogBulkRegisterRequest
+): Promise<CatalogBulkRegisterResponse> {
+  const response = await bulkRegisterCatalogServersAdminMcpRegistryBulkRegisterPost({
+    client,
+    body: request
+  });
+  
+  if (response.error) {
+    throw new Error(`Failed to bulk register catalog servers: ${JSON.stringify(response.error)}`);
+  }
+  
+  return response.data!;
+}
