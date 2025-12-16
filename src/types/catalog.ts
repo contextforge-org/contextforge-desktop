@@ -29,9 +29,9 @@ export interface CatalogListResponse {
 
 export interface CatalogServerRegisterRequest {
   server_id: string;
-  custom_name?: string | null;
-  custom_config?: Record<string, unknown> | null;
-  team_id?: string | null;
+  name?: string | null;
+  api_key?: string | null;
+  oauth_credentials?: Record<string, unknown> | null;
 }
 
 export interface CatalogServerRegisterResponse {

@@ -133,6 +133,13 @@ export function CatalogPage() {
         requestData.api_key = credentials.apiKey;
       }
 
+      // For OAuth servers, indicate that OAuth credentials will be configured
+      // The backend should recognize the auth_type from the catalog server definition
+      if (server.auth_type?.toLowerCase().includes('oauth')) {
+        // OAuth will be configured after registration via the server details panel
+        requestData.oauth_credentials = {};
+      }
+
       await withAuth(
         () => api.registerCatalogServer(server.id, requestData),
         'Failed to register server'
@@ -143,7 +150,7 @@ export function CatalogPage() {
         s.id === server.id ? { ...s, is_registered: true } : s
       ));
 
-      toast.success(`${server.name} registered successfully`);
+      toast.success(`${server.name} registered successfully${server.auth_type?.toLowerCase().includes('oauth') ? '. Please configure OAuth in the server details.' : ''}`);
       
       // Close dialog if open
       setShowCredentialDialog(false);

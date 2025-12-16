@@ -6,10 +6,10 @@ setlocal enabledelayedexpansion
 
 REM Configuration
 set VENV_DIR=.venv
-set GATEWAY_REPO_SSH=git+ssh://git@github.com/IBM/mcp-context-forge.git
-set GATEWAY_REPO_HTTPS=git+https://github.com/IBM/mcp-context-forge.git
-set CLI_REPO_SSH=git+ssh://git@github.com/contextforge-org/contextforge-cli.git
-set CLI_REPO_HTTPS=git+https://github.com/contextforge-org/contextforge-cli.git
+set GATEWAY_REPO_SSH=git+ssh://git@github.com/IBM/mcp-context-forge.git@main
+set GATEWAY_REPO_HTTPS=git+https://github.com/IBM/mcp-context-forge.git@main
+set CLI_REPO_SSH=git+ssh://git@github.com/contextforge-org/contextforge-cli.git@main
+set CLI_REPO_HTTPS=git+https://github.com/contextforge-org/contextforge-cli.git@main
 set OUTPUT_NAME=backend
 if not defined DEFAULT_HOME_DIR (
     set "DEFAULT_HOME_DIR="
@@ -64,41 +64,55 @@ if %ERRORLEVEL% NEQ 0 (
 echo [+] Virtual environment activated
 
 REM Install mcp-context-forge (provides cforge module via contextforge-cli) with llmchat extras
-echo [*] Installing mcp-context-forge from GitHub (IBM/mcp-context-forge) with [llmchat] extras...
+echo [*] Installing mcp-context-forge from GitHub main branch (IBM/mcp-context-forge) with [llmchat] extras...
 echo.
 
-REM Try SSH first, fallback to HTTPS
-uv pip install "%GATEWAY_REPO_SSH%[llmchat]" >nul 2>nul
+REM Try SSH first, fallback to HTTPS - force reinstall to get latest
+uv pip install --force-reinstall --no-deps "%GATEWAY_REPO_SSH%[llmchat]" >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo [+] Installed mcp-context-forge via SSH with [llmchat] extras
+    echo [+] Installed mcp-context-forge via SSH with [llmchat] extras from main branch
 ) else (
     echo [!] SSH installation failed, trying HTTPS...
-    uv pip install "%GATEWAY_REPO_HTTPS%[llmchat]"
+    uv pip install --force-reinstall --no-deps "%GATEWAY_REPO_HTTPS%[llmchat]"
     if !ERRORLEVEL! NEQ 0 (
         echo [X] Failed to install mcp-context-forge from GitHub
         echo [X] Please check your git credentials and network connection
         exit /b 1
     )
-    echo [+] Installed mcp-context-forge via HTTPS with [llmchat] extras
+    echo [+] Installed mcp-context-forge via HTTPS with [llmchat] extras from main branch
+)
+
+REM Reinstall dependencies that were skipped by --no-deps
+echo [*] Installing dependencies for mcp-context-forge...
+uv pip install "%GATEWAY_REPO_SSH%[llmchat]" >nul 2>nul
+if !ERRORLEVEL! NEQ 0 (
+    uv pip install "%GATEWAY_REPO_HTTPS%[llmchat]"
 )
 
 REM Install contextforge-cli (provides cforge module)
-echo [*] Installing contextforge-cli from GitHub (contextforge-org/contextforge-cli)...
+echo [*] Installing contextforge-cli from GitHub main branch (contextforge-org/contextforge-cli)...
 echo.
 
-REM Try SSH first, fallback to HTTPS
-uv pip install "%CLI_REPO_SSH%" >nul 2>nul
+REM Try SSH first, fallback to HTTPS - force reinstall to get latest
+uv pip install --force-reinstall --no-deps "%CLI_REPO_SSH%" >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo [+] Installed contextforge-cli via SSH
+    echo [+] Installed contextforge-cli via SSH from main branch
 ) else (
     echo [!] SSH installation failed, trying HTTPS...
-    uv pip install "%CLI_REPO_HTTPS%"
+    uv pip install --force-reinstall --no-deps "%CLI_REPO_HTTPS%"
     if !ERRORLEVEL! NEQ 0 (
         echo [X] Failed to install contextforge-cli from GitHub
         echo [X] Please check your git credentials and network connection
         exit /b 1
     )
-    echo [+] Installed contextforge-cli via HTTPS
+    echo [+] Installed contextforge-cli via HTTPS from main branch
+)
+
+REM Reinstall dependencies that were skipped by --no-deps
+echo [*] Installing dependencies for contextforge-cli...
+uv pip install "%CLI_REPO_SSH%" >nul 2>nul
+if !ERRORLEVEL! NEQ 0 (
+    uv pip install "%CLI_REPO_HTTPS%"
 )
 
 REM Install PyInstaller
@@ -109,6 +123,16 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 echo [+] PyInstaller installed
+
+REM Remove GPL-licensed jinja2-ansible-filters package
+echo [*] Removing GPL-licensed jinja2-ansible-filters package (if present)...
+uv pip show jinja2-ansible-filters >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    uv pip uninstall -y jinja2-ansible-filters
+    echo [+] jinja2-ansible-filters removed
+) else (
+    echo [+] jinja2-ansible-filters not installed (already clean)
+)
 
 REM Find cforge.py location
 echo [*] Locating cforge.py entry point...
@@ -148,6 +172,23 @@ set CFORGE_PATH=cforge_wrapper.py
 
 echo [+] Created wrapper script at: !CFORGE_PATH!
 
+REM Find plugins directory in mcpgateway package
+echo [*] Locating plugins directory...
+for /f "delims=" %%i in ('python -c "import mcpgateway; import os; pkg_dir = os.path.dirname(mcpgateway.__file__); plugins_dir = os.path.join(os.path.dirname(pkg_dir), 'plugins'); print(plugins_dir if os.path.exists(plugins_dir) else '')" 2^>nul') do set PLUGINS_DIR=%%i
+
+if defined PLUGINS_DIR (
+    if exist "!PLUGINS_DIR!" (
+        echo [+] Found plugins directory at: !PLUGINS_DIR!
+        set "PLUGINS_ARG=--add-data "!PLUGINS_DIR!;plugins""
+    ) else (
+        echo [!] Plugins directory not found, plugins may not be available in the bundle
+        set "PLUGINS_ARG="
+    )
+) else (
+    echo [!] Plugins directory not found, plugins may not be available in the bundle
+    set "PLUGINS_ARG="
+)
+
 REM Clean previous build artifacts
 echo [*] Cleaning previous build artifacts...
 if exist build rmdir /s /q build
@@ -159,10 +200,10 @@ REM Run PyInstaller
 echo [*] Running PyInstaller...
 echo.
 echo PyInstaller command:
-echo pyinstaller "%CFORGE_PATH%" -F --console --collect-all cforge --collect-all mcpgateway --collect-all mcp --collect-all cryptography --name %OUTPUT_NAME%
+echo pyinstaller "%CFORGE_PATH%" -F --console --collect-all cforge --collect-all mcpgateway --collect-all mcp --collect-all cryptography !PLUGINS_ARG! --name %OUTPUT_NAME%
 echo.
 
-pyinstaller "%CFORGE_PATH%" -F --console --collect-all cforge --collect-all mcpgateway --collect-all mcp --collect-all cryptography --copy-metadata mcp-contextforge-gateway --copy-metadata cforge --copy-metadata mcp --hidden-import mcpgateway.main --hidden-import uvicorn --hidden-import uvicorn.logging --hidden-import uvicorn.loops --hidden-import uvicorn.loops.auto --hidden-import uvicorn.protocols --hidden-import uvicorn.protocols.http --hidden-import uvicorn.protocols.http.auto --hidden-import uvicorn.protocols.websockets --hidden-import uvicorn.protocols.websockets.auto --hidden-import uvicorn.lifespan --hidden-import uvicorn.lifespan.on --hidden-import cryptography.hazmat.primitives.kdf.pbkdf2 --hidden-import cryptography.hazmat.primitives.kdf --hidden-import cryptography.hazmat.backends --hidden-import cryptography.hazmat.backends.openssl --name %OUTPUT_NAME%
+pyinstaller "%CFORGE_PATH%" -F --console --collect-all cforge --collect-all mcpgateway --collect-all mcp --collect-all cryptography --copy-metadata mcp-contextforge-gateway --copy-metadata cforge --copy-metadata mcp --hidden-import mcpgateway.main --hidden-import uvicorn --hidden-import uvicorn.logging --hidden-import uvicorn.loops --hidden-import uvicorn.loops.auto --hidden-import uvicorn.protocols --hidden-import uvicorn.protocols.http --hidden-import uvicorn.protocols.http.auto --hidden-import uvicorn.protocols.websockets --hidden-import uvicorn.protocols.websockets.auto --hidden-import uvicorn.lifespan --hidden-import uvicorn.lifespan.on --hidden-import cryptography.hazmat.primitives.kdf.pbkdf2 --hidden-import cryptography.hazmat.primitives.kdf --hidden-import cryptography.hazmat.backends --hidden-import cryptography.hazmat.backends.openssl !PLUGINS_ARG! --name %OUTPUT_NAME%
 
 if %ERRORLEVEL% NEQ 0 (
     echo [X] Build failed! Check the output above for errors.

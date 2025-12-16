@@ -142,7 +142,7 @@ export class PythonProcessManager {
       // Development mode for easier setup
       DEV_MODE: 'true',
       // Enable plugins
-      ENABLE_PLUGINS: 'true',
+      PLUGINS_ENABLED: 'true',
       // Enable observability and tracing
       ENABLE_OBSERVABILITY: 'true',
       ENABLE_TRACING: 'true',

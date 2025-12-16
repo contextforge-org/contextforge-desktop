@@ -113,21 +113,17 @@ python/
      - `git+https://github.com/contextforge-org/contextforge-cli.git`
 
 4. **PyInstaller Build**
-   - Locates the `cforge.py` entry point
-   - Runs PyInstaller with the following configuration:
-     ```bash
-     pyinstaller cforge_wrapper.py \
-       -F \
-       --console \
-       --collect-all cforge \
-       --collect-all mcpgateway \
-       --collect-all mcp \
-       --name backend
-     ```
-   - `-F`: Single file executable
-   - `--console`: Console mode for debugging
-   - `--collect-all`: Includes all submodules from cforge, mcpgateway, and mcp packages
-   - `--name backend`: Names the output executable "backend"
+   - Uses `cforge.spec` configuration file
+   - Includes all necessary packages and data files:
+     - All submodules from cforge, mcpgateway, and mcp packages
+     - **Plugins directory** from mcpgateway package (automatically discovered)
+     - MCP catalog configuration file
+     - Package metadata
+   - Configuration:
+     - `-F`: Single file executable
+     - `--console`: Console mode for debugging
+     - `--name cforge`: Names the output executable "cforge"
+   - **Plugin Packaging**: The spec file automatically locates and includes the `plugins/` directory from the installed `mcpgateway` package, ensuring all backend plugins are bundled with the executable
 
 5. **Output Verification**
    - Tests the executable to ensure it works
