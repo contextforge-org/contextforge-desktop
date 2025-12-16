@@ -121,8 +121,8 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   }
 
-  // Initialize Python process manager
-  pythonManager = new PythonProcessManager();
+  // Initialize Python process manager (singleton)
+  pythonManager = PythonProcessManager.getInstance();
 
   // Initialize tray manager with Python manager
   trayManager = new TrayManager(mainWindow, pythonManager);
@@ -207,15 +207,12 @@ const createApplicationMenu = () => {
             label: 'Quit',
             accelerator: 'Command+Q',
             click: () => {
-              // Hide to tray instead of quitting
-              if (mainWindow && trayManager) {
-                mainWindow.hide();
-                trayManager.showNotification(
-                  'Context Forge',
-                  'App hidden to tray. Backend still running. Use tray menu to quit completely.',
-                  { silent: true }
-                );
+              // Standard macOS behavior: quit app and stop backend
+              if (trayManager) {
+                trayManager.setQuitting(true);
               }
+              shouldStopBackend = true;
+              app.quit();
             }
           }
         ]

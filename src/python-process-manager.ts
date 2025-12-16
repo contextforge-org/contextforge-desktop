@@ -11,10 +11,26 @@ export interface PythonProcessStatus {
 }
 
 export class PythonProcessManager {
+  private static instance: PythonProcessManager | null = null;
   private process: ChildProcess | null = null;
   private isRunning = false;
   private startTime: Date | null = null;
   private executablePath: string | null = null;
+
+  /**
+   * Private constructor to enforce singleton pattern
+   */
+  private constructor() {}
+
+  /**
+   * Get the singleton instance of PythonProcessManager
+   */
+  public static getInstance(): PythonProcessManager {
+    if (!PythonProcessManager.instance) {
+      PythonProcessManager.instance = new PythonProcessManager();
+    }
+    return PythonProcessManager.instance;
+  }
 
   /**
    * Get path to PyInstaller executable
@@ -53,7 +69,7 @@ export class PythonProcessManager {
   /**
    * Start the Python process
    */
-  public async start(args: string[] = []): Promise<void> {
+  public async start(args: string[] = ['serve']): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.isRunning) {
         this.log('info', 'Python process already running');
@@ -61,17 +77,22 @@ export class PythonProcessManager {
         return;
       }
 
+      // Set flag immediately to prevent race conditions
+      this.isRunning = true;
+
       try {
         this.verifyExecutableExists();
         const execPath = this.getExecutablePath();
         this.executablePath = execPath;
 
-        this.log('info', `Starting Python process: ${execPath}`);
+        this.log('info', `Starting Python process: ${execPath} ${args.join(' ')}`);
 
         this.process = spawn(execPath, args, this.getSpawnOptions(execPath));
         this.setupProcessOutputHandlers();
         this.setupProcessLifecycleHandlers(resolve, reject);
       } catch (error) {
+        // Reset flag on error
+        this.isRunning = false;
         this.log('error', 'Failed to start Python process:', error);
         reject(error as Error);
       }
@@ -164,7 +185,8 @@ export class PythonProcessManager {
 
     this.process!.on('spawn', () => {
       if (!settled) {
-        this.setProcessRunning();
+        // Update start time (isRunning already set to true)
+        this.startTime = new Date();
         this.log('info', `✅ Python process started (PID: ${this.process?.pid})`);
         settled = true;
         resolve();

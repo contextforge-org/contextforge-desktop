@@ -16,10 +16,11 @@
     "name": "Rynne Whitnah",
     "email": "rpwhitna@us.ibm.com"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@electron-forge/cli": "^7.8.3",
     "@electron-forge/maker-deb": "^7.10.2",
+    "@electron-forge/maker-dmg": "^7.10.2",
     "@electron-forge/maker-rpm": "^7.10.2",
     "@electron-forge/maker-squirrel": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",

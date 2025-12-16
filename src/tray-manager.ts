@@ -147,7 +147,7 @@ export class TrayManager {
             enabled: !isPythonRunning && pythonExists,
             click: async () => {
               try {
-                await this.pythonManager?.start();
+                await this.pythonManager?.start(['serve']);
                 this.showNotification('Python Backend', 'Started successfully');
                 this.updateContextMenu();
               } catch (error) {
