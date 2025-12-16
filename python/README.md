@@ -116,14 +116,26 @@ python/
    - Uses `cforge.spec` configuration file
    - Includes all necessary packages and data files:
      - All submodules from cforge, mcpgateway, and mcp packages
-     - **Plugins directory** from mcpgateway package (automatically discovered)
+     - **Plugins**: Uses `--collect-all mcpgateway.plugins` to automatically include all plugin modules
+     - **Plugin config**: Optionally includes `plugins/config.yaml` if found
      - MCP catalog configuration file
      - Package metadata
    - Configuration:
      - `-F`: Single file executable
      - `--console`: Console mode for debugging
      - `--name cforge`: Names the output executable "cforge"
-   - **Plugin Packaging**: The spec file automatically locates and includes the `plugins/` directory from the installed `mcpgateway` package, ensuring all backend plugins are bundled with the executable
+   - **Plugin Packaging**: Uses the recommended `--collect-all mcpgateway.plugins` approach with runtime configuration:
+     - Collects all modules from `mcpgateway.plugins` (including framework and tools)
+     - Adds explicit hidden imports for critical plugin modules:
+       - `mcpgateway.plugins.framework.external.mcp.client`
+       - `mcpgateway.plugins.framework.loader.config`
+       - `mcpgateway.plugins.framework.loader.plugin`
+     - Optionally includes `plugins/config.yaml` for plugin configuration
+     - **Runtime Configuration**: The wrapper script automatically:
+       - Sets `PLUGIN_CONFIG_FILE` environment variable to point to the bundled config
+       - Detects PyInstaller bundle location using `sys._MEIPASS`
+       - Enables plugins by default with `PLUGINS_ENABLED=true`
+     - Automatically discovers and includes all plugin dependencies
 
 5. **Output Verification**
    - Tests the executable to ensure it works

@@ -246,16 +246,36 @@ CFORGE_PATH="cforge_wrapper.py"
 cat > "$CFORGE_PATH" << EOF
 #!/usr/bin/env python3
 """
-Wrapper script for cforge to default home to app data
+Wrapper script for cforge to default home to app data and set plugin config path
 """
 import os
+import sys
 
 HOME_ENV = "CONTEXTFORGE_HOME"
+PLUGIN_CONFIG_ENV = "PLUGIN_CONFIG_FILE"
 
 if __name__ == '__main__':
     # Set the default env var for the home directory
     if home_dir := os.getenv(HOME_ENV, "${DEFAULT_HOME_DIR}"):
         os.environ[HOME_ENV] = home_dir
+    
+    # Set plugin config file path for PyInstaller bundle
+    # PyInstaller extracts to sys._MEIPASS in onefile mode
+    if not os.getenv(PLUGIN_CONFIG_ENV):
+        if getattr(sys, 'frozen', False):
+            # Running in PyInstaller bundle
+            bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(sys.executable)))
+            # Try plugins/config.yaml first (downloaded from repo)
+            plugin_config = os.path.join(bundle_dir, 'plugins', 'config.yaml')
+            if os.path.exists(plugin_config):
+                os.environ[PLUGIN_CONFIG_ENV] = plugin_config
+                print(f"Set PLUGIN_CONFIG_FILE to: {plugin_config}", file=sys.stderr)
+            else:
+                print(f"Warning: Plugin config not found at {plugin_config}", file=sys.stderr)
+    
+    # Enable plugins by default
+    if not os.getenv('PLUGINS_ENABLED'):
+        os.environ['PLUGINS_ENABLED'] = 'true'
 
     # Import the main entrypoint and run it
     from cforge.main import main
@@ -285,28 +305,58 @@ else
     print_warning "Created empty catalog file as fallback"
 fi
 
+# Download plugins directory from the backend repository using sparse checkout
+print_status "Downloading plugins directory from backend repository..."
+TEMP_REPO_DIR="temp_mcp_repo"
+rm -rf "$TEMP_REPO_DIR" plugins
+
+if git clone --depth 1 --filter=blob:none --sparse https://github.com/IBM/mcp-context-forge.git "$TEMP_REPO_DIR" 2>/dev/null; then
+    cd "$TEMP_REPO_DIR"
+    git sparse-checkout set plugins
+    cd ..
+    
+    if [ -d "$TEMP_REPO_DIR/plugins" ]; then
+        cp -r "$TEMP_REPO_DIR/plugins" .
+        rm -rf "$TEMP_REPO_DIR"
+        print_success "Downloaded plugins directory with all plugin implementations"
+    else
+        rm -rf "$TEMP_REPO_DIR"
+        print_error "Failed to download plugins directory"
+        exit 1
+    fi
+else
+    print_warning "Git sparse checkout failed, trying alternative method..."
+    # Fallback: just download config.yaml
+    mkdir -p plugins
+    PLUGINS_CONFIG_URL="https://raw.githubusercontent.com/IBM/mcp-context-forge/main/plugins/config.yaml"
+    if curl -fsSL "$PLUGINS_CONFIG_URL" -o plugins/config.yaml; then
+        print_warning "Downloaded only plugins/config.yaml - plugin implementations may not work"
+    else
+        print_error "Could not download plugins directory or config"
+        exit 1
+    fi
+fi
+
 # Clean previous build artifacts
 print_status "Cleaning previous build artifacts..."
 rm -rf build dist *.spec
 print_success "Build directory cleaned"
 
-# Find plugins directory in mcpgateway package
-print_status "Locating plugins directory..."
-PLUGINS_DIR=$(python -c "import mcpgateway; import os; pkg_dir = os.path.dirname(mcpgateway.__file__); plugins_dir = os.path.join(os.path.dirname(pkg_dir), 'plugins'); print(plugins_dir if os.path.exists(plugins_dir) else '')" 2>/dev/null)
-
-if [ -n "$PLUGINS_DIR" ] && [ -d "$PLUGINS_DIR" ]; then
-    print_success "Found plugins directory at: $PLUGINS_DIR"
-    PLUGINS_ARG="--add-data \"$PLUGINS_DIR:plugins\""
+# Use the downloaded plugins directory
+print_status "Preparing plugins directory for bundling..."
+if [ -d "plugins" ]; then
+    print_success "Using downloaded plugins directory"
+    PLUGINS_DATA_ARG="--add-data plugins:plugins"
 else
-    print_warning "Plugins directory not found, plugins may not be available in the bundle"
-    PLUGINS_ARG=""
+    print_warning "plugins directory not found, plugins may not work"
+    PLUGINS_DATA_ARG=""
 fi
 
-# Run PyInstaller
+# Run PyInstaller with --collect-all for mcpgateway.plugins
 print_status "Running PyInstaller..."
 echo ""
 echo -e "${YELLOW}PyInstaller command:${NC}"
-echo "pyinstaller \"$CFORGE_PATH\" -F --console --collect-all cforge --collect-all mcpgateway --collect-all mcp $PLUGINS_ARG --name $OUTPUT_NAME"
+echo "pyinstaller \"$CFORGE_PATH\" -F --console --collect-all cforge --collect-all mcpgateway --collect-all mcpgateway.plugins --collect-all mcp $PLUGINS_CONFIG_ARG --name $OUTPUT_NAME"
 echo ""
 
 pyinstaller "$CFORGE_PATH" \
@@ -314,12 +364,19 @@ pyinstaller "$CFORGE_PATH" \
     --console \
     --collect-all cforge \
     --collect-all mcpgateway \
+    --collect-all mcpgateway.plugins \
     --collect-all mcp \
     --collect-all cryptography \
     --copy-metadata mcp-contextforge-gateway \
     --copy-metadata cforge \
     --copy-metadata mcp \
     --hidden-import mcpgateway.main \
+    --hidden-import mcpgateway.plugins \
+    --hidden-import mcpgateway.plugins.framework \
+    --hidden-import mcpgateway.plugins.framework.external.mcp.client \
+    --hidden-import mcpgateway.plugins.framework.loader.config \
+    --hidden-import mcpgateway.plugins.framework.loader.plugin \
+    --hidden-import mcpgateway.plugins.tools \
     --hidden-import uvicorn \
     --hidden-import uvicorn.logging \
     --hidden-import uvicorn.loops \
@@ -336,7 +393,7 @@ pyinstaller "$CFORGE_PATH" \
     --hidden-import cryptography.hazmat.backends \
     --hidden-import cryptography.hazmat.backends.openssl \
     --add-data "mcp-catalog.yml:." \
-    ${PLUGINS_ARG:+$PLUGINS_ARG} \
+    ${PLUGINS_DATA_ARG:+$PLUGINS_DATA_ARG} \
     --name "$OUTPUT_NAME"
 
 # Check if build was successful

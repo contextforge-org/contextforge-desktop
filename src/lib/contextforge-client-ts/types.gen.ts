@@ -1062,12 +1062,6 @@ export type BodyCreateToolToolsPost = {
      * Team ID to assign tool to
      */
     team_id?: string | null;
-    /**
-     * Visibility
-     *
-     * Tool visibility: private, team, public
-     */
-    visibility?: string | null;
 };
 
 /**
@@ -1081,12 +1075,6 @@ export type BodyCreateToolToolsPost2 = {
      * Team ID to assign tool to
      */
     team_id?: string | null;
-    /**
-     * Visibility
-     *
-     * Tool visibility: private, team, public
-     */
-    visibility?: string | null;
 };
 
 /**
@@ -1520,6 +1508,140 @@ export type ChangePasswordRequest = {
 };
 
 /**
+ * ChatChoice
+ *
+ * A single chat completion choice.
+ */
+export type ChatChoice = {
+    /**
+     * Index
+     */
+    index?: number;
+    message: ChatMessage;
+    /**
+     * Finish Reason
+     */
+    finish_reason?: string | null;
+};
+
+/**
+ * ChatCompletionRequest
+ *
+ * Request for chat completions (OpenAI-compatible).
+ */
+export type ChatCompletionRequest = {
+    /**
+     * Model
+     *
+     * Model ID to use
+     */
+    model: string;
+    /**
+     * Messages
+     *
+     * Conversation messages
+     */
+    messages: Array<ChatMessage>;
+    /**
+     * Temperature
+     *
+     * Sampling temperature
+     */
+    temperature?: number | null;
+    /**
+     * Max Tokens
+     *
+     * Maximum tokens to generate
+     */
+    max_tokens?: number | null;
+    /**
+     * Stream
+     *
+     * Enable streaming response
+     */
+    stream?: boolean;
+    /**
+     * Tools
+     *
+     * Available tools
+     */
+    tools?: Array<ToolDefinition> | null;
+    /**
+     * Tool Choice
+     *
+     * Tool choice preference
+     */
+    tool_choice?: string | {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Top P
+     *
+     * Nucleus sampling
+     */
+    top_p?: number | null;
+    /**
+     * Frequency Penalty
+     *
+     * Frequency penalty
+     */
+    frequency_penalty?: number | null;
+    /**
+     * Presence Penalty
+     *
+     * Presence penalty
+     */
+    presence_penalty?: number | null;
+    /**
+     * Stop
+     *
+     * Stop sequences
+     */
+    stop?: string | Array<string> | null;
+    /**
+     * User
+     *
+     * User identifier
+     */
+    user?: string | null;
+};
+
+/**
+ * ChatCompletionResponse
+ *
+ * Response from chat completions.
+ */
+export type ChatCompletionResponse = {
+    /**
+     * Id
+     *
+     * Unique response ID
+     */
+    id: string;
+    /**
+     * Object
+     */
+    object?: string;
+    /**
+     * Created
+     *
+     * Unix timestamp
+     */
+    created: number;
+    /**
+     * Model
+     *
+     * Model used
+     */
+    model: string;
+    /**
+     * Choices
+     */
+    choices: Array<ChatChoice>;
+    usage?: UsageStats | null;
+};
+
+/**
  * ChatInput
  *
  * Request model for sending chat messages.
@@ -1553,6 +1675,46 @@ export type ChatInput = {
      * Streaming
      */
     streaming?: boolean;
+};
+
+/**
+ * ChatMessage
+ *
+ * A single chat message.
+ */
+export type ChatMessage = {
+    /**
+     * Role
+     *
+     * Message role
+     */
+    role: 'system' | 'user' | 'assistant' | 'tool';
+    /**
+     * Content
+     *
+     * Message content
+     */
+    content?: string | null;
+    /**
+     * Name
+     *
+     * Optional name for the participant
+     */
+    name?: string | null;
+    /**
+     * Tool Calls
+     *
+     * Tool calls made by assistant
+     */
+    tool_calls?: Array<{
+        [key: string]: unknown;
+    }> | null;
+    /**
+     * Tool Call Id
+     *
+     * ID of tool call this message responds to
+     */
+    tool_call_id?: string | null;
 };
 
 /**
@@ -1821,6 +1983,34 @@ export type EmailUserResponse = {
 };
 
 /**
+ * FunctionDefinition
+ *
+ * Function definition for tool calling.
+ */
+export type FunctionDefinition = {
+    /**
+     * Name
+     *
+     * Function name
+     */
+    name: string;
+    /**
+     * Description
+     *
+     * Function description
+     */
+    description?: string | null;
+    /**
+     * Parameters
+     *
+     * JSON Schema for parameters
+     */
+    parameters?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * GatewayCreate
  *
  * Schema for creating a new gateway.
@@ -1975,6 +2165,78 @@ export type GatewayCreate = {
      * Algorithm used for signing the CA certificate
      */
     signing_algorithm?: string | null;
+};
+
+/**
+ * GatewayModelInfo
+ *
+ * Simplified model info for the LLM Chat dropdown.
+ */
+export type GatewayModelInfo = {
+    /**
+     * Id
+     *
+     * Unique model ID
+     */
+    id: string;
+    /**
+     * Model Id
+     *
+     * Provider's model identifier
+     */
+    model_id: string;
+    /**
+     * Model Name
+     *
+     * Display name
+     */
+    model_name: string;
+    /**
+     * Provider Id
+     *
+     * Provider ID
+     */
+    provider_id: string;
+    /**
+     * Provider Name
+     *
+     * Provider display name
+     */
+    provider_name: string;
+    /**
+     * Provider Type
+     *
+     * Provider type
+     */
+    provider_type: string;
+    /**
+     * Supports Streaming
+     */
+    supports_streaming?: boolean;
+    /**
+     * Supports Function Calling
+     */
+    supports_function_calling?: boolean;
+    /**
+     * Supports Vision
+     */
+    supports_vision?: boolean;
+};
+
+/**
+ * GatewayModelsResponse
+ *
+ * Response for /llmchat/gateway/models endpoint.
+ */
+export type GatewayModelsResponse = {
+    /**
+     * Models
+     */
+    models: Array<GatewayModelInfo>;
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
@@ -2817,6 +3079,13 @@ export type HttpValidationError = {
 };
 
 /**
+ * HealthStatus
+ *
+ * Health status values for LLM providers.
+ */
+export type HealthStatus = 'healthy' | 'unhealthy' | 'unknown';
+
+/**
  * Implementation
  *
  * MCP implementation information.
@@ -2917,6 +3186,516 @@ export type LlmInput = {
     config?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * LLMModelCreate
+ *
+ * Schema for creating a new LLM model.
+ */
+export type LlmModelCreate = {
+    /**
+     * Model Id
+     *
+     * Provider's model ID
+     */
+    model_id: string;
+    /**
+     * Model Name
+     *
+     * Display name
+     */
+    model_name: string;
+    /**
+     * Model Alias
+     *
+     * Optional routing alias
+     */
+    model_alias?: string | null;
+    /**
+     * Description
+     *
+     * Model description
+     */
+    description?: string | null;
+    /**
+     * Supports Chat
+     *
+     * Supports chat completions
+     */
+    supports_chat?: boolean;
+    /**
+     * Supports Streaming
+     *
+     * Supports streaming
+     */
+    supports_streaming?: boolean;
+    /**
+     * Supports Function Calling
+     *
+     * Supports function/tool calling
+     */
+    supports_function_calling?: boolean;
+    /**
+     * Supports Vision
+     *
+     * Supports vision/images
+     */
+    supports_vision?: boolean;
+    /**
+     * Context Window
+     *
+     * Max context tokens
+     */
+    context_window?: number | null;
+    /**
+     * Max Output Tokens
+     *
+     * Max output tokens
+     */
+    max_output_tokens?: number | null;
+    /**
+     * Enabled
+     *
+     * Whether model is enabled
+     */
+    enabled?: boolean;
+    /**
+     * Deprecated
+     *
+     * Whether model is deprecated
+     */
+    deprecated?: boolean;
+    /**
+     * Provider Id
+     *
+     * Provider ID this model belongs to
+     */
+    provider_id: string;
+};
+
+/**
+ * LLMModelListResponse
+ *
+ * Schema for paginated list of LLM models.
+ */
+export type LlmModelListResponse = {
+    /**
+     * Models
+     */
+    models: Array<LlmModelResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Page Size
+     */
+    page_size?: number;
+};
+
+/**
+ * LLMModelResponse
+ *
+ * Schema for LLM model response.
+ */
+export type LlmModelResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Provider Id
+     */
+    provider_id: string;
+    /**
+     * Model Id
+     */
+    model_id: string;
+    /**
+     * Model Name
+     */
+    model_name: string;
+    /**
+     * Model Alias
+     */
+    model_alias?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Supports Chat
+     */
+    supports_chat?: boolean;
+    /**
+     * Supports Streaming
+     */
+    supports_streaming?: boolean;
+    /**
+     * Supports Function Calling
+     */
+    supports_function_calling?: boolean;
+    /**
+     * Supports Vision
+     */
+    supports_vision?: boolean;
+    /**
+     * Context Window
+     */
+    context_window?: number | null;
+    /**
+     * Max Output Tokens
+     */
+    max_output_tokens?: number | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Deprecated
+     */
+    deprecated?: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Provider Name
+     *
+     * Provider name for display
+     */
+    provider_name?: string | null;
+    /**
+     * Provider Type
+     *
+     * Provider type for display
+     */
+    provider_type?: string | null;
+};
+
+/**
+ * LLMModelUpdate
+ *
+ * Schema for updating an LLM model.
+ */
+export type LlmModelUpdate = {
+    /**
+     * Model Id
+     */
+    model_id?: string | null;
+    /**
+     * Model Name
+     */
+    model_name?: string | null;
+    /**
+     * Model Alias
+     */
+    model_alias?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Supports Chat
+     */
+    supports_chat?: boolean | null;
+    /**
+     * Supports Streaming
+     */
+    supports_streaming?: boolean | null;
+    /**
+     * Supports Function Calling
+     */
+    supports_function_calling?: boolean | null;
+    /**
+     * Supports Vision
+     */
+    supports_vision?: boolean | null;
+    /**
+     * Context Window
+     */
+    context_window?: number | null;
+    /**
+     * Max Output Tokens
+     */
+    max_output_tokens?: number | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean | null;
+    /**
+     * Deprecated
+     */
+    deprecated?: boolean | null;
+};
+
+/**
+ * LLMProviderCreate
+ *
+ * Schema for creating a new LLM provider.
+ */
+export type LlmProviderCreate = {
+    /**
+     * Name
+     *
+     * Display name for the provider
+     */
+    name: string;
+    /**
+     * Description
+     *
+     * Optional description
+     */
+    description?: string | null;
+    /**
+     * Type of LLM provider
+     */
+    provider_type: LlmProviderTypeEnum;
+    /**
+     * Api Base
+     *
+     * Base URL for API requests
+     */
+    api_base?: string | null;
+    /**
+     * Api Version
+     *
+     * API version (for Azure OpenAI)
+     */
+    api_version?: string | null;
+    /**
+     * Config
+     *
+     * Provider-specific configuration
+     */
+    config?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Default Model
+     *
+     * Default model ID
+     */
+    default_model?: string | null;
+    /**
+     * Default Temperature
+     *
+     * Default temperature
+     */
+    default_temperature?: number;
+    /**
+     * Default Max Tokens
+     *
+     * Default max tokens
+     */
+    default_max_tokens?: number | null;
+    /**
+     * Enabled
+     *
+     * Whether provider is enabled
+     */
+    enabled?: boolean;
+    /**
+     * Plugin Ids
+     *
+     * Attached plugin IDs
+     */
+    plugin_ids?: Array<string>;
+    /**
+     * Api Key
+     *
+     * API key (will be encrypted)
+     */
+    api_key?: string | null;
+};
+
+/**
+ * LLMProviderListResponse
+ *
+ * Schema for paginated list of LLM providers.
+ */
+export type LlmProviderListResponse = {
+    /**
+     * Providers
+     */
+    providers: Array<LlmProviderResponse>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Page Size
+     */
+    page_size?: number;
+};
+
+/**
+ * LLMProviderResponse
+ *
+ * Schema for LLM provider response.
+ */
+export type LlmProviderResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Slug
+     */
+    slug: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Provider Type
+     */
+    provider_type: string;
+    /**
+     * Api Base
+     */
+    api_base?: string | null;
+    /**
+     * Api Version
+     */
+    api_version?: string | null;
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Default Model
+     */
+    default_model?: string | null;
+    /**
+     * Default Temperature
+     */
+    default_temperature?: number;
+    /**
+     * Default Max Tokens
+     */
+    default_max_tokens?: number | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Health Status
+     */
+    health_status?: string;
+    /**
+     * Last Health Check
+     */
+    last_health_check?: string | null;
+    /**
+     * Plugin Ids
+     */
+    plugin_ids?: Array<string>;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Created By
+     */
+    created_by?: string | null;
+    /**
+     * Modified By
+     */
+    modified_by?: string | null;
+    /**
+     * Model Count
+     *
+     * Number of models for this provider
+     */
+    model_count?: number;
+};
+
+/**
+ * LLMProviderTypeEnum
+ *
+ * Enumeration of supported LLM provider types.
+ */
+export type LlmProviderTypeEnum = 'openai' | 'azure_openai' | 'anthropic' | 'bedrock' | 'google_vertex' | 'watsonx' | 'ollama' | 'openai_compatible' | 'cohere' | 'mistral' | 'groq' | 'together';
+
+/**
+ * LLMProviderUpdate
+ *
+ * Schema for updating an LLM provider.
+ */
+export type LlmProviderUpdate = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    provider_type?: LlmProviderTypeEnum | null;
+    /**
+     * Api Key
+     *
+     * API key (will be encrypted)
+     */
+    api_key?: string | null;
+    /**
+     * Api Base
+     */
+    api_base?: string | null;
+    /**
+     * Api Version
+     */
+    api_version?: string | null;
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Default Model
+     */
+    default_model?: string | null;
+    /**
+     * Default Temperature
+     */
+    default_temperature?: number | null;
+    /**
+     * Default Max Tokens
+     */
+    default_max_tokens?: number | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean | null;
+    /**
+     * Plugin Ids
+     */
+    plugin_ids?: Array<string> | null;
 };
 
 /**
@@ -3155,328 +3934,6 @@ export type LoginRequest = {
      * Password
      */
     password: string;
-};
-
-/**
- * ObservabilitySpanRead
- *
- * Schema for reading an observability span.
- */
-export type ObservabilitySpanRead = {
-    /**
-     * Trace Id
-     *
-     * Parent trace ID
-     */
-    trace_id: string;
-    /**
-     * Parent Span Id
-     *
-     * Parent span ID (for nested spans)
-     */
-    parent_span_id?: string | null;
-    /**
-     * Name
-     *
-     * Span name (e.g., 'database_query', 'tool_invocation')
-     */
-    name: string;
-    /**
-     * Kind
-     *
-     * Span kind (internal, server, client, producer, consumer)
-     */
-    kind?: string;
-    /**
-     * Start Time
-     *
-     * Span start timestamp
-     */
-    start_time: string;
-    /**
-     * End Time
-     *
-     * Span end timestamp
-     */
-    end_time?: string | null;
-    /**
-     * Duration Ms
-     *
-     * Span duration in milliseconds
-     */
-    duration_ms?: number | null;
-    /**
-     * Status
-     *
-     * Span status (unset, ok, error)
-     */
-    status?: string;
-    /**
-     * Status Message
-     *
-     * Status message
-     */
-    status_message?: string | null;
-    /**
-     * Attributes
-     *
-     * Span attributes
-     */
-    attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Resource Name
-     *
-     * Resource name
-     */
-    resource_name?: string | null;
-    /**
-     * Resource Type
-     *
-     * Resource type (tool, resource, prompt, gateway, a2a_agent)
-     */
-    resource_type?: string | null;
-    /**
-     * Resource Id
-     *
-     * Resource ID
-     */
-    resource_id?: string | null;
-    /**
-     * Span Id
-     *
-     * Span ID
-     */
-    span_id: string;
-    /**
-     * Created At
-     *
-     * Creation timestamp
-     */
-    created_at: string;
-};
-
-/**
- * ObservabilityTraceRead
- *
- * Schema for reading an observability trace.
- */
-export type ObservabilityTraceRead = {
-    /**
-     * Name
-     *
-     * Trace name (e.g., 'POST /tools/invoke')
-     */
-    name: string;
-    /**
-     * Start Time
-     *
-     * Trace start timestamp
-     */
-    start_time: string;
-    /**
-     * End Time
-     *
-     * Trace end timestamp
-     */
-    end_time?: string | null;
-    /**
-     * Duration Ms
-     *
-     * Total duration in milliseconds
-     */
-    duration_ms?: number | null;
-    /**
-     * Status
-     *
-     * Trace status (unset, ok, error)
-     */
-    status?: string;
-    /**
-     * Status Message
-     *
-     * Status message or error description
-     */
-    status_message?: string | null;
-    /**
-     * Http Method
-     *
-     * HTTP method
-     */
-    http_method?: string | null;
-    /**
-     * Http Url
-     *
-     * HTTP URL
-     */
-    http_url?: string | null;
-    /**
-     * Http Status Code
-     *
-     * HTTP status code
-     */
-    http_status_code?: number | null;
-    /**
-     * User Email
-     *
-     * User email
-     */
-    user_email?: string | null;
-    /**
-     * User Agent
-     *
-     * User agent string
-     */
-    user_agent?: string | null;
-    /**
-     * Ip Address
-     *
-     * Client IP address
-     */
-    ip_address?: string | null;
-    /**
-     * Attributes
-     *
-     * Additional trace attributes
-     */
-    attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Resource Attributes
-     *
-     * Resource attributes
-     */
-    resource_attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Trace Id
-     *
-     * Trace ID
-     */
-    trace_id: string;
-    /**
-     * Created At
-     *
-     * Creation timestamp
-     */
-    created_at: string;
-};
-
-/**
- * ObservabilityTraceWithSpans
- *
- * Schema for reading a trace with its spans.
- */
-export type ObservabilityTraceWithSpans = {
-    /**
-     * Name
-     *
-     * Trace name (e.g., 'POST /tools/invoke')
-     */
-    name: string;
-    /**
-     * Start Time
-     *
-     * Trace start timestamp
-     */
-    start_time: string;
-    /**
-     * End Time
-     *
-     * Trace end timestamp
-     */
-    end_time?: string | null;
-    /**
-     * Duration Ms
-     *
-     * Total duration in milliseconds
-     */
-    duration_ms?: number | null;
-    /**
-     * Status
-     *
-     * Trace status (unset, ok, error)
-     */
-    status?: string;
-    /**
-     * Status Message
-     *
-     * Status message or error description
-     */
-    status_message?: string | null;
-    /**
-     * Http Method
-     *
-     * HTTP method
-     */
-    http_method?: string | null;
-    /**
-     * Http Url
-     *
-     * HTTP URL
-     */
-    http_url?: string | null;
-    /**
-     * Http Status Code
-     *
-     * HTTP status code
-     */
-    http_status_code?: number | null;
-    /**
-     * User Email
-     *
-     * User email
-     */
-    user_email?: string | null;
-    /**
-     * User Agent
-     *
-     * User agent string
-     */
-    user_agent?: string | null;
-    /**
-     * Ip Address
-     *
-     * Client IP address
-     */
-    ip_address?: string | null;
-    /**
-     * Attributes
-     *
-     * Additional trace attributes
-     */
-    attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Resource Attributes
-     *
-     * Resource attributes
-     */
-    resource_attributes?: {
-        [key: string]: unknown;
-    } | null;
-    /**
-     * Trace Id
-     *
-     * Trace ID
-     */
-    trace_id: string;
-    /**
-     * Created At
-     *
-     * Creation timestamp
-     */
-    created_at: string;
-    /**
-     * Spans
-     *
-     * List of spans in this trace
-     */
-    spans?: Array<ObservabilitySpanRead>;
 };
 
 /**
@@ -4324,6 +4781,39 @@ export type PromptUpdate = {
      * Visibility level (private, team, public)
      */
     visibility?: string | null;
+};
+
+/**
+ * ProviderHealthCheck
+ *
+ * Result of a provider health check.
+ */
+export type ProviderHealthCheck = {
+    /**
+     * Provider Id
+     */
+    provider_id: string;
+    /**
+     * Provider Name
+     */
+    provider_name: string;
+    /**
+     * Provider Type
+     */
+    provider_type: string;
+    status: HealthStatus;
+    /**
+     * Response Time Ms
+     */
+    response_time_ms?: number | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Checked At
+     */
+    checked_at: string;
 };
 
 /**
@@ -7058,6 +7548,19 @@ export type ToolCreate = {
 };
 
 /**
+ * ToolDefinition
+ *
+ * Tool definition for function calling.
+ */
+export type ToolDefinition = {
+    /**
+     * Type
+     */
+    type?: 'function';
+    function: FunctionDefinition;
+};
+
+/**
  * ToolMetrics
  *
  * Represents the performance and execution statistics for a tool.
@@ -7606,6 +8109,26 @@ export type ToolUpdate = {
      * Post-plugin chain for passthrough
      */
     pluginChainPost?: Array<string> | null;
+};
+
+/**
+ * UsageStats
+ *
+ * Token usage statistics.
+ */
+export type UsageStats = {
+    /**
+     * Prompt Tokens
+     */
+    prompt_tokens?: number;
+    /**
+     * Completion Tokens
+     */
+    completion_tokens?: number;
+    /**
+     * Total Tokens
+     */
+    total_tokens?: number;
 };
 
 /**
@@ -10602,357 +11125,6 @@ export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses = {
 
 export type GetPerformanceMetricsApiLogsPerformanceMetricsGetResponse = GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses[keyof GetPerformanceMetricsApiLogsPerformanceMetricsGetResponses];
 
-export type ListTracesObservabilityTracesGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Start Time
-         *
-         * Filter traces after this time
-         */
-        start_time?: string | null;
-        /**
-         * End Time
-         *
-         * Filter traces before this time
-         */
-        end_time?: string | null;
-        /**
-         * Min Duration Ms
-         *
-         * Minimum duration in milliseconds
-         */
-        min_duration_ms?: number | null;
-        /**
-         * Max Duration Ms
-         *
-         * Maximum duration in milliseconds
-         */
-        max_duration_ms?: number | null;
-        /**
-         * Status
-         *
-         * Filter by status (ok, error)
-         */
-        status?: string | null;
-        /**
-         * Http Status Code
-         *
-         * Filter by HTTP status code
-         */
-        http_status_code?: number | null;
-        /**
-         * Http Method
-         *
-         * Filter by HTTP method (GET, POST, etc.)
-         */
-        http_method?: string | null;
-        /**
-         * User Email
-         *
-         * Filter by user email
-         */
-        user_email?: string | null;
-        /**
-         * Attribute Search
-         *
-         * Free-text search within trace attributes
-         */
-        attribute_search?: string | null;
-        /**
-         * Limit
-         *
-         * Maximum results
-         */
-        limit?: number;
-        /**
-         * Offset
-         *
-         * Result offset
-         */
-        offset?: number;
-    };
-    url: '/observability/traces';
-};
-
-export type ListTracesObservabilityTracesGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListTracesObservabilityTracesGetError = ListTracesObservabilityTracesGetErrors[keyof ListTracesObservabilityTracesGetErrors];
-
-export type ListTracesObservabilityTracesGetResponses = {
-    /**
-     * Response List Traces Observability Traces Get
-     *
-     * Successful Response
-     */
-    200: Array<ObservabilityTraceRead>;
-};
-
-export type ListTracesObservabilityTracesGetResponse = ListTracesObservabilityTracesGetResponses[keyof ListTracesObservabilityTracesGetResponses];
-
-export type QueryTracesAdvancedObservabilityTracesQueryPostData = {
-    /**
-     * Request Body
-     */
-    body: {
-        [key: string]: unknown;
-    };
-    path?: never;
-    query?: never;
-    url: '/observability/traces/query';
-};
-
-export type QueryTracesAdvancedObservabilityTracesQueryPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type QueryTracesAdvancedObservabilityTracesQueryPostError = QueryTracesAdvancedObservabilityTracesQueryPostErrors[keyof QueryTracesAdvancedObservabilityTracesQueryPostErrors];
-
-export type QueryTracesAdvancedObservabilityTracesQueryPostResponses = {
-    /**
-     * Response Query Traces Advanced Observability Traces Query Post
-     *
-     * Successful Response
-     */
-    200: Array<ObservabilityTraceRead>;
-};
-
-export type QueryTracesAdvancedObservabilityTracesQueryPostResponse = QueryTracesAdvancedObservabilityTracesQueryPostResponses[keyof QueryTracesAdvancedObservabilityTracesQueryPostResponses];
-
-export type GetTraceObservabilityTracesTraceIdGetData = {
-    body?: never;
-    path: {
-        /**
-         * Trace Id
-         */
-        trace_id: string;
-    };
-    query?: never;
-    url: '/observability/traces/{trace_id}';
-};
-
-export type GetTraceObservabilityTracesTraceIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetTraceObservabilityTracesTraceIdGetError = GetTraceObservabilityTracesTraceIdGetErrors[keyof GetTraceObservabilityTracesTraceIdGetErrors];
-
-export type GetTraceObservabilityTracesTraceIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ObservabilityTraceWithSpans;
-};
-
-export type GetTraceObservabilityTracesTraceIdGetResponse = GetTraceObservabilityTracesTraceIdGetResponses[keyof GetTraceObservabilityTracesTraceIdGetResponses];
-
-export type ListSpansObservabilitySpansGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Trace Id
-         *
-         * Filter by trace ID
-         */
-        trace_id?: string | null;
-        /**
-         * Resource Type
-         *
-         * Filter by resource type
-         */
-        resource_type?: string | null;
-        /**
-         * Resource Name
-         *
-         * Filter by resource name
-         */
-        resource_name?: string | null;
-        /**
-         * Start Time
-         *
-         * Filter spans after this time
-         */
-        start_time?: string | null;
-        /**
-         * End Time
-         *
-         * Filter spans before this time
-         */
-        end_time?: string | null;
-        /**
-         * Limit
-         *
-         * Maximum results
-         */
-        limit?: number;
-        /**
-         * Offset
-         *
-         * Result offset
-         */
-        offset?: number;
-    };
-    url: '/observability/spans';
-};
-
-export type ListSpansObservabilitySpansGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListSpansObservabilitySpansGetError = ListSpansObservabilitySpansGetErrors[keyof ListSpansObservabilitySpansGetErrors];
-
-export type ListSpansObservabilitySpansGetResponses = {
-    /**
-     * Response List Spans Observability Spans Get
-     *
-     * Successful Response
-     */
-    200: Array<ObservabilitySpanRead>;
-};
-
-export type ListSpansObservabilitySpansGetResponse = ListSpansObservabilitySpansGetResponses[keyof ListSpansObservabilitySpansGetResponses];
-
-export type CleanupOldTracesObservabilityTracesCleanupDeleteData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Days
-         *
-         * Delete traces older than this many days
-         */
-        days?: number;
-    };
-    url: '/observability/traces/cleanup';
-};
-
-export type CleanupOldTracesObservabilityTracesCleanupDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type CleanupOldTracesObservabilityTracesCleanupDeleteError = CleanupOldTracesObservabilityTracesCleanupDeleteErrors[keyof CleanupOldTracesObservabilityTracesCleanupDeleteErrors];
-
-export type CleanupOldTracesObservabilityTracesCleanupDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type GetStatsObservabilityStatsGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Hours
-         *
-         * Time window in hours
-         */
-        hours?: number;
-    };
-    url: '/observability/stats';
-};
-
-export type GetStatsObservabilityStatsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetStatsObservabilityStatsGetError = GetStatsObservabilityStatsGetErrors[keyof GetStatsObservabilityStatsGetErrors];
-
-export type GetStatsObservabilityStatsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type ExportTracesObservabilityTracesExportPostData = {
-    /**
-     * Request Body
-     */
-    body: {
-        [key: string]: unknown;
-    };
-    path?: never;
-    query?: {
-        /**
-         * Format
-         *
-         * Export format (json, csv, ndjson)
-         */
-        format?: string;
-    };
-    url: '/observability/traces/export';
-};
-
-export type ExportTracesObservabilityTracesExportPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ExportTracesObservabilityTracesExportPostError = ExportTracesObservabilityTracesExportPostErrors[keyof ExportTracesObservabilityTracesExportPostErrors];
-
-export type ExportTracesObservabilityTracesExportPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Hours
-         *
-         * Time window in hours
-         */
-        hours?: number;
-    };
-    url: '/observability/analytics/query-performance';
-};
-
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetError = GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors[keyof GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetErrors];
-
-export type GetQueryPerformanceObservabilityAnalyticsQueryPerformanceGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
 export type ListA2aAgentsA2aGetData = {
     body?: never;
     path?: never;
@@ -13551,6 +13723,895 @@ export type GetConfigLlmchatConfigUserIdGetErrors = {
 export type GetConfigLlmchatConfigUserIdGetError = GetConfigLlmchatConfigUserIdGetErrors[keyof GetConfigLlmchatConfigUserIdGetErrors];
 
 export type GetConfigLlmchatConfigUserIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetGatewayModelsLlmchatGatewayModelsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/llmchat/gateway/models';
+};
+
+export type GetGatewayModelsLlmchatGatewayModelsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ListProvidersLlmProvidersGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Enabled Only
+         *
+         * Only return enabled providers
+         */
+        enabled_only?: boolean;
+        /**
+         * Page
+         *
+         * Page number
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * Items per page
+         */
+        page_size?: number;
+    };
+    url: '/llm/providers';
+};
+
+export type ListProvidersLlmProvidersGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListProvidersLlmProvidersGetError = ListProvidersLlmProvidersGetErrors[keyof ListProvidersLlmProvidersGetErrors];
+
+export type ListProvidersLlmProvidersGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmProviderListResponse;
+};
+
+export type ListProvidersLlmProvidersGetResponse = ListProvidersLlmProvidersGetResponses[keyof ListProvidersLlmProvidersGetResponses];
+
+export type CreateProviderLlmProvidersPostData = {
+    body: LlmProviderCreate;
+    path?: never;
+    query?: never;
+    url: '/llm/providers';
+};
+
+export type CreateProviderLlmProvidersPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateProviderLlmProvidersPostError = CreateProviderLlmProvidersPostErrors[keyof CreateProviderLlmProvidersPostErrors];
+
+export type CreateProviderLlmProvidersPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: LlmProviderResponse;
+};
+
+export type CreateProviderLlmProvidersPostResponse = CreateProviderLlmProvidersPostResponses[keyof CreateProviderLlmProvidersPostResponses];
+
+export type DeleteProviderLlmProvidersProviderIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/llm/providers/{provider_id}';
+};
+
+export type DeleteProviderLlmProvidersProviderIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteProviderLlmProvidersProviderIdDeleteError = DeleteProviderLlmProvidersProviderIdDeleteErrors[keyof DeleteProviderLlmProvidersProviderIdDeleteErrors];
+
+export type DeleteProviderLlmProvidersProviderIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteProviderLlmProvidersProviderIdDeleteResponse = DeleteProviderLlmProvidersProviderIdDeleteResponses[keyof DeleteProviderLlmProvidersProviderIdDeleteResponses];
+
+export type GetProviderLlmProvidersProviderIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/llm/providers/{provider_id}';
+};
+
+export type GetProviderLlmProvidersProviderIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProviderLlmProvidersProviderIdGetError = GetProviderLlmProvidersProviderIdGetErrors[keyof GetProviderLlmProvidersProviderIdGetErrors];
+
+export type GetProviderLlmProvidersProviderIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmProviderResponse;
+};
+
+export type GetProviderLlmProvidersProviderIdGetResponse = GetProviderLlmProvidersProviderIdGetResponses[keyof GetProviderLlmProvidersProviderIdGetResponses];
+
+export type UpdateProviderLlmProvidersProviderIdPatchData = {
+    body: LlmProviderUpdate;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/llm/providers/{provider_id}';
+};
+
+export type UpdateProviderLlmProvidersProviderIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateProviderLlmProvidersProviderIdPatchError = UpdateProviderLlmProvidersProviderIdPatchErrors[keyof UpdateProviderLlmProvidersProviderIdPatchErrors];
+
+export type UpdateProviderLlmProvidersProviderIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmProviderResponse;
+};
+
+export type UpdateProviderLlmProvidersProviderIdPatchResponse = UpdateProviderLlmProvidersProviderIdPatchResponses[keyof UpdateProviderLlmProvidersProviderIdPatchResponses];
+
+export type ToggleProviderLlmProvidersProviderIdTogglePostData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/llm/providers/{provider_id}/toggle';
+};
+
+export type ToggleProviderLlmProvidersProviderIdTogglePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ToggleProviderLlmProvidersProviderIdTogglePostError = ToggleProviderLlmProvidersProviderIdTogglePostErrors[keyof ToggleProviderLlmProvidersProviderIdTogglePostErrors];
+
+export type ToggleProviderLlmProvidersProviderIdTogglePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmProviderResponse;
+};
+
+export type ToggleProviderLlmProvidersProviderIdTogglePostResponse = ToggleProviderLlmProvidersProviderIdTogglePostResponses[keyof ToggleProviderLlmProvidersProviderIdTogglePostResponses];
+
+export type CheckProviderHealthLlmProvidersProviderIdHealthPostData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/llm/providers/{provider_id}/health';
+};
+
+export type CheckProviderHealthLlmProvidersProviderIdHealthPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CheckProviderHealthLlmProvidersProviderIdHealthPostError = CheckProviderHealthLlmProvidersProviderIdHealthPostErrors[keyof CheckProviderHealthLlmProvidersProviderIdHealthPostErrors];
+
+export type CheckProviderHealthLlmProvidersProviderIdHealthPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProviderHealthCheck;
+};
+
+export type CheckProviderHealthLlmProvidersProviderIdHealthPostResponse = CheckProviderHealthLlmProvidersProviderIdHealthPostResponses[keyof CheckProviderHealthLlmProvidersProviderIdHealthPostResponses];
+
+export type ListModelsLlmModelsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Provider Id
+         *
+         * Filter by provider ID
+         */
+        provider_id?: string | null;
+        /**
+         * Enabled Only
+         *
+         * Only return enabled models
+         */
+        enabled_only?: boolean;
+        /**
+         * Page
+         *
+         * Page number
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * Items per page
+         */
+        page_size?: number;
+    };
+    url: '/llm/models';
+};
+
+export type ListModelsLlmModelsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListModelsLlmModelsGetError = ListModelsLlmModelsGetErrors[keyof ListModelsLlmModelsGetErrors];
+
+export type ListModelsLlmModelsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmModelListResponse;
+};
+
+export type ListModelsLlmModelsGetResponse = ListModelsLlmModelsGetResponses[keyof ListModelsLlmModelsGetResponses];
+
+export type CreateModelLlmModelsPostData = {
+    body: LlmModelCreate;
+    path?: never;
+    query?: never;
+    url: '/llm/models';
+};
+
+export type CreateModelLlmModelsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateModelLlmModelsPostError = CreateModelLlmModelsPostErrors[keyof CreateModelLlmModelsPostErrors];
+
+export type CreateModelLlmModelsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: LlmModelResponse;
+};
+
+export type CreateModelLlmModelsPostResponse = CreateModelLlmModelsPostResponses[keyof CreateModelLlmModelsPostResponses];
+
+export type DeleteModelLlmModelsModelIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+    };
+    query?: never;
+    url: '/llm/models/{model_id}';
+};
+
+export type DeleteModelLlmModelsModelIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteModelLlmModelsModelIdDeleteError = DeleteModelLlmModelsModelIdDeleteErrors[keyof DeleteModelLlmModelsModelIdDeleteErrors];
+
+export type DeleteModelLlmModelsModelIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteModelLlmModelsModelIdDeleteResponse = DeleteModelLlmModelsModelIdDeleteResponses[keyof DeleteModelLlmModelsModelIdDeleteResponses];
+
+export type GetModelLlmModelsModelIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+    };
+    query?: never;
+    url: '/llm/models/{model_id}';
+};
+
+export type GetModelLlmModelsModelIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetModelLlmModelsModelIdGetError = GetModelLlmModelsModelIdGetErrors[keyof GetModelLlmModelsModelIdGetErrors];
+
+export type GetModelLlmModelsModelIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmModelResponse;
+};
+
+export type GetModelLlmModelsModelIdGetResponse = GetModelLlmModelsModelIdGetResponses[keyof GetModelLlmModelsModelIdGetResponses];
+
+export type UpdateModelLlmModelsModelIdPatchData = {
+    body: LlmModelUpdate;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+    };
+    query?: never;
+    url: '/llm/models/{model_id}';
+};
+
+export type UpdateModelLlmModelsModelIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateModelLlmModelsModelIdPatchError = UpdateModelLlmModelsModelIdPatchErrors[keyof UpdateModelLlmModelsModelIdPatchErrors];
+
+export type UpdateModelLlmModelsModelIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmModelResponse;
+};
+
+export type UpdateModelLlmModelsModelIdPatchResponse = UpdateModelLlmModelsModelIdPatchResponses[keyof UpdateModelLlmModelsModelIdPatchResponses];
+
+export type ToggleModelLlmModelsModelIdTogglePostData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+    };
+    query?: never;
+    url: '/llm/models/{model_id}/toggle';
+};
+
+export type ToggleModelLlmModelsModelIdTogglePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ToggleModelLlmModelsModelIdTogglePostError = ToggleModelLlmModelsModelIdTogglePostErrors[keyof ToggleModelLlmModelsModelIdTogglePostErrors];
+
+export type ToggleModelLlmModelsModelIdTogglePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmModelResponse;
+};
+
+export type ToggleModelLlmModelsModelIdTogglePostResponse = ToggleModelLlmModelsModelIdTogglePostResponses[keyof ToggleModelLlmModelsModelIdTogglePostResponses];
+
+export type GetGatewayModelsLlmGatewayModelsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Request
+         */
+        request?: unknown | null;
+    };
+    url: '/llm/gateway/models';
+};
+
+export type GetGatewayModelsLlmGatewayModelsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetGatewayModelsLlmGatewayModelsGetError = GetGatewayModelsLlmGatewayModelsGetErrors[keyof GetGatewayModelsLlmGatewayModelsGetErrors];
+
+export type GetGatewayModelsLlmGatewayModelsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: GatewayModelsResponse;
+};
+
+export type GetGatewayModelsLlmGatewayModelsGetResponse = GetGatewayModelsLlmGatewayModelsGetResponses[keyof GetGatewayModelsLlmGatewayModelsGetResponses];
+
+export type ChatCompletionsV1ChatCompletionsPostData = {
+    body: ChatCompletionRequest;
+    path?: never;
+    query?: {
+        /**
+         * Request
+         */
+        request?: unknown | null;
+    };
+    url: '/v1/chat/completions';
+};
+
+export type ChatCompletionsV1ChatCompletionsPostErrors = {
+    /**
+     * Invalid request
+     */
+    400: unknown;
+    /**
+     * Authentication required
+     */
+    401: unknown;
+    /**
+     * Model not found
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Provider error
+     */
+    500: unknown;
+};
+
+export type ChatCompletionsV1ChatCompletionsPostError = ChatCompletionsV1ChatCompletionsPostErrors[keyof ChatCompletionsV1ChatCompletionsPostErrors];
+
+export type ChatCompletionsV1ChatCompletionsPostResponses = {
+    /**
+     * Chat completion response
+     */
+    200: ChatCompletionResponse;
+};
+
+export type ChatCompletionsV1ChatCompletionsPostResponse = ChatCompletionsV1ChatCompletionsPostResponses[keyof ChatCompletionsV1ChatCompletionsPostResponses];
+
+export type ListModelsV1ModelsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Request
+         */
+        request?: unknown | null;
+    };
+    url: '/v1/models';
+};
+
+export type ListModelsV1ModelsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListModelsV1ModelsGetError = ListModelsV1ModelsGetErrors[keyof ListModelsV1ModelsGetErrors];
+
+export type ListModelsV1ModelsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetProvidersPartialAdminLlmProvidersHtmlGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * Page number
+         */
+        page?: number;
+        /**
+         * Per Page
+         *
+         * Items per page
+         */
+        per_page?: number;
+    };
+    url: '/admin/llm/providers/html';
+};
+
+export type GetProvidersPartialAdminLlmProvidersHtmlGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProvidersPartialAdminLlmProvidersHtmlGetError = GetProvidersPartialAdminLlmProvidersHtmlGetErrors[keyof GetProvidersPartialAdminLlmProvidersHtmlGetErrors];
+
+export type GetProvidersPartialAdminLlmProvidersHtmlGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type GetProvidersPartialAdminLlmProvidersHtmlGetResponse = GetProvidersPartialAdminLlmProvidersHtmlGetResponses[keyof GetProvidersPartialAdminLlmProvidersHtmlGetResponses];
+
+export type GetModelsPartialAdminLlmModelsHtmlGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Provider Id
+         *
+         * Filter by provider ID
+         */
+        provider_id?: string | null;
+        /**
+         * Page
+         *
+         * Page number
+         */
+        page?: number;
+        /**
+         * Per Page
+         *
+         * Items per page
+         */
+        per_page?: number;
+    };
+    url: '/admin/llm/models/html';
+};
+
+export type GetModelsPartialAdminLlmModelsHtmlGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetModelsPartialAdminLlmModelsHtmlGetError = GetModelsPartialAdminLlmModelsHtmlGetErrors[keyof GetModelsPartialAdminLlmModelsHtmlGetErrors];
+
+export type GetModelsPartialAdminLlmModelsHtmlGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type GetModelsPartialAdminLlmModelsHtmlGetResponse = GetModelsPartialAdminLlmModelsHtmlGetResponses[keyof GetModelsPartialAdminLlmModelsHtmlGetResponses];
+
+export type ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/admin/llm/providers/{provider_id}/toggle';
+};
+
+export type ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostError = ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostErrors[keyof ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostErrors];
+
+export type ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostResponse = ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostResponses[keyof ToggleProviderHtmlAdminLlmProvidersProviderIdTogglePostResponses];
+
+export type CheckProviderHealthAdminLlmProvidersProviderIdHealthPostData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/admin/llm/providers/{provider_id}/health';
+};
+
+export type CheckProviderHealthAdminLlmProvidersProviderIdHealthPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CheckProviderHealthAdminLlmProvidersProviderIdHealthPostError = CheckProviderHealthAdminLlmProvidersProviderIdHealthPostErrors[keyof CheckProviderHealthAdminLlmProvidersProviderIdHealthPostErrors];
+
+export type CheckProviderHealthAdminLlmProvidersProviderIdHealthPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/admin/llm/providers/{provider_id}';
+};
+
+export type DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteError = DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteErrors[keyof DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteErrors];
+
+export type DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteResponse = DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteResponses[keyof DeleteProviderHtmlAdminLlmProvidersProviderIdDeleteResponses];
+
+export type ToggleModelHtmlAdminLlmModelsModelIdTogglePostData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+    };
+    query?: never;
+    url: '/admin/llm/models/{model_id}/toggle';
+};
+
+export type ToggleModelHtmlAdminLlmModelsModelIdTogglePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ToggleModelHtmlAdminLlmModelsModelIdTogglePostError = ToggleModelHtmlAdminLlmModelsModelIdTogglePostErrors[keyof ToggleModelHtmlAdminLlmModelsModelIdTogglePostErrors];
+
+export type ToggleModelHtmlAdminLlmModelsModelIdTogglePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type ToggleModelHtmlAdminLlmModelsModelIdTogglePostResponse = ToggleModelHtmlAdminLlmModelsModelIdTogglePostResponses[keyof ToggleModelHtmlAdminLlmModelsModelIdTogglePostResponses];
+
+export type DeleteModelHtmlAdminLlmModelsModelIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Model Id
+         */
+        model_id: string;
+    };
+    query?: never;
+    url: '/admin/llm/models/{model_id}';
+};
+
+export type DeleteModelHtmlAdminLlmModelsModelIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteModelHtmlAdminLlmModelsModelIdDeleteError = DeleteModelHtmlAdminLlmModelsModelIdDeleteErrors[keyof DeleteModelHtmlAdminLlmModelsModelIdDeleteErrors];
+
+export type DeleteModelHtmlAdminLlmModelsModelIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type DeleteModelHtmlAdminLlmModelsModelIdDeleteResponse = DeleteModelHtmlAdminLlmModelsModelIdDeleteResponses[keyof DeleteModelHtmlAdminLlmModelsModelIdDeleteResponses];
+
+export type GetApiInfoPartialAdminLlmApiInfoHtmlGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/llm/api-info/html';
+};
+
+export type GetApiInfoPartialAdminLlmApiInfoHtmlGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetApiInfoPartialAdminLlmApiInfoHtmlGetError = GetApiInfoPartialAdminLlmApiInfoHtmlGetErrors[keyof GetApiInfoPartialAdminLlmApiInfoHtmlGetErrors];
+
+export type GetApiInfoPartialAdminLlmApiInfoHtmlGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: string;
+};
+
+export type GetApiInfoPartialAdminLlmApiInfoHtmlGetResponse = GetApiInfoPartialAdminLlmApiInfoHtmlGetResponses[keyof GetApiInfoPartialAdminLlmApiInfoHtmlGetResponses];
+
+export type AdminTestApiAdminLlmTestPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/llm/test';
+};
+
+export type AdminTestApiAdminLlmTestPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AdminTestApiAdminLlmTestPostError = AdminTestApiAdminLlmTestPostErrors[keyof AdminTestApiAdminLlmTestPostErrors];
+
+export type AdminTestApiAdminLlmTestPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetProviderDefaultsAdminLlmProviderDefaultsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin/llm/provider-defaults';
+};
+
+export type GetProviderDefaultsAdminLlmProviderDefaultsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProviderDefaultsAdminLlmProviderDefaultsGetError = GetProviderDefaultsAdminLlmProviderDefaultsGetErrors[keyof GetProviderDefaultsAdminLlmProviderDefaultsGetErrors];
+
+export type GetProviderDefaultsAdminLlmProviderDefaultsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type FetchProviderModelsAdminLlmProvidersProviderIdFetchModelsPostData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/admin/llm/providers/{provider_id}/fetch-models';
+};
+
+export type FetchProviderModelsAdminLlmProvidersProviderIdFetchModelsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type FetchProviderModelsAdminLlmProvidersProviderIdFetchModelsPostError = FetchProviderModelsAdminLlmProvidersProviderIdFetchModelsPostErrors[keyof FetchProviderModelsAdminLlmProvidersProviderIdFetchModelsPostErrors];
+
+export type FetchProviderModelsAdminLlmProvidersProviderIdFetchModelsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type SyncProviderModelsAdminLlmProvidersProviderIdSyncModelsPostData = {
+    body?: never;
+    path: {
+        /**
+         * Provider Id
+         */
+        provider_id: string;
+    };
+    query?: never;
+    url: '/admin/llm/providers/{provider_id}/sync-models';
+};
+
+export type SyncProviderModelsAdminLlmProvidersProviderIdSyncModelsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SyncProviderModelsAdminLlmProvidersProviderIdSyncModelsPostError = SyncProviderModelsAdminLlmProvidersProviderIdSyncModelsPostErrors[keyof SyncProviderModelsAdminLlmProvidersProviderIdSyncModelsPostErrors];
+
+export type SyncProviderModelsAdminLlmProvidersProviderIdSyncModelsPostResponses = {
     /**
      * Successful Response
      */
@@ -18475,14 +19536,14 @@ export type GetResourcesPartialAdminObservabilityResourcesPartialGetResponses = 
 
 export type GetResourcesPartialAdminObservabilityResourcesPartialGetResponse = GetResourcesPartialAdminObservabilityResourcesPartialGetResponses[keyof GetResourcesPartialAdminObservabilityResourcesPartialGetResponses];
 
-export type RootInfoGetData = {
+export type RootRedirectGetData = {
     body?: never;
     path?: never;
     query?: never;
     url: '/';
 };
 
-export type RootInfoGetResponses = {
+export type RootRedirectGetResponses = {
     /**
      * Successful Response
      */
