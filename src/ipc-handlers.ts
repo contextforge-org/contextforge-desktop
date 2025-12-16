@@ -1079,6 +1079,74 @@ export function setupIpcHandlers(trayManager: TrayManager, mainWindow: BrowserWi
     }
   });
 
+  // Plugin configuration handlers
+  ipcMain.handle('backend:get-enable-plugins', async () => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      return {
+        success: true,
+        data: backendPreferences.getEnablePlugins(),
+      };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('backend:set-enable-plugins', async (_event, value: boolean) => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      backendPreferences.setEnablePlugins(value);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('backend:get-plugin-config', async (_event, pluginName: string) => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      return {
+        success: true,
+        data: backendPreferences.getPluginConfig(pluginName),
+      };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('backend:set-plugin-config', async (_event, pluginName: string, config: any) => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      backendPreferences.setPluginConfig(pluginName, config);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('backend:get-all-plugin-configs', async () => {
+    try {
+      const { backendPreferences } = await import('./services/BackendPreferences');
+      return {
+        success: true,
+        data: backendPreferences.getAllPluginConfigs(),
+      };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('backend:restart', async () => {
+    try {
+      const { PythonProcessManager } = await import('./python-process-manager');
+      const manager = PythonProcessManager.getInstance();
+      await manager.restart();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   // Backend health check handler
   ipcMain.handle('backend:check-health', async () => {
     try {

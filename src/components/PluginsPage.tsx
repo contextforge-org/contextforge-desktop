@@ -5,11 +5,15 @@ import { PageHeader } from './common';
 import * as api from '../lib/api/contextforge-api-ipc';
 import { withAuth } from '../lib/api/auth-helper';
 import { toast } from '../lib/toastWithTray';
-import { Plug, CheckCircle2, XCircle, Info } from 'lucide-react';
+import { Plug, CheckCircle2, XCircle, Info, RefreshCw, Power } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Switch } from './ui/switch';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import type { PluginConfig } from '../types/backend-settings';
 
 export function PluginsPage() {
   const [plugins, setPlugins] = useState<PluginSummary[]>([]);
@@ -18,8 +22,32 @@ export function PluginsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [pluginConfigs, setPluginConfigs] = useState<Record<string, PluginConfig>>({});
+  const [enablePlugins, setEnablePlugins] = useState(true); // Default to true to match backend default
+  const [isRestarting, setIsRestarting] = useState(false);
 
   const { theme } = useTheme();
+  const [isInternalProfile, setIsInternalProfile] = useState(true);
+
+  useEffect(() => {
+    async function checkProfile() {
+      try {
+        const result = await window.electronAPI.api.getCurrentProfile();
+        if (result.success && result.data?.profile) {
+          // Check for "Internal Backend" or "Internal" profile names
+          const profileName = result.data.profile.name;
+          setIsInternalProfile(
+            profileName === 'Internal Backend'
+          );
+        }
+        // If no profile or error, keep default (true)
+      } catch (error) {
+        console.error('Failed to get current profile:', error);
+        // Keep default (true) on error
+      }
+    }
+    checkProfile();
+  }, []);
 
   // Fetch plugins and stats on mount
   useEffect(() => {
@@ -60,16 +88,159 @@ export function PluginsPage() {
     fetchData();
   }, []);
 
+  // Load plugin configs on mount if Internal profile
+  useEffect(() => {
+    if (isInternalProfile) {
+      loadPluginConfigs();
+    }
+  }, [isInternalProfile]);
+
+  async function loadPluginConfigs() {
+    try {
+      const [enableResult, configsResult] = await Promise.all([
+        window.electronAPI.getEnablePlugins(),
+        window.electronAPI.getAllPluginConfigs(),
+      ]);
+      
+      if (enableResult.success && enableResult.data !== undefined) {
+        setEnablePlugins(enableResult.data);
+      }
+      
+      if (configsResult.success && configsResult.data) {
+        setPluginConfigs(configsResult.data);
+      }
+    } catch (error) {
+      console.error('Failed to load plugin configs:', error);
+    }
+  }
+
+  // Handler to toggle plugin enablement
+  async function handleTogglePlugin(pluginName: string, enabled: boolean) {
+    try {
+      const config: PluginConfig = {
+        enabled,
+        mode: enabled ? 'permissive' : 'disabled',
+      };
+      
+      const result = await window.electronAPI.setPluginConfig(pluginName, config);
+      
+      if (result.success) {
+        setPluginConfigs(prev => ({
+          ...prev,
+          [pluginName]: config,
+        }));
+        toast.success(`Plugin ${enabled ? 'enabled' : 'disabled'}. Restart backend to apply changes.`);
+      } else {
+        toast.error('Failed to update plugin: ' + result.error);
+      }
+    } catch (error) {
+      toast.error('Failed to update plugin: ' + (error as Error).message);
+    }
+  }
+
+  // Handler to toggle global plugin system
+  async function handleTogglePluginSystem(enabled: boolean) {
+    try {
+      const result = await window.electronAPI.setEnablePlugins(enabled);
+      
+      if (result.success) {
+        setEnablePlugins(enabled);
+        toast.success(`Plugin system ${enabled ? 'enabled' : 'disabled'}. Restart backend to apply changes.`);
+      } else {
+        toast.error('Failed to update plugin system: ' + result.error);
+      }
+    } catch (error) {
+      toast.error('Failed to update plugin system: ' + (error as Error).message);
+    }
+  }
+
+  // Handler to restart backend
+  async function handleRestartBackend() {
+    try {
+      setIsRestarting(true);
+      toast.info('Restarting backend...');
+      
+      const result = await window.electronAPI.restartBackend();
+      
+      if (result.success) {
+        toast.success('Backend restarted successfully');
+        // Reload plugins after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        toast.error('Failed to restart backend: ' + result.error);
+      }
+    } catch (error) {
+      toast.error('Failed to restart backend: ' + (error as Error).message);
+    } finally {
+      setIsRestarting(false);
+    }
+  }
+
   const handlePluginClick = async (plugin: PluginSummary) => {
     try {
       const details = await withAuth(
         () => api.getPluginDetails(plugin.name),
         'Failed to load plugin details'
       );
-      setSelectedPlugin(details);
+      
+      // Check if we got valid details
+      if (!details || !details.name) {
+        // If backend doesn't return full details (e.g., for disabled plugins),
+        // create a detail object from the summary
+        const fallbackDetails: PluginDetail = {
+          name: plugin.name,
+          description: plugin.description,
+          author: plugin.author,
+          version: plugin.version,
+          mode: plugin.mode,
+          priority: plugin.priority,
+          hooks: plugin.hooks,
+          tags: plugin.tags,
+          status: plugin.status,
+          config_summary: plugin.config_summary,
+          plugin_type: null,
+          namespace: null,
+          conditions: null,
+          config: null,
+          manifest: null
+        };
+        setSelectedPlugin(fallbackDetails);
+      } else {
+        setSelectedPlugin(details);
+      }
+      
       setShowDetailsDialog(true);
     } catch (err) {
-      toast.error('Failed to load plugin details: ' + (err as Error).message);
+      const errorMsg = (err as Error).message;
+      
+      // If the plugin details aren't available (common for disabled plugins),
+      // show the summary info we already have
+      if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+        toast.info('Detailed information not available for this plugin. Showing summary.');
+        const fallbackDetails: PluginDetail = {
+          name: plugin.name,
+          description: plugin.description,
+          author: plugin.author,
+          version: plugin.version,
+          mode: plugin.mode,
+          priority: plugin.priority,
+          hooks: plugin.hooks,
+          tags: plugin.tags,
+          status: plugin.status,
+          config_summary: plugin.config_summary,
+          plugin_type: null,
+          namespace: null,
+          conditions: null,
+          config: null,
+          manifest: null
+        };
+        setSelectedPlugin(fallbackDetails);
+        setShowDetailsDialog(true);
+      } else {
+        toast.error('Failed to load plugin details: ' + errorMsg);
+      }
     }
   };
 
@@ -85,6 +256,57 @@ export function PluginsPage() {
       />
 
       <div className="flex-1 overflow-auto p-6">
+        {/* Plugin System Control Card - Only for Internal Profile */}
+        {isInternalProfile && (
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Power className="w-5 h-5" />
+                    Plugin System Control
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Manage the plugin system for the internal backend
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={handleRestartBackend}
+                  disabled={isRestarting}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isRestarting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Restarting...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Restart Backend
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Enable Plugin System</p>
+                  <p className="text-sm text-muted-foreground">
+                    Requires backend restart to take effect
+                  </p>
+                </div>
+                <Switch
+                  checked={enablePlugins}
+                  onCheckedChange={handleTogglePluginSystem}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -243,8 +465,57 @@ export function PluginsPage() {
 
               {selectedPlugin.config_summary && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Configuration Summary</p>
-                  <p className="text-sm text-muted-foreground">{selectedPlugin.config_summary}</p>
+                  <p className="text-sm font-medium mb-2">Configuration</p>
+                  {typeof selectedPlugin.config_summary === 'string' ? (
+                    <p className="text-sm text-muted-foreground">{selectedPlugin.config_summary}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {Object.entries(selectedPlugin.config_summary).map(([key, value]) => (
+                        <div key={key} className="border rounded-lg p-3 bg-muted/50">
+                          <p className="text-sm font-medium mb-1 capitalize">
+                            {key.replace(/_/g, ' ')}
+                          </p>
+                          <div className="text-sm text-muted-foreground">
+                            {Array.isArray(value) ? (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {value.map((item, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {String(item)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : typeof value === 'object' && value !== null ? (
+                              <pre className="text-xs overflow-x-auto mt-1 p-2 bg-background rounded">
+                                {JSON.stringify(value, null, 2)}
+                              </pre>
+                            ) : typeof value === 'boolean' ? (
+                              <Badge variant={value ? 'default' : 'secondary'} className="text-xs">
+                                {value ? 'Enabled' : 'Disabled'}
+                              </Badge>
+                            ) : (
+                              <span>{String(value)}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Plugin Control - Only for Internal Profile */}
+              {isInternalProfile && selectedPlugin && (
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">Plugin Control</p>
+                    <Switch
+                      checked={pluginConfigs[selectedPlugin.name]?.enabled ?? (selectedPlugin.status === 'enabled')}
+                      onCheckedChange={(checked) => handleTogglePlugin(selectedPlugin.name, checked)}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Changes require backend restart to take effect
+                  </p>
                 </div>
               )}
             </div>

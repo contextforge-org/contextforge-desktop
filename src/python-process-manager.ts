@@ -70,7 +70,7 @@ export class PythonProcessManager {
    * Start the Python process
    */
   public async start(args: string[] = ['serve']): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (this.isRunning) {
         this.log('info', 'Python process already running');
         resolve();
@@ -87,7 +87,8 @@ export class PythonProcessManager {
 
         this.log('info', `Starting Python process: ${execPath} ${args.join(' ')}`);
 
-        this.process = spawn(execPath, args, this.getSpawnOptions(execPath));
+        const spawnOptions = await this.getSpawnOptions(execPath);
+        this.process = spawn(execPath, args, spawnOptions);
         this.setupProcessOutputHandlers();
         this.setupProcessLifecycleHandlers(resolve, reject);
       } catch (error) {
@@ -114,9 +115,23 @@ export class PythonProcessManager {
   /**
    * Get spawn options for the Python process
    */
-  private getSpawnOptions(execPath: string) {
+  private async getSpawnOptions(execPath: string) {
+    // Get plugin preferences
+    const { backendPreferences } = await import('./services/BackendPreferences');
+    const enablePlugins = backendPreferences.getEnablePlugins();
+    const pluginConfigs = backendPreferences.getAllPluginConfigs();
+
+    // Write plugin configuration file if plugins are enabled
+    const contextforgeHome = path.join(app.getPath('userData'), '.contextforge');
+    const pluginConfigPath = path.join(contextforgeHome, 'plugins', 'config.yaml');
+    
+    if (enablePlugins && Object.keys(pluginConfigs).length > 0) {
+      await this.writePluginConfigFile(pluginConfigPath, pluginConfigs);
+      console.log('[PythonProcessManager] Plugin configuration written to:', pluginConfigPath);
+    }
+
     // Set up environment variables for the internal backend
-    const env = {
+    const env: Record<string, string> = {
       ...process.env,
       // Backend configuration
       MCG_HOST: '127.0.0.1',
@@ -133,7 +148,7 @@ export class PythonProcessManager {
       BASIC_AUTH_USER: 'admin@example.com',
       BASIC_AUTH_PASSWORD: 'changeme',
       // Database
-      CONTEXTFORGE_HOME: path.join(app.getPath('userData'), '.contextforge'),
+      CONTEXTFORGE_HOME: contextforgeHome,
       // Logging
       LOG_LEVEL: 'INFO',
       // UI - disable for internal backend
@@ -141,8 +156,8 @@ export class PythonProcessManager {
       MCPGATEWAY_ADMIN_API_ENABLED: 'true',
       // Development mode for easier setup
       DEV_MODE: 'true',
-      // Enable plugins
-      PLUGINS_ENABLED: 'true',
+      // Plugin configuration from preferences
+      PLUGINS_ENABLED: enablePlugins ? 'true' : 'false',
       // Enable observability and tracing
       ENABLE_OBSERVABILITY: 'true',
       ENABLE_TRACING: 'true',
@@ -151,12 +166,77 @@ export class PythonProcessManager {
       LLMCHAT_ENABLED: 'true',
     };
 
+    // Point to custom plugin config file if plugins are enabled
+    if (enablePlugins && Object.keys(pluginConfigs).length > 0) {
+      env['PLUGIN_CONFIG_FILE'] = pluginConfigPath;
+    }
+
     return {
       detached: false,
       stdio: ['pipe', 'pipe', 'pipe'] as ['pipe', 'pipe', 'pipe'],
       cwd: path.dirname(execPath),
       env,
     };
+  }
+
+  /**
+   * Write plugin configuration to YAML file
+   * Reads the base config, updates plugin modes based on user preferences, and writes to user config
+   */
+  private async writePluginConfigFile(
+    userConfigPath: string,
+    pluginConfigs: Record<string, import('./types/backend-settings').PluginConfig>
+  ): Promise<void> {
+    // Ensure directory exists
+    const dir = path.dirname(userConfigPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Get the base config file path (shipped with the app)
+    const baseConfigPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'plugins', 'config.yaml')
+      : path.join(__dirname, '..', '..', 'python', 'plugins', 'config.yaml');
+
+    // Copy base config to user config if it doesn't exist
+    if (!fs.existsSync(userConfigPath) && fs.existsSync(baseConfigPath)) {
+      fs.copyFileSync(baseConfigPath, userConfigPath);
+      console.log('[PythonProcessManager] Copied base plugin config to user directory');
+    }
+
+    // Read the current config file
+    let configContent = '';
+    if (fs.existsSync(userConfigPath)) {
+      configContent = fs.readFileSync(userConfigPath, 'utf8');
+    } else if (fs.existsSync(baseConfigPath)) {
+      configContent = fs.readFileSync(baseConfigPath, 'utf8');
+    } else {
+      console.warn('[PythonProcessManager] No plugin config file found, creating minimal config');
+      configContent = 'plugins:\n';
+    }
+
+    // Update plugin modes based on user preferences
+    // This is a simple regex-based approach - for production, consider using a YAML library
+    for (const [pluginName, config] of Object.entries(pluginConfigs)) {
+      const mode = config.enabled ? (config.mode || 'permissive') : 'disabled';
+      
+      // Find the plugin entry and update its mode
+      const pluginRegex = new RegExp(
+        `(- name: ["']?${pluginName}["']?\\s+[\\s\\S]*?mode: )["']?\\w+["']?`,
+        'g'
+      );
+      
+      if (pluginRegex.test(configContent)) {
+        configContent = configContent.replace(pluginRegex, `$1"${mode}"`);
+        console.log(`[PythonProcessManager] Updated ${pluginName} mode to: ${mode}`);
+      } else {
+        console.warn(`[PythonProcessManager] Plugin ${pluginName} not found in config file`);
+      }
+    }
+
+    // Write updated config
+    fs.writeFileSync(userConfigPath, configContent, 'utf8');
+    console.log('[PythonProcessManager] Plugin configuration updated');
   }
 
   /**
@@ -277,7 +357,7 @@ export class PythonProcessManager {
   /**
    * Restart the Python process
    */
-  public async restart(args: string[] = []): Promise<void> {
+  public async restart(args: string[] = ['serve']): Promise<void> {
     console.log('Restarting Python process...');
     await this.stop();
     // Wait a bit before restarting

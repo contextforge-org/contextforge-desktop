@@ -13,7 +13,7 @@ export interface PluginSummary {
   hooks?: string[] | null;
   tags?: string[] | null;
   status?: string | null;
-  config_summary?: string | null;
+  config_summary?: string | Record<string, unknown> | null;
 }
 
 export interface PluginDetail {
@@ -26,7 +26,7 @@ export interface PluginDetail {
   hooks?: string[] | null;
   tags?: string[] | null;
   status?: string | null;
-  config_summary?: string | null;
+  config_summary?: string | Record<string, unknown> | null;
   plugin_type?: string | null;
   namespace?: string | null;
   conditions?: Record<string, unknown> | null;

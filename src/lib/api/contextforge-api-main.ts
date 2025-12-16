@@ -442,7 +442,7 @@ export async function deleteResource(resourceId: string): Promise<any> {
 
 export async function toggleResourceStatus(resourceId: string, activate?: boolean) {
   const response = await toggleResourceStatusResourcesResourceIdTogglePost({
-    path: { resource_id: parseInt(resourceId) },
+    path: { resource_id: resourceId },
     query: activate !== undefined ? { activate } : undefined
   });
   

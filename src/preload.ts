@@ -33,6 +33,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   isWindowVisible: () => ipcRenderer.invoke('window:is-visible'),
 
+  // Plugin configuration (at root level)
+  getEnablePlugins: () => ipcRenderer.invoke('backend:get-enable-plugins'),
+  setEnablePlugins: (value: boolean) => ipcRenderer.invoke('backend:set-enable-plugins', value),
+  getPluginConfig: (pluginName: string) => ipcRenderer.invoke('backend:get-plugin-config', pluginName),
+  setPluginConfig: (pluginName: string, config: any) => ipcRenderer.invoke('backend:set-plugin-config', pluginName, config),
+  getAllPluginConfigs: () => ipcRenderer.invoke('backend:get-all-plugin-configs'),
+  restartBackend: () => ipcRenderer.invoke('backend:restart'),
+
   // API methods
   api: {
     login: (email: string, password: string) => ipcRenderer.invoke('api:login', email, password),
@@ -192,6 +200,14 @@ declare global {
       hideWindow: () => void;
       toggleWindow: () => void;
       isWindowVisible: () => Promise<boolean>;
+      
+      // Plugin configuration (at root level, not in api)
+      getEnablePlugins: () => Promise<{ success: boolean; data?: boolean; error?: string }>;
+      setEnablePlugins: (value: boolean) => Promise<{ success: boolean; error?: string }>;
+      getPluginConfig: (pluginName: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+      setPluginConfig: (pluginName: string, config: any) => Promise<{ success: boolean; error?: string }>;
+      getAllPluginConfigs: () => Promise<{ success: boolean; data?: Record<string, any>; error?: string }>;
+      restartBackend: () => Promise<{ success: boolean; error?: string }>;
       api: {
         login: (email: string, password: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         getCurrentUser: () => Promise<{ success: boolean; data?: any; error?: string }>;
