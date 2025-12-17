@@ -6,6 +6,7 @@
 import Store from 'electron-store';
 import type { BackendPreferences, PluginConfig } from '../types/backend-settings';
 import { DEFAULT_BACKEND_PREFERENCES } from '../types/backend-settings';
+import { getContextForgeHome } from './common';
 
 export class BackendPreferencesStore {
   private store: Store<BackendPreferences>;
@@ -13,6 +14,7 @@ export class BackendPreferencesStore {
   constructor() {
     this.store = new Store<BackendPreferences>({
       name: 'context-forge-backend-preferences',
+      cwd: getContextForgeHome(),
       defaults: DEFAULT_BACKEND_PREFERENCES,
       schema: {
         autoStartEmbedded: {
