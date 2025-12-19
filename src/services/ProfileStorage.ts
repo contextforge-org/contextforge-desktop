@@ -13,19 +13,26 @@ import type {
   ProfileCreateRequest,
   ProfileUpdateRequest
 } from '../types/profile';
+import { getContextForgeHome } from './common';
 
 export class ProfileStorage {
+  private contextforgeHome: string;
   private profileStore: Store<ProfileStore>;
   private credentialStore: Store<Record<string, ProfileCredentials>>;
   private encryptionKey: string;
 
   constructor() {
+    // Profile files will be stored in the local backend's home directory so the
+    // CLI can access them
+    this.contextforgeHome = getContextForgeHome();
+
     // Generate or retrieve encryption key
     this.encryptionKey = this.getOrCreateEncryptionKey();
-    
+
     // Initialize profile metadata store (non-sensitive data)
     this.profileStore = new Store<ProfileStore>({
       name: 'context-forge-profiles',
+      cwd: this.contextforgeHome,
       defaults: {
         profiles: {},
         settings: {
@@ -67,6 +74,7 @@ export class ProfileStorage {
     // Initialize encrypted credential store (sensitive data)
     this.credentialStore = new Store<Record<string, ProfileCredentials>>({
       name: 'context-forge-credentials',
+      cwd: this.contextforgeHome,
       encryptionKey: this.encryptionKey,
       defaults: {}
     });
@@ -76,16 +84,16 @@ export class ProfileStorage {
    * Generate or retrieve encryption key for credential storage
    */
   private getOrCreateEncryptionKey(): string {
-    const keyStore = new Store({ name: 'context-forge-keys' });
+    const keyStore = new Store({ name: 'context-forge-keys', cwd: this.contextforgeHome });
     let key = keyStore.get('encryptionKey') as string;
-    
+
     if (!key) {
       // Generate a new encryption key
       key = randomBytes(32).toString('hex');
       keyStore.set('encryptionKey', key);
       console.log('Generated new encryption key for profile storage');
     }
-    
+
     return key;
   }
 
@@ -95,7 +103,7 @@ export class ProfileStorage {
   async createProfile(request: ProfileCreateRequest): Promise<ProfileStorageResult<AuthProfile>> {
     try {
       const profileId = this.generateProfileId(request.email, request.apiUrl);
-      
+
       // Check if profile already exists
       const existingProfiles = this.profileStore.get('profiles', {});
       if (existingProfiles[profileId]) {
@@ -128,7 +136,7 @@ export class ProfileStorage {
       this.credentialStore.set(profileId, credentials);
 
       console.log(`Created profile: ${profile.name} (${profileId})`);
-      
+
       return {
         success: true,
         data: profile
@@ -149,7 +157,7 @@ export class ProfileStorage {
     try {
       const profiles = this.profileStore.get('profiles', {});
       const profileList = Object.values(profiles);
-      
+
       return {
         success: true,
         data: profileList
@@ -170,14 +178,14 @@ export class ProfileStorage {
     try {
       const profiles = this.profileStore.get('profiles', {});
       const profile = profiles[profileId];
-      
+
       if (!profile) {
         return {
           success: false,
           error: 'Profile not found'
         };
       }
-      
+
       return {
         success: true,
         data: profile
@@ -204,7 +212,7 @@ export class ProfileStorage {
           error: 'Credentials not found for profile'
         };
       }
-      
+
       return {
         success: true,
         data: credentials
@@ -225,7 +233,7 @@ export class ProfileStorage {
     try {
       const profiles = this.profileStore.get('profiles', {});
       const existingProfile = profiles[profileId];
-      
+
       if (!existingProfile) {
         return {
           success: false,
@@ -258,7 +266,7 @@ export class ProfileStorage {
       }
 
       console.log(`Updated profile: ${updatedProfile.name} (${profileId})`);
-      
+
       return {
         success: true,
         data: updatedProfile
@@ -278,7 +286,7 @@ export class ProfileStorage {
   async deleteProfile(profileId: string): Promise<ProfileStorageResult<void>> {
     try {
       const profiles = this.profileStore.get('profiles', {});
-      
+
       if (!profiles[profileId]) {
         return {
           success: false,
@@ -300,7 +308,7 @@ export class ProfileStorage {
       }
 
       console.log(`Deleted profile: ${profileId}`);
-      
+
       return {
         success: true
       };
@@ -319,7 +327,7 @@ export class ProfileStorage {
   async setActiveProfile(profileId: string): Promise<ProfileStorageResult<void>> {
     try {
       const profiles = this.profileStore.get('profiles', {});
-      
+
       if (!profiles[profileId]) {
         return {
           success: false,
@@ -344,7 +352,7 @@ export class ProfileStorage {
       this.profileStore.set('activeProfileId', profileId);
 
       console.log(`Set active profile: ${profileId}`);
-      
+
       return {
         success: true
       };
@@ -363,7 +371,7 @@ export class ProfileStorage {
   async getActiveProfile(): Promise<ProfileStorageResult<AuthProfile>> {
     try {
       const activeProfileId = this.profileStore.get('activeProfileId');
-      
+
       if (!activeProfileId) {
         return {
           success: false,
